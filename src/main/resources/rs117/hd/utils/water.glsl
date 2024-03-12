@@ -122,19 +122,18 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     // underglow
     vec3 underglowOut = underglowColor * max(normals.y, 0) * underglowStrength;
 
-
-    // fresnel reflection
-    float baseOpacity = 0.4;
-    float fresnel = 1.0 - clamp(viewDotNormals, 0.0, 1.0);
-    float finalFresnel = clamp(mix(baseOpacity, 1.0, fresnel * 1.2), 0.0, 1.0);
-    vec3 surfaceColor = vec3(0);
+// fresnel reflection
+    float baseOpacity = 0.0;
+    float fresnel = 0.0;
+    float finalFresnel = 0.0;
+    vec3 surfaceColor = vec3(0, 0.05, 0.1);
 
     // add sky gradient
-    if (finalFresnel < 0.5) {
-        surfaceColor = mix(waterColorDark, waterColorMid, finalFresnel * 2);
-    } else {
-        surfaceColor = mix(waterColorMid, waterColorLight, (finalFresnel - 0.5) * 2);
-    }
+   // if (finalFresnel < 0.5) {
+  //      surfaceColor = mix(waterColorDark, waterColorMid, finalFresnel * 2);
+  //  } else {
+  //      surfaceColor = mix(waterColorMid, waterColorLight, (finalFresnel - 0.5) * 2);
+  //  }
 
     vec3 surfaceColorOut = surfaceColor * max(combinedSpecularStrength, 0.2);
 
@@ -160,7 +159,8 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     finalFresnel -= finalFresnel * shadow * 0.2;
     baseColor += pointLightsSpecularOut + lightSpecularOut / 3;
 
-    float alpha = max(waterType.baseOpacity, max(foamAmount, max(finalFresnel, length(specularComposite / 3))));
+    //float alpha = max(waterType.baseOpacity, max(foamAmount, max(finalFresnel, length(specularComposite / 3))));
+    float alpha = 1;
 
     if (waterType.isFlat) {
         baseColor = mix(waterType.depthColor, baseColor, alpha);

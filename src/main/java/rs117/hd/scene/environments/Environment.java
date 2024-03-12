@@ -19,7 +19,7 @@ public class Environment {
 		.setKey("DEFAULT")
 		.setArea(Area.ALL)
 		.setFogColor(rgb("#000000"))
-		.setWaterColor(rgb("#66eaff"))
+		.setWaterColor(rgb(0, 0, 0))
 		.setSunAngles(HDUtils.sunAngles(52, 235))
 		.normalize();
 	public static final Environment NONE = new Environment()
