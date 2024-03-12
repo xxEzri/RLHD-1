@@ -176,6 +176,8 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     float midColorLevel = 150;
     float surfaceLevel = IN.position.y - depth; // e.g. -1600
 
+    #define OLD
+    #ifdef OLD
     if (depth < midColorLevel) {
         outputColor *= mix(vec3(1), waterType.depthColor, translateRange(0, midColorLevel, depth));
     } else if (depth < lowestColorLevel) {
@@ -183,6 +185,14 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     } else {
         outputColor = vec3(0);
     }
+    #else
+    outputColor = srgbToLinear(outputColor);
+
+    vec3 depthColor = srgbToLinear(waterType.depthColor) * .14 * vec3(.4, .275, .09);
+    float extinction = exp(-depth * .015);
+    outputColor = mix(depthColor, outputColor, extinction);
+    outputColor = linearToSrgb(outputColor);
+    #endif
 
     if (underwaterCaustics) {
         const float scale = 1.75;
