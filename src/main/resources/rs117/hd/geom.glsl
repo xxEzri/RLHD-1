@@ -56,6 +56,7 @@ flat out vec3 B;
 out FragmentData {
     vec3 position;
     vec3 normal;
+    vec3 flatNormal;
     vec3 texBlend;
     float fogAmount;
 } OUT;
@@ -93,6 +94,7 @@ void main() {
         // Flat normals must be applied separately per vertex
         vec3 normal = gNormal[i];
         OUT.position = gPosition[i];
+        OUT.flatNormal = N;
         #if FLAT_SHADING
         OUT.normal = N;
         #else
