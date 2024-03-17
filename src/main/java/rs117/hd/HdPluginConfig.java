@@ -876,6 +876,18 @@ public interface HdPluginConfig extends Config
 		return false;
 	}
 
+	String KEY_PLANAR_REFLECTIONS = "planarReflections";
+	@ConfigItem(
+		keyName = KEY_PLANAR_REFLECTIONS,
+		name = "Planar Reflections",
+		description = "Render a highly detailed reflection of the game world on bodies of water. EXPENSIVE and WIP.",
+		position = 403,
+		section = experimentalSettings
+	)
+	default boolean enablePlanarReflections() {
+		return false;
+	}
+
 
 	/*====== Internal settings ======*/
 

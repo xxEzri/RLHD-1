@@ -33,6 +33,11 @@
 
 uniform sampler2DArray textureArray;
 uniform sampler2D shadowMap;
+uniform sampler2D waterReflectionMap;
+
+uniform int renderPass;
+#define RENDER_PASS_MAIN 0
+#define RENDER_PASS_WATER_REFLECTION 1
 
 uniform vec3 cameraPos;
 uniform mat4 lightProjectionMatrix;
@@ -56,6 +61,8 @@ uniform float lightningBrightness;
 uniform vec3 lightDir;
 uniform float shadowMaxBias;
 uniform int shadowsEnabled;
+uniform int waterHeight;
+uniform bool waterReflectionEnabled;
 uniform bool underwaterEnvironment;
 uniform bool underwaterCaustics;
 uniform vec3 underwaterCausticsColor;
@@ -77,6 +84,7 @@ flat in vec3 B;
 in FragmentData {
     vec3 position;
     vec3 normal;
+    vec3 flatNormal;
     vec3 texBlend;
     float fogAmount;
 } IN;
@@ -133,8 +141,16 @@ void main() {
     vec4 outputColor = vec4(1);
 
     if (isWater) {
+        // Hide flat water surface tiles in the reflection
+        bool isFlat = dot(IN.flatNormal, vec3(0, 0, -1)) < .001;
+        if (renderPass == RENDER_PASS_WATER_REFLECTION && isFlat)
+            discard;
         outputColor = sampleWater(waterTypeIndex, viewDir);
     } else {
+        // Hide underwater tiles in the reflection
+        if (renderPass == RENDER_PASS_WATER_REFLECTION && isUnderwater)
+            discard;
+
         vec2 uv1 = vUv[0].xy;
         vec2 uv2 = vUv[1].xy;
         vec2 uv3 = vUv[2].xy;

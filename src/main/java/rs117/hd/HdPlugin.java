@@ -150,6 +150,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	public static final int TEXTURE_UNIT_GAME = TEXTURE_UNIT_BASE + 1;
 	public static final int TEXTURE_UNIT_SHADOW_MAP = TEXTURE_UNIT_BASE + 2;
 	public static final int TEXTURE_UNIT_TILE_HEIGHT_MAP = TEXTURE_UNIT_BASE + 3;
+	public static final int TEXTURE_UNIT_WATER_REFLECTION_MAP = TEXTURE_UNIT_BASE + 4;
 
 	public static final int UNIFORM_BLOCK_CAMERA = 0;
 	public static final int UNIFORM_BLOCK_MATERIALS = 1;
@@ -291,6 +292,10 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int fboShadowMap;
 	private int texShadowMap;
 
+	private int fboWaterReflection = -1;
+	private int texWaterReflection = -1;
+	private int texWaterReflectionDepthMap = -1;
+
 	private int texTileHeightMap;
 
 	private final GLBuffer hStagingBufferVertices = new GLBuffer(); // temporary scene vertex buffer
@@ -333,12 +338,14 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int lastCanvasHeight;
 	private int lastStretchedCanvasWidth;
 	private int lastStretchedCanvasHeight;
+	private boolean lastWaterReflectionEnabled;
 	private AntiAliasingMode lastAntiAliasingMode;
 
 	private int viewportOffsetX;
 	private int viewportOffsetY;
 
 	// Uniforms
+	private int uniRenderPass;
 	private int uniColorBlindnessIntensity;
 	private int uniUiColorBlindnessIntensity;
 	private int uniUseFog;
@@ -368,6 +375,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int uniUnderwaterCaustics;
 	private int uniUnderwaterCausticsColor;
 	private int uniUnderwaterCausticsStrength;
+	private int uniWaterHeight;
+	private int uniWaterReflectionEnabled;
 	private int uniCameraPos;
 
 	// Shadow program uniforms
@@ -381,6 +390,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int uniProjectionMatrix;
 	private int uniLightProjectionMatrix;
 	private int uniShadowMap;
+	private int uniWaterReflectionMap;
 	private int uniUiTexture;
 	private int uniTexSourceDimensions;
 	private int uniTexTargetDimensions;
@@ -586,6 +596,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				lastCanvasWidth = lastCanvasHeight = 0;
 				lastStretchedCanvasWidth = lastStretchedCanvasHeight = 0;
 				lastAntiAliasingMode = null;
+				lastWaterReflectionEnabled = false;
 
 				tileOverrideManager.startUp();
 				modelOverrideManager.startUp();
@@ -655,6 +666,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				destroyAAFbo();
 				destroyShadowMapFbo();
 				destroyTileHeightMap();
+				destroyWaterReflectionFbo();
 				destroyModelSortingBins();
 
 				openCLManager.shutDown();
@@ -839,6 +851,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		glUseProgram(glSceneProgram);
 		glUniform1i(uniTextureArray, TEXTURE_UNIT_GAME - TEXTURE_UNIT_BASE);
 		glUniform1i(uniShadowMap, TEXTURE_UNIT_SHADOW_MAP - TEXTURE_UNIT_BASE);
+		glUniform1i(uniWaterReflectionMap, TEXTURE_UNIT_WATER_REFLECTION_MAP - TEXTURE_UNIT_BASE);
 
 		// Bind a VOA, else validation may fail on older Intel-based Macs
 		glBindVertexArray(vaoSceneHandle);
@@ -857,9 +870,11 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	}
 
 	private void initUniforms() {
+		uniRenderPass = glGetUniformLocation(glSceneProgram, "renderPass");
 		uniProjectionMatrix = glGetUniformLocation(glSceneProgram, "projectionMatrix");
 		uniLightProjectionMatrix = glGetUniformLocation(glSceneProgram, "lightProjectionMatrix");
 		uniShadowMap = glGetUniformLocation(glSceneProgram, "shadowMap");
+		uniWaterReflectionMap = glGetUniformLocation(glSceneProgram, "waterReflectionMap");
 		uniSaturation = glGetUniformLocation(glSceneProgram, "saturation");
 		uniContrast = glGetUniformLocation(glSceneProgram, "contrast");
 		uniUseFog = glGetUniformLocation(glSceneProgram, "useFog");
@@ -889,6 +904,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		uniUnderwaterCaustics = glGetUniformLocation(glSceneProgram, "underwaterCaustics");
 		uniUnderwaterCausticsColor = glGetUniformLocation(glSceneProgram, "underwaterCausticsColor");
 		uniUnderwaterCausticsStrength = glGetUniformLocation(glSceneProgram, "underwaterCausticsStrength");
+		uniWaterHeight = glGetUniformLocation(glSceneProgram, "waterHeight");
+		uniWaterReflectionEnabled = glGetUniformLocation(glSceneProgram, "waterReflectionEnabled");
 		uniCameraPos = glGetUniformLocation(glSceneProgram, "cameraPos");
 		uniTextureArray = glGetUniformLocation(glSceneProgram, "textureArray");
 		uniElapsedTime = glGetUniformLocation(glSceneProgram, "elapsedTime");
@@ -1389,6 +1406,68 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		if (texTileHeightMap != 0)
 			glDeleteTextures(texTileHeightMap);
 		texTileHeightMap = 0;
+	}
+
+	private void initWaterReflectionFbo(int width, int height)
+	{
+		// Create and bind the FBO
+		fboWaterReflection = glGenFramebuffers();
+		glBindFramebuffer(GL_FRAMEBUFFER, fboWaterReflection);
+
+		// Create texture
+		texWaterReflection = glGenTextures();
+		glBindTexture(GL_TEXTURE_2D, texWaterReflection);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+		float[] colorBorder = {0, 0, 0, 1};
+		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, colorBorder);
+
+		// Bind texture
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texWaterReflection, 0);
+		glReadBuffer(GL_NONE);
+
+		// Create texture
+		texWaterReflectionDepthMap = glGenTextures();
+		glBindTexture(GL_TEXTURE_2D, texWaterReflectionDepthMap);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+		float[] depthBorder = {1, 1, 1, 1};
+		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, depthBorder);
+
+		// Bind texture
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texWaterReflectionDepthMap, 0);
+
+		// Reset
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, awtContext.getFramebuffer(false));
+	}
+
+	private void destroyWaterReflectionFbo() {
+		if (texWaterReflection != -1)
+		{
+			glDeleteTextures(texWaterReflection);
+			texWaterReflection = -1;
+		}
+
+		if (texWaterReflectionDepthMap != -1)
+		{
+			glDeleteTextures(texWaterReflectionDepthMap);
+			texWaterReflectionDepthMap = -1;
+		}
+
+		if (fboWaterReflection != -1)
+		{
+			glDeleteFramebuffers(fboWaterReflection);
+			fboWaterReflection = -1;
+		}
 	}
 
 	@Override
@@ -1921,16 +2000,17 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 			glUseProgram(glSceneProgram);
 
+
+			final Dimension stretchedDimensions = client.getStretchedDimensions();
+
+			final int stretchedCanvasWidth = client.isStretchedEnabled() ? stretchedDimensions.width : canvasWidth;
+			final int stretchedCanvasHeight = client.isStretchedEnabled() ? stretchedDimensions.height : canvasHeight;
+
 			// Setup anti-aliasing
 			final AntiAliasingMode antiAliasingMode = config.antiAliasingMode();
 			final boolean aaEnabled = antiAliasingMode != AntiAliasingMode.DISABLED;
 			if (aaEnabled) {
 				glEnable(GL_MULTISAMPLE);
-
-				final Dimension stretchedDimensions = client.getStretchedDimensions();
-
-				final int stretchedCanvasWidth = client.isStretchedEnabled() ? stretchedDimensions.width : canvasWidth;
-				final int stretchedCanvasHeight = client.isStretchedEnabled() ? stretchedDimensions.height : canvasHeight;
 
 				// Re-create fbo
 				if (
@@ -1950,9 +2030,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 					log.debug("AA samples: {}, max samples: {}, forced samples: {}", samples, maxSamples, forcedAASamples);
 
 					initAAFbo(stretchedCanvasWidth, stretchedCanvasHeight, samples);
-
-					lastStretchedCanvasWidth = stretchedCanvasWidth;
-					lastStretchedCanvasHeight = stretchedCanvasHeight;
 				}
 
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fboSceneHandle);
@@ -1961,7 +2038,26 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				destroyAAFbo();
 			}
 
+			// Setup planar reflection FBO
+			final boolean waterReflectionEnabled = config.enablePlanarReflections();
+			if (waterReflectionEnabled)
+			{
+				// Re-create planar reflections FBO if needed
+				if (!lastWaterReflectionEnabled
+					|| lastStretchedCanvasWidth != stretchedCanvasWidth
+					|| lastStretchedCanvasHeight != stretchedCanvasHeight) {
+					destroyWaterReflectionFbo();
+					initWaterReflectionFbo(stretchedCanvasWidth, stretchedCanvasHeight);
+				}
+			}
+			else {
+				destroyWaterReflectionFbo();
+			}
+
+			lastWaterReflectionEnabled = waterReflectionEnabled;
 			lastAntiAliasingMode = antiAliasingMode;
+			lastStretchedCanvasWidth = stretchedCanvasWidth;
+			lastStretchedCanvasHeight = stretchedCanvasHeight;
 
 			frameTimer.begin(Timer.CLEAR_SCENE);
 
@@ -2051,18 +2147,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 			glUniform1i(uniShadowsEnabled, configShadowsEnabled ? 1 : 0);
 
-			// Calculate projection matrix
-			float[] projectionMatrix = Mat4.scale(client.getScale(), client.getScale(), 1);
-			Mat4.mul(projectionMatrix, Mat4.projection(viewportWidth, viewportHeight, NEAR_PLANE));
-			Mat4.mul(projectionMatrix, Mat4.rotateX(cameraOrientation[1] - (float) Math.PI));
-			Mat4.mul(projectionMatrix, Mat4.rotateY(cameraOrientation[0]));
-			Mat4.mul(projectionMatrix, Mat4.translate(
-				-cameraPosition[0],
-				-cameraPosition[1],
-				-cameraPosition[2]
-			));
-			glUniformMatrix4fv(uniProjectionMatrix, false, projectionMatrix);
-
 			// Bind directional light projection matrix
 			glUniformMatrix4fv(uniLightProjectionMatrix, false, lightProjectionMatrix);
 
@@ -2083,6 +2167,70 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			// Draw with buffers bound to scene VAO
 			glBindVertexArray(vaoSceneHandle);
 
+			// Calculate projection matrix
+			float[] projectionMatrix;
+			if (waterReflectionEnabled) {
+				// Calculate water reflection projection matrix
+				int waterHeight = sceneUploader.waterHeight;
+				glUniform1i(uniWaterHeight, waterHeight);
+
+				projectionMatrix = Mat4.scale(client.getScale(), client.getScale(), 1);
+				Mat4.mul(projectionMatrix, Mat4.projection(viewportWidth, viewportHeight, NEAR_PLANE));
+				Mat4.mul(projectionMatrix, Mat4.rotateX(-cameraOrientation[1] - (float) Math.PI));
+				Mat4.mul(projectionMatrix, Mat4.rotateY(cameraOrientation[0]));
+				Mat4.mul(projectionMatrix, Mat4.translate(
+					-cameraPosition[0],
+					-(cameraPosition[1] + (waterHeight - cameraPosition[1]) * 2),
+					-cameraPosition[2]
+				));
+				glUniformMatrix4fv(uniProjectionMatrix, false, projectionMatrix);
+
+				if (aaEnabled)
+				{
+					// Disable multisampling while rendering to the water reflection texture
+					glDisable(GL_MULTISAMPLE);
+				}
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fboWaterReflection);
+				glClearDepth(1);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				glDisable(GL_CULL_FACE);
+				glEnable(GL_DEPTH_TEST);
+				glDepthFunc(GL_LESS);
+				glUniform1i(uniRenderPass, 1);
+				glDrawArrays(GL_TRIANGLES, 0, renderBufferOffset);
+
+				// Bind the water reflection texture to index 4
+				glActiveTexture(TEXTURE_UNIT_WATER_REFLECTION_MAP);
+				glBindTexture(GL_TEXTURE_2D, texWaterReflection);
+				glActiveTexture(TEXTURE_UNIT_BASE);
+
+				// Reset everything back to the main pass' state
+				glDisable(GL_DEPTH_TEST);
+				glEnable(GL_CULL_FACE);
+				if (aaEnabled)
+				{
+					glEnable(GL_MULTISAMPLE);
+					glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fboSceneHandle);
+				}
+				else
+				{
+					glBindFramebuffer(GL_DRAW_FRAMEBUFFER, awtContext.getFramebuffer(false));
+				}
+			}
+			projectionMatrix = Mat4.scale(client.getScale(), client.getScale(), 1);
+			Mat4.mul(projectionMatrix, Mat4.projection(viewportWidth, viewportHeight, NEAR_PLANE));
+			Mat4.mul(projectionMatrix, Mat4.rotateX(cameraOrientation[1] - (float) Math.PI));
+			Mat4.mul(projectionMatrix, Mat4.rotateY(cameraOrientation[0]));
+			Mat4.mul(projectionMatrix, Mat4.translate(
+				-cameraPosition[0],
+				-cameraPosition[1],
+				-cameraPosition[2]
+			));
+			glUniformMatrix4fv(uniProjectionMatrix, false, projectionMatrix);
+
+			// TODO: this assumes AA is always enabled
+			glUniform1i(uniRenderPass, 0);
+			glUniform1i(uniWaterReflectionEnabled, waterReflectionEnabled ? 1 : 0);
 			glDrawArrays(GL_TRIANGLES, 0, renderBufferOffset);
 
 			frameTimer.end(Timer.RENDER_SCENE);
