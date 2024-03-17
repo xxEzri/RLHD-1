@@ -2053,16 +2053,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			lastStretchedCanvasWidth = stretchedCanvasWidth;
 			lastStretchedCanvasHeight = stretchedCanvasHeight;
 
-			frameTimer.begin(Timer.CLEAR_SCENE);
-
-			// Clear scene
 			float[] fogColor = ColorUtils.linearToSrgb(environmentManager.currentFogColor);
-			glClearColor(fogColor[0], fogColor[1], fogColor[2], 1f);
-			glClear(GL_COLOR_BUFFER_BIT);
-
-			frameTimer.end(Timer.CLEAR_SCENE);
-			frameTimer.begin(Timer.RENDER_SCENE);
-
 			float fogDepth = 0;
 			switch (config.fogDepthMode()) {
 				case USER_DEFINED:
@@ -2149,26 +2140,16 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniformBlockBinding(glSceneProgram, uniBlockWaterTypes, UNIFORM_BLOCK_WATER_TYPES);
 			glUniformBlockBinding(glSceneProgram, uniBlockPointLights, UNIFORM_BLOCK_LIGHTS);
 
-			// We just allow the GL to do face culling. Note this requires the priority renderer
-			// to have logic to disregard culled faces in the priority depth testing.
-			glEnable(GL_CULL_FACE);
-			glCullFace(GL_BACK);
-
-			// Enable blending for alpha
-			glEnable(GL_BLEND);
-			glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
-
 			// Draw with buffers bound to scene VAO
 			glBindVertexArray(vaoSceneHandle);
 
 			// Calculate projection matrix
-			float[] projectionMatrix;
 			if (waterReflectionEnabled) {
 				// Calculate water reflection projection matrix
 				int waterHeight = sceneUploader.waterHeight;
 				glUniform1i(uniWaterHeight, waterHeight);
 
-				projectionMatrix = Mat4.scale(client.getScale(), client.getScale(), 1);
+				float[] projectionMatrix = Mat4.scale(client.getScale(), client.getScale(), 1);
 				Mat4.mul(projectionMatrix, Mat4.projection(viewportWidth, viewportHeight, NEAR_PLANE));
 				Mat4.mul(projectionMatrix, Mat4.rotateX(-cameraOrientation[1] - (float) Math.PI));
 				Mat4.mul(projectionMatrix, Mat4.rotateY(cameraOrientation[0]));
@@ -2178,6 +2159,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 					-cameraPosition[2]
 				));
 				glUniformMatrix4fv(uniProjectionMatrix, false, projectionMatrix);
+
+				frameTimer.begin(Timer.RENDER_REFLECTIONS);
 
 				if (aaEnabled)
 				{
@@ -2210,8 +2193,29 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				{
 					glBindFramebuffer(GL_DRAW_FRAMEBUFFER, awtContext.getFramebuffer(false));
 				}
+
+				frameTimer.end(Timer.RENDER_REFLECTIONS);
 			}
-			projectionMatrix = Mat4.scale(client.getScale(), client.getScale(), 1);
+
+			frameTimer.begin(Timer.CLEAR_SCENE);
+
+			// Clear scene
+			glClearColor(fogColor[0], fogColor[1], fogColor[2], 1f);
+			glClear(GL_COLOR_BUFFER_BIT);
+
+			frameTimer.end(Timer.CLEAR_SCENE);
+			frameTimer.begin(Timer.RENDER_SCENE);
+
+			// We just allow the GL to do face culling. Note this requires the priority renderer
+			// to have logic to disregard culled faces in the priority depth testing.
+			glEnable(GL_CULL_FACE);
+			glCullFace(GL_BACK);
+
+			// Enable blending for alpha
+			glEnable(GL_BLEND);
+			glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
+
+			float[] projectionMatrix = Mat4.scale(client.getScale(), client.getScale(), 1);
 			Mat4.mul(projectionMatrix, Mat4.projection(viewportWidth, viewportHeight, NEAR_PLANE));
 			Mat4.mul(projectionMatrix, Mat4.rotateX(cameraOrientation[1] - (float) Math.PI));
 			Mat4.mul(projectionMatrix, Mat4.rotateY(cameraOrientation[0]));
