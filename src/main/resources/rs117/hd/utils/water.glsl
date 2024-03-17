@@ -42,13 +42,13 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     uv3 += uvFlow * flowMapStrength;
 
     // get diffuse textures
-    vec3 n1 = texture(textureArray, vec3(uv1, waterType.normalMap)).xyz;
-    vec3 n2 = texture(textureArray, vec3(uv2, waterType.normalMap)).xyz;
+    vec3 diffuse1 = texture(textureArray, vec3(uv1, waterType.normalMap)).xyz;
+    vec3 diffuse2 = texture(textureArray, vec3(uv2, waterType.normalMap)).xyz;
     float foamMask = texture(textureArray, vec3(uv3, waterType.foamMap)).r;
 
     // normals
-    n1 = -vec3((n1.x * 2 - 1) * waterType.normalStrength, n1.z, (n1.y * 2 - 1) * waterType.normalStrength);
-    n2 = -vec3((n2.x * 2 - 1) * waterType.normalStrength, n2.z, (n2.y * 2 - 1) * waterType.normalStrength);
+    vec3 n1 = -vec3((diffuse1.x * 2 - 1) * waterType.normalStrength, diffuse1.z, (diffuse1.y * 2 - 1) * waterType.normalStrength);
+    vec3 n2 = -vec3((diffuse2.x * 2 - 1) * waterType.normalStrength, diffuse2.z, (diffuse2.y * 2 - 1) * waterType.normalStrength);
     vec3 normals = normalize(n1 + n2);
 
     float lightDotNormals = dot(normals, lightDir);
@@ -133,7 +133,28 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     if (finalFresnel < 0.5) {
         surfaceColor = mix(waterColorDark, waterColorMid, finalFresnel * 2);
     } else {
-        surfaceColor = mix(waterColorMid, waterColorLight, (finalFresnel - 0.5) * 2);
+        vec3 I = viewDir; // incident
+        vec3 N = normals.xyz; // normal
+
+        // TODO: use actual viewport size here
+        ivec2 screenSize = textureSize(waterReflectionMap, 0);
+        vec2 uv = gl_FragCoord.xy / vec2(screenSize);
+        uv.y = 1 - uv.y;
+        vec3 norm1 = n1 * 2 - 1;
+        vec3 norm2 = n2 * 2 - 1;
+        vec3 distortion = normalize((norm1 - norm2) * waterType.normalStrength);
+        uv += distortion.xz / 1000;
+        uv = clamp(uv, 0, 1);
+
+        vec3 c = waterColorLight;
+
+        if (waterReflectionEnabled && distance(waterHeight, IN.position.y) < 32)
+            c = texture(waterReflectionMap, uv).rgb;
+
+        surfaceColor = mix(waterColorMid, c, (finalFresnel - 0.5) * 2);
+
+        shadow *= (1 - finalFresnel);
+        inverseShadow = (1 - shadow);  // this does nothing? the reference to this that used to be after is now gone :(
     }
 
     vec3 surfaceColorOut = surfaceColor * max(combinedSpecularStrength, 0.2);
@@ -201,6 +222,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         vec3 caustics = sampleCaustics(flow1, flow2, .005);
 
         vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength;
+        // This also got multiplied by (1 - finalFresnel) from sampleWater in Aeryn's old branch, but that isn't accessible here
         outputColor.rgb *= 1 + caustics * causticsColor * depthMultiplier * lightDotNormals * lightStrength;
     }
 }
