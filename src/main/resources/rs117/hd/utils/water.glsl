@@ -24,6 +24,8 @@
  */
 #include utils/misc.glsl
 
+//#define OLD
+#ifdef OLD
 vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     WaterType waterType = getWaterType(waterTypeIndex);
 
@@ -42,13 +44,13 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     uv3 += uvFlow * flowMapStrength;
 
     // get diffuse textures
-    vec3 diffuse1 = texture(textureArray, vec3(uv1, waterType.normalMap)).xyz;
-    vec3 diffuse2 = texture(textureArray, vec3(uv2, waterType.normalMap)).xyz;
+    vec3 n1 = texture(textureArray, vec3(uv1, waterType.normalMap)).xyz;
+    vec3 n2 = texture(textureArray, vec3(uv2, waterType.normalMap)).xyz;
     float foamMask = texture(textureArray, vec3(uv3, waterType.foamMap)).r;
 
     // normals
-    vec3 n1 = -vec3((diffuse1.x * 2 - 1) * waterType.normalStrength, diffuse1.z, (diffuse1.y * 2 - 1) * waterType.normalStrength);
-    vec3 n2 = -vec3((diffuse2.x * 2 - 1) * waterType.normalStrength, diffuse2.z, (diffuse2.y * 2 - 1) * waterType.normalStrength);
+    n1 = -vec3((n1.x * 2 - 1) * waterType.normalStrength, n1.z, (n1.y * 2 - 1) * waterType.normalStrength);
+    n2 = -vec3((n2.x * 2 - 1) * waterType.normalStrength, n2.z, (n2.y * 2 - 1) * waterType.normalStrength);
     vec3 normals = normalize(n1 + n2);
 
     float lightDotNormals = dot(normals, lightDir);
@@ -226,3 +228,216 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         outputColor.rgb *= 1 + caustics * causticsColor * depthMultiplier * lightDotNormals * lightStrength;
     }
 }
+
+#else
+
+float calculateFresnel(const vec3 I, const vec3 N, const float ior) {
+    float cosi = dot(I, N);
+    float etai = 1, etat = ior;
+    if (cosi > 0) {
+        etai = ior;
+        etat = 1;
+    }
+
+    float R0 = (etai - etat) / (etai + etat);
+    R0 *= R0;
+    return R0 + (1 - R0) * pow(1 - cosi, 5);
+}
+
+vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
+    WaterType waterType = getWaterType(waterTypeIndex);
+
+    vec2 baseUv = vUv[0].xy * IN.texBlend.x + vUv[1].xy * IN.texBlend.y + vUv[2].xy * IN.texBlend.z;
+    vec2 uv3 = baseUv;
+
+    vec2 uv2 = worldUvs(3) + animationFrame(24 * waterType.duration);
+    vec2 uv1 = worldUvs(3).yx - animationFrame(28 * waterType.duration);
+
+    vec2 flowMapUv = worldUvs(15) + animationFrame(50 * waterType.duration);
+    float flowMapStrength = 0.025;
+
+    vec2 uvFlow = texture(textureArray, vec3(flowMapUv, waterType.flowMap)).xy;
+    uv1 += uvFlow * flowMapStrength;
+    uv2 += uvFlow * flowMapStrength;
+    uv3 += uvFlow * flowMapStrength;
+
+    // get diffuse textures
+    vec3 diffuse1 = texture(textureArray, vec3(uv1, waterType.normalMap)).xyz;
+    vec3 diffuse2 = texture(textureArray, vec3(uv2, waterType.normalMap)).xyz;
+    float foamMask = texture(textureArray, vec3(uv3, waterType.foamMap)).r;
+
+    // normals
+    vec3 n1 = -vec3((diffuse1.x * 2 - 1) * waterType.normalStrength, diffuse1.z, (diffuse1.y * 2 - 1) * waterType.normalStrength);
+    vec3 n2 = -vec3((diffuse2.x * 2 - 1) * waterType.normalStrength, diffuse2.z, (diffuse2.y * 2 - 1) * waterType.normalStrength);
+    vec3 normals = normalize(n1 + n2);
+
+    float lightDotNormals = dot(normals, lightDir);
+    float downDotNormals = -normals.y;
+    float viewDotNormals = dot(viewDir, normals);
+
+    vec2 distortion = uvFlow * .00075;
+    float shadow = sampleShadowMap(IN.position, waterTypeIndex, distortion, lightDotNormals);
+    float inverseShadow = 1 - shadow;
+
+    vec3 vSpecularStrength = vec3(waterType.specularStrength);
+    vec3 vSpecularGloss = vec3(waterType.specularGloss);
+    float combinedSpecularStrength = waterType.specularStrength;
+
+    // calculate lighting
+
+    // ambient light
+    vec3 ambientLightOut = ambientColor * ambientStrength;
+
+    // directional light
+    vec3 dirLightColor = lightColor * lightStrength;
+
+    // apply shadows
+    dirLightColor *= inverseShadow;
+
+    vec3 lightColor = dirLightColor;
+    vec3 lightOut = max(lightDotNormals, 0.0) * lightColor;
+
+    // directional light specular
+    vec3 lightReflectDir = reflect(-lightDir, normals);
+    vec3 lightSpecularOut = lightColor * specular(viewDir, lightReflectDir, vSpecularGloss, vSpecularStrength);
+
+    // point lights
+    vec3 pointLightsOut = vec3(0);
+    vec3 pointLightsSpecularOut = vec3(0);
+    for (int i = 0; i < pointLightsCount; i++) {
+        vec4 pos = PointLightArray[i].position;
+        vec3 lightToFrag = pos.xyz - IN.position;
+        float distanceSquared = dot(lightToFrag, lightToFrag);
+        float radiusSquared = pos.w;
+        if (distanceSquared <= radiusSquared) {
+            vec3 pointLightColor = PointLightArray[i].color;
+            vec3 pointLightDir = normalize(lightToFrag);
+
+            float attenuation = 1 - min(distanceSquared / radiusSquared, 1);
+            pointLightColor *= attenuation * attenuation;
+
+            float pointLightDotNormals = max(dot(normals, pointLightDir), 0);
+            pointLightsOut += pointLightColor * pointLightDotNormals;
+
+            vec3 pointLightReflectDir = reflect(-pointLightDir, normals);
+            pointLightsSpecularOut += pointLightColor * specular(viewDir, pointLightReflectDir, vSpecularGloss, vSpecularStrength);
+        }
+    }
+
+
+    // sky light
+    vec3 skyLightColor = fogColor.rgb;
+    float skyLightStrength = 0;
+    float skyDotNormals = downDotNormals;
+    vec3 skyLightOut = max(skyDotNormals, 0.0) * skyLightColor * skyLightStrength;
+
+
+    // lightning
+    vec3 lightningColor = vec3(1.0, 1.0, 1.0);
+    float lightningStrength = lightningBrightness;
+    float lightningDotNormals = downDotNormals;
+    vec3 lightningOut = max(lightningDotNormals, 0.0) * lightningColor * lightningStrength;
+
+
+    // underglow
+    vec3 underglowOut = underglowColor * max(normals.y, 0) * underglowStrength;
+
+
+//    normals = vec3(0, -1, 0);
+
+    // fresnel reflection
+    float baseOpacity = 0.4;
+    float fresnel = calculateFresnel(normals, viewDir, 1.333);
+    vec3 surfaceColor = vec3(0);
+
+    vec3 c = srgbToLinear(fogColor);
+    if (waterReflectionEnabled) {
+        // TODO: use actual viewport size here
+        vec2 screenSize = vec2(textureSize(waterReflectionMap, 0));
+        vec2 uv = (gl_FragCoord.xy - vec2(0, 1)) / screenSize;
+        uv.y = 1 - uv.y;
+
+        vec3 I = -viewDir; // incident
+        vec3 N = normals.xyz; // normal
+        vec3 R = reflect(I, N);
+
+        // for now, assume the water is level
+        vec3 flatR = reflect(I, vec3(0, -1, 0));
+
+//        float distortion = 1 / dot(R, flatR);
+//        uv += distortion * 5;
+        uv = clamp(uv, 0, 1);
+
+        // This will be linear or sRGB depending on the linear alpha blending setting
+        c = texture(waterReflectionMap, uv).rgb;
+        #if !LINEAR_ALPHA_BLENDING
+        // When linear alpha blending is on, the texture is in sRGB, and OpenGL will automatically convert it to linear
+        c = srgbToLinear(c);
+        #endif
+
+//        return vec4(vec3(srgbToLinear(fresnel)), 1);
+    }
+
+//    return vec4(linearToSrgb(c * fresnel), 1);
+
+    // Like before, sampleWater needs to return sRGB
+    c = linearToSrgb(c);
+
+    return vec4(c.rgb, fresnel);
+
+//    if (waterType.isFlat) {
+//        baseColor = mix(waterType.depthColor, baseColor, alpha);
+//        alpha = 1;
+//    }
+
+//    alpha = 1;
+
+//    return vec4(baseColor, alpha);
+}
+
+void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, float lightDotNormals) {
+    // underwater terrain
+    float lowestColorLevel = 500;
+    float midColorLevel = 150;
+    float surfaceLevel = IN.position.y - depth; // e.g. -1600
+
+//    outputColor = vec3(0); return;
+
+    if (underwaterCaustics) {
+        const float scale = 1.75;
+        const float maxCausticsDepth = 128 * 4;
+
+        vec2 causticsUv = worldUvs(scale);
+
+        float depthMultiplier = (IN.position.y - surfaceLevel - maxCausticsDepth) / -maxCausticsDepth;
+        depthMultiplier *= depthMultiplier;
+
+        causticsUv *= .75;
+
+        const ivec2 direction = ivec2(1, -2);
+        vec2 flow1 = causticsUv + animationFrame(17) * direction;
+        vec2 flow2 = causticsUv * 1.5 + animationFrame(23) * -direction;
+        vec3 caustics = sampleCaustics(flow1, flow2, .005);
+
+        vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength;
+        outputColor.rgb *= 1 + caustics * causticsColor * depthMultiplier * lightDotNormals * lightStrength;
+    }
+
+    outputColor = srgbToLinear(outputColor);
+
+    // Since we've already applied refraction displacement, we can simply calculate the distance
+    // surface to camera
+    vec3 v = normalize(cameraPos - IN.position);
+    vec3 n = vec3(0, -1, 0); // assume level surface
+    float distance = depth / dot(v, n);
+
+//    vec3 depthColor = srgbToLinear(waterType.depthColor) * .14 * vec3(.4, .275, .09);
+    vec3 depthColor = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f) * .02;
+//    vec3 depthColor = srgbToLinear(vec3(6.3, 16, 29.4) / 255.f) * .1;
+//    vec3 depthColor = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f) * 1;
+    float extinction = exp(-distance * .015);
+    outputColor = mix(depthColor, outputColor, extinction);
+
+    outputColor = linearToSrgb(outputColor);
+}
+#endif
