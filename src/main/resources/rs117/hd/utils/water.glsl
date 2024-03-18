@@ -126,12 +126,11 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     // fresnel reflection
     float baseOpacity = 0.4;
     float fresnel = 1.0 - clamp(viewDotNormals, 0.0, 1.0);
-    float finalFresnel = clamp(mix(baseOpacity, 1.0, fresnel * 1.2), 0.0, 1.0);
     vec3 surfaceColor = vec3(0);
 
     // add sky gradient
-    if (finalFresnel < 0.5) {
-        surfaceColor = mix(waterColorDark, waterColorMid, finalFresnel * 2);
+    if (fresnel < 0.5) {
+        surfaceColor = mix(waterColorDark, waterColorMid, fresnel * 2);
     } else {
         vec3 I = viewDir; // incident
         vec3 N = normals.xyz; // normal
@@ -151,9 +150,9 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         if (waterReflectionEnabled && distance(waterHeight, IN.position.y) < 32)
             c = texture(waterReflectionMap, uv).rgb;
 
-        surfaceColor = mix(waterColorMid, c, (finalFresnel - 0.5) * 2);
+        surfaceColor = mix(waterColorMid, c, (fresnel - 0.5) * 2);
 
-        shadow *= (1 - finalFresnel);
+        shadow *= (1 - fresnel);
         inverseShadow = (1 - shadow);  // this does nothing? the reference to this that used to be after is now gone :(
     }
 
@@ -177,11 +176,11 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     baseColor = mix(baseColor, foamColor, foamAmount);
     vec3 specularComposite = mix(lightSpecularOut, vec3(0.0), foamAmount);
     float flatFresnel = (1.0 - dot(viewDir, vec3(0, -1, 0))) * 1.0;
-    finalFresnel = max(finalFresnel, flatFresnel);
-    finalFresnel -= finalFresnel * shadow * 0.2;
+    fresnel = max(fresnel, flatFresnel);
+    fresnel -= fresnel * shadow * 0.2;
     baseColor += pointLightsSpecularOut + lightSpecularOut / 3;
 
-    float alpha = max(waterType.baseOpacity, max(foamAmount, max(finalFresnel, length(specularComposite / 3))));
+    float alpha = max(waterType.baseOpacity, max(foamAmount, max(fresnel, length(specularComposite / 3))));
 
     if (waterType.isFlat) {
         baseColor = mix(waterType.depthColor, baseColor, alpha);
@@ -222,7 +221,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         vec3 caustics = sampleCaustics(flow1, flow2, .005);
 
         vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength;
-        // This also got multiplied by (1 - finalFresnel) from sampleWater in Aeryn's old branch, but that isn't accessible here
+        // This also got multiplied by (1 - fresnel) from sampleWater in Aeryn's old branch, but that isn't accessible here
         outputColor.rgb *= 1 + caustics * causticsColor * depthMultiplier * lightDotNormals * lightStrength;
     }
 }
