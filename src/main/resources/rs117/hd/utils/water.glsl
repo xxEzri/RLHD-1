@@ -149,6 +149,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
         if (waterReflectionEnabled && distance(waterHeight, IN.position.y) < 32)
             c = texture(waterReflectionMap, uv).rgb;
+            c.rgb = c.rgb *0.9; // Dim water reflections, should be done properly via fresnel
 
         surfaceColor = mix(waterColorMid, c, (fresnel - 0.5) * 2);
 
