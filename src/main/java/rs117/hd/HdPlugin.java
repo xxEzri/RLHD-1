@@ -2119,7 +2119,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniform3fv(uniUnderwaterCausticsColor, environmentManager.currentUnderwaterCausticsColor);
 			glUniform1f(uniUnderwaterCausticsStrength, environmentManager.currentUnderwaterCausticsStrength);
 			glUniform1f(uniElapsedTime, elapsedTime);
-			glUniform3fv(uniCameraPos, cameraPosition);
 
 			// Extract the 3rd column from the light view matrix (the float array is column-major)
 			// This produces the light's forward direction vector in world space
@@ -2150,7 +2149,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				glUniform1i(uniWaterHeight, waterHeight);
 
 				float[] projectionMatrix = Mat4.scale(client.getScale(), client.getScale(), 1);
-				Mat4.mul(projectionMatrix, Mat4.projection(viewportWidth, viewportHeight, NEAR_PLANE));
+//				Mat4.mul(projectionMatrix, Mat4.projection(viewportWidth, viewportHeight, NEAR_PLANE));
+				Mat4.mul(projectionMatrix, Mat4.osrsPerspective(viewportWidth, viewportHeight, 50, 35000));
 				Mat4.mul(projectionMatrix, Mat4.rotateX(-cameraOrientation[1] - (float) Math.PI));
 				Mat4.mul(projectionMatrix, Mat4.rotateY(cameraOrientation[0]));
 				Mat4.mul(projectionMatrix, Mat4.translate(
@@ -2159,6 +2159,13 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 					-cameraPosition[2]
 				));
 				glUniformMatrix4fv(uniProjectionMatrix, false, projectionMatrix);
+
+				glUniform3f(
+					uniCameraPos,
+					cameraPosition[0],
+					(cameraPosition[1] + (waterHeight - cameraPosition[1]) * 2),
+					cameraPosition[2]
+				);
 
 				frameTimer.begin(Timer.RENDER_REFLECTIONS);
 
@@ -2172,7 +2179,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 				glDisable(GL_CULL_FACE);
 				glEnable(GL_DEPTH_TEST);
-				glDepthFunc(GL_LESS);
+				glDepthFunc(GL_LEQUAL);
 				glUniform1i(uniRenderPass, 1);
 				glDrawArrays(GL_TRIANGLES, 0, renderBufferOffset);
 
@@ -2196,6 +2203,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 				frameTimer.end(Timer.RENDER_REFLECTIONS);
 			}
+
+			glUniform3fv(uniCameraPos, cameraPosition);
 
 			frameTimer.begin(Timer.CLEAR_SCENE);
 
