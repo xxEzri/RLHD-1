@@ -61,6 +61,37 @@ out FragmentData {
     float fogAmount;
 } OUT;
 
+void displaceUnderwaterPosition(inout vec3 position, int waterDepth) {
+    if (waterDepth <= 1)
+        return;
+
+    // incidence vector and water surface normal
+    vec3 I = normalize(position - cameraPos);
+    vec3 N = vec3(0, -1, 0);
+
+    float IdotN = clamp(-1, 1, dot(I, N));
+    float etai = 1;
+    float etat = 1.3;
+
+    if (IdotN < 0) {
+        IdotN *= -1;
+    } else {
+        float temp = etai;
+        etai = etat;
+        etat = temp;
+        N *= -1;
+    }
+
+    float eta = etai / etat;
+    float k = 1 - eta * eta * (1 - IdotN * IdotN);
+    if (k >= 0) {
+        vec3 refracted = eta * I + (eta * IdotN - sqrt(k)) * N;
+        vec3 surfacePos = position + I / IdotN * waterDepth;
+        vec3 refractedPos = surfacePos - refracted / dot(refracted, N) * waterDepth;
+        position = refractedPos;
+    }
+}
+
 void main() {
     // MacOS doesn't allow assigning these arrays directly.
     // One of the many wonders of Apple software...
@@ -93,7 +124,8 @@ void main() {
     for (int i = 0; i < 3; i++) {
         // Flat normals must be applied separately per vertex
         vec3 normal = gNormal[i];
-        OUT.position = gPosition[i];
+        vec3 position = gPosition[i];
+        OUT.position = position;
         OUT.flatNormal = N;
         #if FLAT_SHADING
         OUT.normal = N;
@@ -103,7 +135,10 @@ void main() {
         OUT.texBlend = vec3(0);
         OUT.texBlend[i] = 1;
         OUT.fogAmount = gFogAmount[i];
-        gl_Position = projectionMatrix * vec4(OUT.position, 1);
+
+        int waterDepth = gTerrainData[i] >> 8 & 0x7FF;
+        displaceUnderwaterPosition(position, waterDepth);
+        gl_Position = projectionMatrix * vec4(position, 1);
         EmitVertex();
     }
 

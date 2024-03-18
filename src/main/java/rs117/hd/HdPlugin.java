@@ -334,8 +334,9 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int lastCanvasHeight;
 	private int lastStretchedCanvasWidth;
 	private int lastStretchedCanvasHeight;
-	private boolean lastWaterReflectionEnabled;
 	private AntiAliasingMode lastAntiAliasingMode;
+	private boolean lastWaterReflectionEnabled;
+	private boolean lastLinearAlphaBlending;
 
 	private int viewportOffsetX;
 	private int viewportOffsetY;
@@ -414,6 +415,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	public boolean configUseFasterModelHashing;
 	public boolean configUndoVanillaShading;
 	public boolean configPreserveVanillaNormals;
+	public boolean configLinearAlphaBlending;
 	public ShadowMode configShadowMode;
 	public SeasonalTheme configSeasonalTheme;
 	public VanillaShadowMode configVanillaShadowMode;
@@ -593,6 +595,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				lastStretchedCanvasWidth = lastStretchedCanvasHeight = 0;
 				lastAntiAliasingMode = null;
 				lastWaterReflectionEnabled = false;
+				lastLinearAlphaBlending = false;
 
 				tileOverrideManager.startUp();
 				modelOverrideManager.startUp();
@@ -807,6 +810,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			.define("DISABLE_DIRECTIONAL_SHADING", config.shadingMode() != ShadingMode.DEFAULT)
 			.define("FLAT_SHADING", config.flatShading())
 			.define("SHADOW_MAP_OVERLAY", enableShadowMapOverlay)
+			.define("LINEAR_ALPHA_BLENDING", configLinearAlphaBlending)
 			.addIncludePath(SHADER_PATH);
 
 		glSceneProgram = PROGRAM.compile(template);
@@ -1251,10 +1255,12 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		fboSceneHandle = glGenFramebuffers();
 		glBindFramebuffer(GL_FRAMEBUFFER, fboSceneHandle);
 
+		int format = configLinearAlphaBlending ? GL_SRGB8 : GL_RGBA;
+
 		// Create color render buffer
 		rboSceneHandle = glGenRenderbuffers();
 		glBindRenderbuffer(GL_RENDERBUFFER, rboSceneHandle);
-		glRenderbufferStorageMultisample(GL_RENDERBUFFER, aaSamples, GL_RGBA, width, height);
+		glRenderbufferStorageMultisample(GL_RENDERBUFFER, aaSamples, format, width, height);
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rboSceneHandle);
 
 		// Reset
@@ -1408,10 +1414,12 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		fboWaterReflection = glGenFramebuffers();
 		glBindFramebuffer(GL_FRAMEBUFFER, fboWaterReflection);
 
+		int format = configLinearAlphaBlending ? GL_SRGB8 : GL_RGBA;
+
 		// Create texture
 		texWaterReflection = glGenTextures();
 		glBindTexture(GL_TEXTURE_2D, texWaterReflection);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -1442,6 +1450,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		// Reset
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glBindFramebuffer(GL_FRAMEBUFFER, awtContext.getFramebuffer(false));
+		checkGLErrors();
 	}
 
 	private void destroyWaterReflectionFbo() {
@@ -2007,10 +2016,10 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				glEnable(GL_MULTISAMPLE);
 
 				// Re-create fbo
-				if (
-					lastStretchedCanvasWidth != stretchedCanvasWidth ||
+				if (lastStretchedCanvasWidth != stretchedCanvasWidth ||
 					lastStretchedCanvasHeight != stretchedCanvasHeight ||
-					lastAntiAliasingMode != antiAliasingMode
+					lastAntiAliasingMode != antiAliasingMode ||
+					lastLinearAlphaBlending != configLinearAlphaBlending
 				) {
 					destroyAAFbo();
 
@@ -2034,24 +2043,25 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 			// Setup planar reflection FBO
 			final boolean waterReflectionEnabled = config.enablePlanarReflections();
-			if (waterReflectionEnabled)
-			{
+			if (waterReflectionEnabled) {
 				// Re-create planar reflections FBO if needed
-				if (!lastWaterReflectionEnabled
-					|| lastStretchedCanvasWidth != stretchedCanvasWidth
-					|| lastStretchedCanvasHeight != stretchedCanvasHeight) {
+				if (!lastWaterReflectionEnabled ||
+					lastStretchedCanvasWidth != stretchedCanvasWidth ||
+					lastStretchedCanvasHeight != stretchedCanvasHeight ||
+					lastLinearAlphaBlending != configLinearAlphaBlending
+				) {
 					destroyWaterReflectionFbo();
 					initWaterReflectionFbo(stretchedCanvasWidth, stretchedCanvasHeight);
 				}
-			}
-			else {
+			} else {
 				destroyWaterReflectionFbo();
 			}
 
-			lastWaterReflectionEnabled = waterReflectionEnabled;
 			lastAntiAliasingMode = antiAliasingMode;
 			lastStretchedCanvasWidth = stretchedCanvasWidth;
 			lastStretchedCanvasHeight = stretchedCanvasHeight;
+			lastWaterReflectionEnabled = waterReflectionEnabled;
+			lastLinearAlphaBlending = configLinearAlphaBlending;
 
 			float[] fogColor = ColorUtils.linearToSrgb(environmentManager.currentFogColor);
 			float fogDepth = 0;
@@ -2142,6 +2152,14 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			// Draw with buffers bound to scene VAO
 			glBindVertexArray(vaoSceneHandle);
 
+			if (configLinearAlphaBlending) {
+				glEnable(GL_FRAMEBUFFER_SRGB);
+				// This is kind of stupid, but our shader expects fogColor in sRGB, so we transform it back here
+				fogColor = ColorUtils.srgbToLinear(fogColor);
+			}
+
+			glClearColor(fogColor[0], fogColor[1], fogColor[2], 1f);
+
 			// Calculate projection matrix
 			if (waterReflectionEnabled) {
 				// Calculate water reflection projection matrix
@@ -2169,11 +2187,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 				frameTimer.begin(Timer.RENDER_REFLECTIONS);
 
-				if (aaEnabled)
-				{
-					// Disable multisampling while rendering to the water reflection texture
-					glDisable(GL_MULTISAMPLE);
-				}
+				// Disable multisampling while rendering to the water reflection texture
+				glDisable(GL_MULTISAMPLE);
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fboWaterReflection);
 				glClearDepth(1);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -2209,7 +2224,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			frameTimer.begin(Timer.CLEAR_SCENE);
 
 			// Clear scene
-			glClearColor(fogColor[0], fogColor[1], fogColor[2], 1f);
 			glClear(GL_COLOR_BUFFER_BIT);
 
 			frameTimer.end(Timer.CLEAR_SCENE);
@@ -2244,6 +2258,9 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 			glDisable(GL_BLEND);
 			glDisable(GL_CULL_FACE);
+
+			if (configLinearAlphaBlending)
+				glDisable(GL_FRAMEBUFFER_SRGB);
 
 			glUseProgram(0);
 
@@ -2592,6 +2609,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		configUseFasterModelHashing = config.fasterModelHashing();
 		configUndoVanillaShading = config.shadingMode() != ShadingMode.VANILLA;
 		configPreserveVanillaNormals = config.preserveVanillaNormals();
+		configLinearAlphaBlending = config.linearAlphaBlending();
 		configSeasonalTheme = config.seasonalTheme();
 
 		if (configSeasonalTheme == SeasonalTheme.AUTOMATIC) {
@@ -2667,6 +2685,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 							case KEY_PARALLAX_OCCLUSION_MAPPING:
 							case KEY_UI_SCALING_MODE:
 							case KEY_VANILLA_COLOR_BANDING:
+							case KEY_LINEAR_ALPHA_BLENDING:
 								recompilePrograms = true;
 								break;
 							case KEY_SHADOW_MODE:
