@@ -107,7 +107,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     // sky light
     vec3 skyLightColor = fogColor.rgb;
-    float skyLightStrength = 0.5;
+    float skyLightStrength = 0.0;
     float skyDotNormals = downDotNormals;
     vec3 skyLightOut = max(skyDotNormals, 0.0) * skyLightColor * skyLightStrength;
 
