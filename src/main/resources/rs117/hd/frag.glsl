@@ -143,6 +143,7 @@ void main() {
     if (isWater) {
         // Hide flat water surface tiles in the reflection
         bool isFlat = dot(IN.flatNormal, vec3(0, 0, -1)) < .001;
+        isFlat = true;
         if (renderPass == RENDER_PASS_WATER_REFLECTION && isFlat)
             discard;
         outputColor = sampleWater(waterTypeIndex, viewDir);
@@ -160,11 +161,11 @@ void main() {
         // Vanilla tree textures rely on UVs being clamped horizontally,
         // which HD doesn't do, so we instead opt to hide these fragments
         if ((vMaterialData[0] >> MATERIAL_FLAG_VANILLA_UVS & 1) == 1)
-            blendedUv.x = clamp(blendedUv.x, 0, .984375);
+            blendedUv.x = clamp(blendedUv.x, 0, .984375f);
 
         uv1 = uv2 = uv3 = blendedUv;
 
-        // Scroll UVs
+        // Scroll UVsf
         uv1 += material1.scrollDuration * elapsedTime;
         uv2 += material2.scrollDuration * elapsedTime;
         uv3 += material3.scrollDuration * elapsedTime;
@@ -552,6 +553,11 @@ void main() {
 
         outputColor.rgb = mix(outputColor.rgb, fogColor, combinedFog);
     }
+
+    #if LINEAR_ALPHA_BLENDING
+    // We need to output linear
+    outputColor.rgb = srgbToLinear(outputColor.rgb);
+    #endif
 
     FragColor = outputColor;
 }
