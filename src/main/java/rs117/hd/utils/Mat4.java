@@ -92,6 +92,54 @@ public class Mat4
 			};
 	}
 
+	/**
+	 * Create a perspective projection matrix matching vanilla OSRS projection, with an infinite far plane.
+	 *
+	 * @param w viewport width
+	 * @param h viewport height
+	 * @param n near plane
+	 * @return 4x4 column-major matrix
+	 */
+	public static float[] osrsPerspective(float w, float h, float n) {
+		w = 2 / w;
+		h = 2 / h;
+		float a = -1;
+		float b = -2 * n;
+		float c = -1; // perspective divide by -z
+		return new float[]
+			{
+				w, 0, 0, 0,
+				0, h, 0, 0,
+				0, 0, a, c,
+				0, 0, b, 0
+			};
+	}
+
+	/**
+	 * Create a perspective projection matrix matching vanilla OSRS projection, with a finite far plane.
+	 *
+	 * @param w viewport width
+	 * @param h viewport height
+	 * @param n near plane
+	 * @param f far plane
+	 * @return 4x4 column-major matrix
+	 */
+	public static float[] osrsPerspective(float w, float h, float n, float f) {
+		// Same projection as vanilla, except with slightly more depth precision, and a usable far plane for clipping calculations
+		w = 2 / w;
+		h = 2 / h;
+		float a = (1 + n / f) / (n / f - 1);
+		float b = a * n - n;
+		float c = -1; // perspective divide by -z
+		return new float[]
+			{
+				w, 0, 0, 0,
+				0, h, 0, 0,
+				0, 0, a, c,
+				0, 0, b, 0
+			};
+	}
+
 	public static float[] projection(float w, float h, float n)
 	{
 		return new float[]
