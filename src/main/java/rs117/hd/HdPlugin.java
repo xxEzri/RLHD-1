@@ -1412,7 +1412,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		texWaterReflection = glGenTextures();
 		glBindTexture(GL_TEXTURE_2D, texWaterReflection);
 		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
@@ -1428,13 +1428,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		texWaterReflectionDepthMap = glGenTextures();
 		glBindTexture(GL_TEXTURE_2D, texWaterReflectionDepthMap);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, 0);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
-		float[] depthBorder = {1, 1, 1, 1};
-		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, depthBorder);
 
 		// Bind texture
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texWaterReflectionDepthMap, 0);
@@ -2184,6 +2177,9 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				// Bind the water reflection texture to index 4
 				glActiveTexture(TEXTURE_UNIT_WATER_REFLECTION_MAP);
 				glBindTexture(GL_TEXTURE_2D, texWaterReflection);
+				frameTimer.begin(Timer.REFLECTIONS_MIPMAPS);
+				glGenerateMipmap(GL_TEXTURE_2D);
+				frameTimer.end(Timer.REFLECTIONS_MIPMAPS);
 				glActiveTexture(TEXTURE_UNIT_BASE);
 
 				// Reset everything back to the main pass' state

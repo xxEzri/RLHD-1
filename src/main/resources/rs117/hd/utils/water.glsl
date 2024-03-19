@@ -23,6 +23,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include utils/misc.glsl
+#include utils/texture_tiling.glsl
 
 //#define OLD
 #ifdef OLD
@@ -233,10 +234,11 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
 
 float calculateFresnel(const vec3 I, const vec3 N, const float ior) {
     float cosi = dot(I, N);
-    float etai = 1, etat = ior;
-    if (cosi > 0) {
-        etai = ior;
-        etat = 1;
+    float etai = ior, etat = 1;
+    if (cosi < 0) {
+        etai = 1;
+        etat = ior;
+        return -1;
     }
 
     float R0 = (etai - etat) / (etai + etat);
@@ -247,138 +249,179 @@ float calculateFresnel(const vec3 I, const vec3 N, const float ior) {
 vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     WaterType waterType = getWaterType(waterTypeIndex);
 
-    vec2 baseUv = vUv[0].xy * IN.texBlend.x + vUv[1].xy * IN.texBlend.y + vUv[2].xy * IN.texBlend.z;
-    vec2 uv3 = baseUv;
+//    vec2 baseUv = vUv[0].xy * IN.texBlend.x + vUv[1].xy * IN.texBlend.y + vUv[2].xy * IN.texBlend.z;
+//    vec2 uv3 = baseUv;
+//
+//    vec2 uv2 = worldUvs(3) + animationFrame(24 * waterType.duration);
+//    vec2 uv1 = worldUvs(3).yx - animationFrame(28 * waterType.duration);
+//
+//    vec2 flowMapUv = worldUvs(15) + animationFrame(50 * waterType.duration);
+//    float flowMapStrength = 0.025;
+//
+//    vec2 uvFlow = texture(textureArray, vec3(flowMapUv, waterType.flowMap)).xy;
+//    uv1 += uvFlow * flowMapStrength;
+//    uv2 += uvFlow * flowMapStrength;
+//    uv3 += uvFlow * flowMapStrength;
+//
+//    // get diffuse textures
+//    vec3 diffuse1 = texture(textureArray, vec3(uv1, waterType.normalMap)).xyz;
+//    vec3 diffuse2 = texture(textureArray, vec3(uv2, waterType.normalMap)).xyz;
+//    float foamMask = texture(textureArray, vec3(uv3, waterType.foamMap)).r;
+//
+//    // normals
+//    vec3 n1 = -vec3((diffuse1.x * 2 - 1) * waterType.normalStrength, diffuse1.z, (diffuse1.y * 2 - 1) * waterType.normalStrength);
+//    vec3 n2 = -vec3((diffuse2.x * 2 - 1) * waterType.normalStrength, diffuse2.z, (diffuse2.y * 2 - 1) * waterType.normalStrength);
+//    vec3 normals = normalize(n1 + n2);
+//
+//    float lightDotNormals = dot(normals, lightDir);
+//    float downDotNormals = -normals.y;
+//    float viewDotNormals = dot(viewDir, normals);
+//
+//    vec2 distortion = uvFlow * .00075;
+//    float shadow = sampleShadowMap(IN.position, waterTypeIndex, distortion, lightDotNormals);
+//    float inverseShadow = 1 - shadow;
+//
+//    vec3 vSpecularStrength = vec3(waterType.specularStrength);
+//    vec3 vSpecularGloss = vec3(waterType.specularGloss);
+//    float combinedSpecularStrength = waterType.specularStrength;
+//
+//    // calculate lighting
+//
+//    // ambient light
+//    vec3 ambientLightOut = ambientColor * ambientStrength;
+//
+//    // directional light
+//    vec3 dirLightColor = lightColor * lightStrength;
+//
+//    // apply shadows
+//    dirLightColor *= inverseShadow;
+//
+//    vec3 lightColor = dirLightColor;
+//    vec3 lightOut = max(lightDotNormals, 0.0) * lightColor;
+//
+//    // directional light specular
+//    vec3 lightReflectDir = reflect(-lightDir, normals);
+//    vec3 lightSpecularOut = lightColor * specular(viewDir, lightReflectDir, vSpecularGloss, vSpecularStrength);
+//
+//    // point lights
+//    vec3 pointLightsOut = vec3(0);
+//    vec3 pointLightsSpecularOut = vec3(0);
+//    for (int i = 0; i < pointLightsCount; i++) {
+//        vec4 pos = PointLightArray[i].position;
+//        vec3 lightToFrag = pos.xyz - IN.position;
+//        float distanceSquared = dot(lightToFrag, lightToFrag);
+//        float radiusSquared = pos.w;
+//        if (distanceSquared <= radiusSquared) {
+//            vec3 pointLightColor = PointLightArray[i].color;
+//            vec3 pointLightDir = normalize(lightToFrag);
+//
+//            float attenuation = 1 - min(distanceSquared / radiusSquared, 1);
+//            pointLightColor *= attenuation * attenuation;
+//
+//            float pointLightDotNormals = max(dot(normals, pointLightDir), 0);
+//            pointLightsOut += pointLightColor * pointLightDotNormals;
+//
+//            vec3 pointLightReflectDir = reflect(-pointLightDir, normals);
+//            pointLightsSpecularOut += pointLightColor * specular(viewDir, pointLightReflectDir, vSpecularGloss, vSpecularStrength);
+//        }
+//    }
+//
+//
+//    // sky light
+//    vec3 skyLightColor = fogColor.rgb;
+//    float skyLightStrength = 0;
+//    float skyDotNormals = downDotNormals;
+//    vec3 skyLightOut = max(skyDotNormals, 0.0) * skyLightColor * skyLightStrength;
+//
+//
+//    // lightning
+//    vec3 lightningColor = vec3(1.0, 1.0, 1.0);
+//    float lightningStrength = lightningBrightness;
+//    float lightningDotNormals = downDotNormals;
+//    vec3 lightningOut = max(lightningDotNormals, 0.0) * lightningColor * lightningStrength;
+//
+//
+//    // underglow
+//    vec3 underglowOut = underglowColor * max(normals.y, 0) * underglowStrength;
 
-    vec2 uv2 = worldUvs(3) + animationFrame(24 * waterType.duration);
-    vec2 uv1 = worldUvs(3).yx - animationFrame(28 * waterType.duration);
-
-    vec2 flowMapUv = worldUvs(15) + animationFrame(50 * waterType.duration);
-    float flowMapStrength = 0.025;
-
-    vec2 uvFlow = texture(textureArray, vec3(flowMapUv, waterType.flowMap)).xy;
-    uv1 += uvFlow * flowMapStrength;
-    uv2 += uvFlow * flowMapStrength;
-    uv3 += uvFlow * flowMapStrength;
+    const float speed = .25;
+    vec2 uv1 = worldUvs(11) + animationFrame(sqrt(11.) / speed * waterType.duration);
+    vec2 uv2 = worldUvs(3) + animationFrame(sqrt(3.) / speed * waterType.duration);
 
     // get diffuse textures
-    vec3 diffuse1 = texture(textureArray, vec3(uv1, waterType.normalMap)).xyz;
-    vec3 diffuse2 = texture(textureArray, vec3(uv2, waterType.normalMap)).xyz;
-    float foamMask = texture(textureArray, vec3(uv3, waterType.foamMap)).r;
+    vec3 n1 = linearToSrgb(texture(textureArray, vec3(uv1, MAT_WATER_NORMAL_MAP_1.colorMap)).xyz);
+    vec3 n2 = linearToSrgb(texture(textureArray, vec3(uv2, MAT_WATER_NORMAL_MAP_2.colorMap)).xyz);
 
-    // normals
-    vec3 n1 = -vec3((diffuse1.x * 2 - 1) * waterType.normalStrength, diffuse1.z, (diffuse1.y * 2 - 1) * waterType.normalStrength);
-    vec3 n2 = -vec3((diffuse2.x * 2 - 1) * waterType.normalStrength, diffuse2.z, (diffuse2.y * 2 - 1) * waterType.normalStrength);
-    vec3 normals = normalize(n1 + n2);
+    // Normalize
+    n1.xy = (n1.xy * 2 - 1);
+    n2.xy = (n2.xy * 2 - 1);
+    // Tangent space to world
+    n1.z *= -1;
+    n2.z *= -1;
+    n1.xyz = n1.xzy;
+    n2.xyz = n2.xzy;
+    // UDN blending
+    vec3 normals = normalize(vec3(n1.xy + n2.xy, n1.z + n2.z));
 
-    float lightDotNormals = dot(normals, lightDir);
-    float downDotNormals = -normals.y;
-    float viewDotNormals = dot(viewDir, normals);
-
-    vec2 distortion = uvFlow * .00075;
-    float shadow = sampleShadowMap(IN.position, waterTypeIndex, distortion, lightDotNormals);
-    float inverseShadow = 1 - shadow;
-
-    vec3 vSpecularStrength = vec3(waterType.specularStrength);
-    vec3 vSpecularGloss = vec3(waterType.specularGloss);
-    float combinedSpecularStrength = waterType.specularStrength;
-
-    // calculate lighting
-
-    // ambient light
-    vec3 ambientLightOut = ambientColor * ambientStrength;
-
-    // directional light
-    vec3 dirLightColor = lightColor * lightStrength;
-
-    // apply shadows
-    dirLightColor *= inverseShadow;
-
-    vec3 lightColor = dirLightColor;
-    vec3 lightOut = max(lightDotNormals, 0.0) * lightColor;
-
-    // directional light specular
-    vec3 lightReflectDir = reflect(-lightDir, normals);
-    vec3 lightSpecularOut = lightColor * specular(viewDir, lightReflectDir, vSpecularGloss, vSpecularStrength);
-
-    // point lights
-    vec3 pointLightsOut = vec3(0);
-    vec3 pointLightsSpecularOut = vec3(0);
-    for (int i = 0; i < pointLightsCount; i++) {
-        vec4 pos = PointLightArray[i].position;
-        vec3 lightToFrag = pos.xyz - IN.position;
-        float distanceSquared = dot(lightToFrag, lightToFrag);
-        float radiusSquared = pos.w;
-        if (distanceSquared <= radiusSquared) {
-            vec3 pointLightColor = PointLightArray[i].color;
-            vec3 pointLightDir = normalize(lightToFrag);
-
-            float attenuation = 1 - min(distanceSquared / radiusSquared, 1);
-            pointLightColor *= attenuation * attenuation;
-
-            float pointLightDotNormals = max(dot(normals, pointLightDir), 0);
-            pointLightsOut += pointLightColor * pointLightDotNormals;
-
-            vec3 pointLightReflectDir = reflect(-pointLightDir, normals);
-            pointLightsSpecularOut += pointLightColor * specular(viewDir, pointLightReflectDir, vSpecularGloss, vSpecularStrength);
-        }
+    vec3 fragToCam = viewDir;
+    if (dot(fragToCam, normals) < 0) {
+        // This is technically impossible with real water
+        normals = vec3(0, -1, 0);
     }
 
-
-    // sky light
-    vec3 skyLightColor = fogColor.rgb;
-    float skyLightStrength = 0;
-    float skyDotNormals = downDotNormals;
-    vec3 skyLightOut = max(skyDotNormals, 0.0) * skyLightColor * skyLightStrength;
-
-
-    // lightning
-    vec3 lightningColor = vec3(1.0, 1.0, 1.0);
-    float lightningStrength = lightningBrightness;
-    float lightningDotNormals = downDotNormals;
-    vec3 lightningOut = max(lightningDotNormals, 0.0) * lightningColor * lightningStrength;
-
-
-    // underglow
-    vec3 underglowOut = underglowColor * max(normals.y, 0) * underglowStrength;
-
-
-//    normals = vec3(0, -1, 0);
-
     // fresnel reflection
-    float baseOpacity = 0.4;
-    float fresnel = calculateFresnel(normals, viewDir, 1.333);
-    vec3 surfaceColor = vec3(0);
+    float fresnel = calculateFresnel(normals, fragToCam, 1.333);
+    if (fresnel < 0) {
+        return vec4(1, 0, 0, 1);
+    }
 
     vec3 c = srgbToLinear(fogColor);
     if (waterReflectionEnabled) {
-        // TODO: use actual viewport size here
-        vec2 screenSize = vec2(textureSize(waterReflectionMap, 0));
-        vec2 uv = (gl_FragCoord.xy - vec2(0, 1)) / screenSize;
-        uv.y = 1 - uv.y;
-
         vec3 I = -viewDir; // incident
-        vec3 N = normals.xyz; // normal
+        vec3 N = normals; // normal
         vec3 R = reflect(I, N);
 
         // for now, assume the water is level
         vec3 flatR = reflect(I, vec3(0, -1, 0));
 
+        // TODO: use actual viewport size here
+        vec2 screenSize = vec2(textureSize(waterReflectionMap, 0));
+        vec2 texelSize = 1 / screenSize;
+        vec2 uv = (gl_FragCoord.xy - vec2(0, 1)) / screenSize;
+        uv.y = 1 - uv.y;
+
 //        float distortion = 1 / dot(R, flatR);
-//        uv += distortion * 5;
-        uv = clamp(uv, 0, 1);
+//        float amount = .2;
+//        uv.x += (distortion - 1) * amount;
+
+        vec3 flatRxz = normalize(flatR - vec3(0, 1, 0) * dot(flatR, vec3(0, 1, 0)));
+        vec3 uvY = normalize(flatR - flatRxz);
+        vec3 uvX = normalize(cross(flatR, uvY));
+
+        float dist = length(IN.position - cameraPos);
+        float distortionFactor = 1 - exp(-dist * .0004);
+//        return vec4(vec3(distortionFactor), 1);
+
+        float x = dot(R, uvX);
+        float y = dot(R, uvY);
+        vec2 distortion = vec2(x, y) * 50 * distortionFactor;
+        uv += texelSize * distortion;
+
+        uv = clamp(uv, texelSize, 1 - texelSize);
 
         // This will be linear or sRGB depending on the linear alpha blending setting
-        c = texture(waterReflectionMap, uv).rgb;
+        c = texture(waterReflectionMap, uv, length(distortion) * 0).rgb;
+//        c = textureBicubic(waterReflectionMap, uv).rgb;
         #if !LINEAR_ALPHA_BLENDING
         // When linear alpha blending is on, the texture is in sRGB, and OpenGL will automatically convert it to linear
         c = srgbToLinear(c);
         #endif
-
-//        return vec4(vec3(srgbToLinear(fresnel)), 1);
     }
 
-//    return vec4(linearToSrgb(c * fresnel), 1);
+    // ALWAYS RETURN IN sRGB FROM THIS FUNCTION (been burned by this a couple times)
+
+//    return vec4(linearToSrgb(c * fresnel), 1); // correct, but disables alpha blending
+//    return vec4(linearToSrgb(c), fresnel); // correct, but bad banding due to alpha precision
 
     // Like before, sampleWater needs to return sRGB
     c = linearToSrgb(c);
@@ -431,12 +474,18 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     vec3 n = vec3(0, -1, 0); // assume level surface
     float distance = depth / dot(v, n);
 
-//    vec3 depthColor = srgbToLinear(waterType.depthColor) * .14 * vec3(.4, .275, .09);
-    vec3 depthColor = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f) * .02;
-//    vec3 depthColor = srgbToLinear(vec3(6.3, 16, 29.4) / 255.f) * .1;
-//    vec3 depthColor = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f) * 1;
-    float extinction = exp(-distance * .015);
-    outputColor = mix(depthColor, outputColor, extinction);
+//    outputColor = vec3(0); return;
+
+//    vec3 depthColor2 = srgbToLinear(waterType.depthColor) * .14 * vec3(.4, .275, .09);
+//    vec3 depthColor2 = srgbToLinear(vec3(6.3, 16, 29.4) / 255.f) * .1;
+//    vec3 depthColor1 = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f);
+    vec3 depthColor1 = vec3(0);
+    vec3 depthColor2 = srgbToLinear(vec3(6, 96.5, 50.5) / 255.f) * 1;
+//    vec3 depthColor2 = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f) * 1;
+    float extinction = exp(-distance * .008);
+//    outputColor = mix(depthColor1, outputColor, extinction);
+//    outputColor = mix(depthColor2, outputColor, extinction);
+    outputColor = mix(mix(depthColor1, depthColor2, extinction), outputColor, extinction);
 
     outputColor = linearToSrgb(outputColor);
 }

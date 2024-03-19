@@ -23,6 +23,7 @@ public enum Timer {
 	CLEAR_SCENE(true),
 	RENDER_SHADOWS(true),
 	RENDER_REFLECTIONS(true),
+	REFLECTIONS_MIPMAPS(true),
 	RENDER_SCENE(true),
 	RENDER_UI(true, "Render UI"),
 	SWAP_BUFFERS,
