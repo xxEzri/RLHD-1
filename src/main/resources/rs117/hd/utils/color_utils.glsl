@@ -82,32 +82,58 @@ vec3 colorTemperatureToLinearRgb(float kelvin) {
 // The implementation is based on the sRGB EOTF given in the Khronos Data Format Specification.
 // Source: https://web.archive.org/web/20220808015852/https://registry.khronos.org/DataFormat/specs/1.3/dataformat.1.3.pdf
 // Page number 130 (146 in the PDF)
+vec4 srgbToLinear(vec4 srgb) {
+    return vec4(
+        mix(
+            srgb.rgb / 12.92,
+            pow((srgb.rgb + vec3(0.055)) / vec3(1.055), vec3(2.4)),
+            step(vec3(0.04045), srgb.rgb)
+        ),
+        srgb.a
+    );
+}
+
+vec4 linearToSrgb(vec4 rgb) {
+    return vec4(
+        mix(
+            rgb.rgb * 12.92,
+            1.055 * pow(rgb.rgb, vec3(1 / 2.4)) - 0.055,
+            step(vec3(0.0031308), rgb.rgb)
+        ),
+        rgb.a
+    );
+}
+
 vec3 srgbToLinear(vec3 srgb) {
-  return mix(
-    srgb / 12.92,
-    pow((srgb + vec3(0.055)) / vec3(1.055), vec3(2.4)),
-    step(vec3(0.04045), srgb));
+    return mix(
+        srgb / 12.92,
+        pow((srgb + vec3(0.055)) / vec3(1.055), vec3(2.4)),
+        step(vec3(0.04045), srgb)
+    );
 }
 
 vec3 linearToSrgb(vec3 rgb) {
-  return mix(
-    rgb * 12.92,
-    1.055 * pow(rgb, vec3(1 / 2.4)) - 0.055,
-    step(vec3(0.0031308), rgb));
+    return mix(
+        rgb * 12.92,
+        1.055 * pow(rgb, vec3(1 / 2.4)) - 0.055,
+        step(vec3(0.0031308), rgb)
+    );
 }
 
 float srgbToLinear(float srgb) {
-  return mix(
-    srgb / 12.92,
-    pow((srgb + float(0.055)) / float(1.055), float(2.4)),
-    step(float(0.04045), srgb));
+    return mix(
+        srgb / 12.92,
+        pow((srgb + float(0.055)) / float(1.055), float(2.4)),
+        step(float(0.04045), srgb)
+    );
 }
 
 float linearToSrgb(float rgb) {
-  return mix(
-    rgb * 12.92,
-    1.055 * pow(rgb, 1 / 2.4) - 0.055,
-    step(0.0031308, rgb));
+    return mix(
+        rgb * 12.92,
+        1.055 * pow(rgb, 1 / 2.4) - 0.055,
+        step(0.0031308, rgb)
+    );
 }
 
 // https://web.archive.org/web/20230619214343/https://en.wikipedia.org/wiki/HSL_and_HSV#Color_conversion_formulae
