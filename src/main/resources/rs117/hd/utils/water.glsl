@@ -238,7 +238,7 @@ float calculateFresnel(const vec3 I, const vec3 N, const float ior) {
     if (cosi < 0) {
         etai = 1;
         etat = ior;
-        return -1;
+        return 1; // hide artifacts
     }
 
     float R0 = (etai - etat) / (etai + etat);
@@ -364,16 +364,9 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     vec3 normals = normalize(vec3(n1.xy + n2.xy, n1.z + n2.z));
 
     vec3 fragToCam = viewDir;
-    if (dot(fragToCam, normals) < 0) {
-        // This is technically impossible with real water
-        normals = vec3(0, -1, 0);
-    }
 
     // fresnel reflection
     float fresnel = calculateFresnel(normals, fragToCam, 1.333);
-    if (fresnel < 0) {
-        return vec4(1, 0, 0, 1);
-    }
 
     vec3 c = srgbToLinear(fogColor);
     if (waterReflectionEnabled) {
@@ -410,7 +403,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         uv = clamp(uv, texelSize, 1 - texelSize);
 
         // This will be linear or sRGB depending on the linear alpha blending setting
-        c = texture(waterReflectionMap, uv, length(distortion) * 0).rgb;
+        c = texture(waterReflectionMap, uv, -1).rgb;
 //        c = textureBicubic(waterReflectionMap, uv).rgb;
         #if !LINEAR_ALPHA_BLENDING
         // When linear alpha blending is on, the texture is in sRGB, and OpenGL will automatically convert it to linear
