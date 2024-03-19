@@ -362,6 +362,10 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     n2.xyz = n2.xzy;
     // UDN blending
     vec3 normals = normalize(vec3(n1.xy + n2.xy, n1.z + n2.z));
+//    vec3 normals = normalize(vec3(n1.xy + n2.xy, n1.z));
+//    return vec4(n1, 1);
+//    return vec4(n2, 1);
+//    return vec4(normals, 1);
 
     vec3 fragToCam = viewDir;
 
@@ -369,7 +373,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     float fresnel = calculateFresnel(normals, fragToCam, 1.333);
 
     vec3 c = srgbToLinear(fogColor);
-    if (waterReflectionEnabled) {
+    if (waterReflectionEnabled && IN.position.y > -128) {
         vec3 I = -viewDir; // incident
         vec3 N = normals; // normal
         vec3 R = reflect(I, N);
@@ -383,21 +387,20 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         vec2 uv = (gl_FragCoord.xy - vec2(0, 1)) / screenSize;
         uv.y = 1 - uv.y;
 
-//        float distortion = 1 / dot(R, flatR);
-//        float amount = .2;
-//        uv.x += (distortion - 1) * amount;
-
         vec3 flatRxz = normalize(flatR - vec3(0, 1, 0) * dot(flatR, vec3(0, 1, 0)));
         vec3 uvY = normalize(flatR - flatRxz);
         vec3 uvX = normalize(cross(flatR, uvY));
 
         float dist = length(IN.position - cameraPos);
         float distortionFactor = 1 - exp(-dist * .0004);
-//        return vec4(vec3(distortionFactor), 1);
 
         float x = dot(R, uvX);
         float y = dot(R, uvY);
+        int waterDepth = vTerrainData[0] >> 8 & 0x7FF;
         vec2 distortion = vec2(x, y) * 50 * distortionFactor;
+        // TODO: Don't distort too close to the shore
+        float shoreLineMask = 1 - dot(IN.texBlend, vec3(vColor[0].x, vColor[1].x, vColor[2].x));
+//        distortion *= 1 - pow(shoreLineMask, 1 / 5.);
         uv += texelSize * distortion;
 
         uv = clamp(uv, texelSize, 1 - texelSize);
