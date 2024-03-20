@@ -246,6 +246,8 @@ float calculateFresnel(const vec3 I, const vec3 N, const float ior) {
     return R0 + (1 - R0) * pow(1 - cosi, 5);
 }
 
+void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, float lightDotNormals);
+
 vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     WaterType waterType = getWaterType(waterTypeIndex);
 
@@ -420,19 +422,29 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 //    return vec4(linearToSrgb(c * fresnel), 1); // correct, but disables alpha blending
 //    return vec4(linearToSrgb(c), fresnel); // correct, but bad banding due to alpha precision
 
+    float alpha = fresnel;
+
+    if (waterTypeIndex == 7) {
+        vec3 waterColor = srgbToLinear(vec3(102, 0, 0) / 255.f) * 1;
+        if (dot(c, c) == 0) {
+//            c = vec3(167, 66, 66) / 255;
+//            c = vec3(100, 100, 100) / 255;
+//            c = srgbToLinear(vec3(25, 0, 0) / 255.f) * 10;
+            c = srgbToLinear(vec3(100, 0, 0) / 255.f);
+        }
+    }
+
+    if (waterType.isFlat) {
+        vec3 underwaterSrgb = packedHslToSrgb(6676);
+        int depth = 50;
+        sampleUnderwater(underwaterSrgb, waterType, depth, dot(lightDir, normals));
+        c = c * alpha + srgbToLinear(underwaterSrgb) * (1 - alpha);
+        alpha = 1;
+    }
+
     // Like before, sampleWater needs to return sRGB
     c = linearToSrgb(c);
-
-    return vec4(c.rgb, fresnel);
-
-//    if (waterType.isFlat) {
-//        baseColor = mix(waterType.depthColor, baseColor, alpha);
-//        alpha = 1;
-//    }
-
-//    alpha = 1;
-
-//    return vec4(baseColor, alpha);
+    return vec4(c.rgb, alpha);
 }
 
 void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, float lightDotNormals) {
@@ -483,6 +495,16 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
 //    outputColor = mix(depthColor1, outputColor, extinction);
 //    outputColor = mix(depthColor2, outputColor, extinction);
     outputColor = mix(mix(depthColor1, depthColor2, extinction), outputColor, extinction);
+
+    int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
+    if (waterTypeIndex == 7) {
+        vec3 waterColor = srgbToLinear(vec3(25, 0, 0) / 255.f);
+        float extinction = exp(-distance * 1);
+        extinction = 0;
+        outputColor = mix(waterColor, outputColor, extinction);
+    }
+
+//    outputColor = vec3(0); return;
 
     outputColor = linearToSrgb(outputColor);
 }
