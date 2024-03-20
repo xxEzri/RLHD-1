@@ -282,6 +282,7 @@ public class TileInfoOverlay extends Overlay implements MouseListener, MouseWhee
 			worldPos[0] >> 6,
 			worldPos[1] >> 6
 		));
+		lines.add("Height: " + scene.getTileHeights()[tileZ][tileExX][tileExY]);
 
 		int overlayId = scene.getOverlayIds()[tileZ][tileExX][tileExY];
 		var overlay = tileOverrideManager.getOverrideBeforeReplacements(worldPos, OVERLAY_FLAG | overlayId);
