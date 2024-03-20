@@ -51,6 +51,7 @@ import static rs117.hd.HdPlugin.SCALAR_BYTES;
 import static rs117.hd.HdPlugin.UV_SIZE;
 import static rs117.hd.HdPlugin.VERTEX_SIZE;
 import static rs117.hd.scene.tile_overrides.TileOverride.OVERLAY_FLAG;
+import static rs117.hd.utils.HDUtils.clamp;
 
 @SuppressWarnings("UnnecessaryLocalVariable")
 @Singleton
@@ -90,6 +91,9 @@ class SceneUploader {
 	public void upload(SceneContext sceneContext) {
 		Stopwatch stopwatch = Stopwatch.createStarted();
 
+		// Reset water height counters
+		Arrays.fill(waterHeightCounters, 0);
+
 		for (int z = 0; z < Constants.MAX_Z; ++z) {
 			for (int x = 0; x < Constants.EXTENDED_SCENE_SIZE; ++x) {
 				for (int y = 0; y < Constants.EXTENDED_SCENE_SIZE; ++y) {
@@ -101,14 +105,11 @@ class SceneUploader {
 		}
 
 		// Loop through water height index, find most common value and set to waterHeight which can be read by the shader
-		Arrays.fill(waterHeightCounters, 0);
 		int largestIndex = 0;
 		for (int i = 0; i < waterHeightCounters.length; i++)
-		{
 			if (waterHeightCounters[i] > waterHeightCounters[largestIndex])
 				largestIndex = i;
-		}
-		waterHeight = largestIndex - largestIndex*2;
+		waterHeight = -largestIndex;
 
 		stopwatch.stop();
 		log.debug(
@@ -562,7 +563,7 @@ class SceneUploader {
 					neColor = 0;
 
 				// Increment the corresponding water height value in array which tracks frequency
-				waterHeightCounters[Math.abs(swHeight)] +=1;
+				waterHeightCounters[clamp(-swHeight, 0, waterHeightCounters.length - 1)]++;
 			}
 
 			if (sceneContext.vertexIsOverlay.containsKey(neVertexKey) && sceneContext.vertexIsUnderlay.containsKey(neVertexKey))

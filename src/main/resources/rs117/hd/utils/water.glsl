@@ -373,7 +373,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     float fresnel = calculateFresnel(normals, fragToCam, 1.333);
 
     vec3 c = srgbToLinear(fogColor);
-    if (waterReflectionEnabled && IN.position.y > -128) {
+    if (waterReflectionEnabled) { // TODO: compare with waterHeight instead && IN.position.y > -128) {
         vec3 I = -viewDir; // incident
         vec3 N = normals; // normal
         vec3 R = reflect(I, N);
