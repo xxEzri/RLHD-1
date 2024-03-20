@@ -335,7 +335,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int lastStretchedCanvasWidth;
 	private int lastStretchedCanvasHeight;
 	private AntiAliasingMode lastAntiAliasingMode;
-	private boolean lastWaterReflectionEnabled;
+	private boolean lastPlanarReflectionEnabled;
+	private float lastPlanarReflectionResolution;
 	private boolean lastLinearAlphaBlending;
 
 	private int viewportOffsetX;
@@ -594,7 +595,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				lastCanvasWidth = lastCanvasHeight = 0;
 				lastStretchedCanvasWidth = lastStretchedCanvasHeight = 0;
 				lastAntiAliasingMode = null;
-				lastWaterReflectionEnabled = false;
+				lastPlanarReflectionEnabled = false;
 				lastLinearAlphaBlending = false;
 
 				tileOverrideManager.startUp();
@@ -751,7 +752,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		if (config.macosIntelWorkaround() && !isAppleM1)
 		{
 			// Workaround wrapper for drivers that do not support dynamic indexing,
-			// particularly Intel drivers on MacOS
+			// particularly Intel drivers on macOS
 			include
 				.append(type)
 				.append(" ")
@@ -811,6 +812,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			.define("FLAT_SHADING", config.flatShading())
 			.define("SHADOW_MAP_OVERLAY", enableShadowMapOverlay)
 			.define("LINEAR_ALPHA_BLENDING", configLinearAlphaBlending)
+			.define("PLANAR_REFLECTION_RESOLUTION", config.reflectionResolution() / 100f)
 			.addIncludePath(SHADER_PATH);
 
 		glSceneProgram = PROGRAM.compile(template);
@@ -1987,13 +1989,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				frameTimer.end(Timer.RENDER_SHADOWS);
 			}
 
-			glDpiAwareViewport(
-				renderWidthOff,
-				renderCanvasHeight - renderViewportHeight - renderHeightOff,
-				renderViewportWidth,
-				renderViewportHeight
-			);
-
 			glUseProgram(glSceneProgram);
 
 
@@ -2036,15 +2031,19 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 			// Setup planar reflection FBO
 			final boolean waterReflectionEnabled = config.enablePlanarReflections();
+			final float reflectionResolution = config.reflectionResolution() / 100f;
+			final int reflectionWidth = Math.max(1, Math.round(stretchedCanvasWidth * reflectionResolution));
+			final int reflectionHeight = Math.max(1, Math.round(stretchedCanvasHeight * reflectionResolution));
 			if (waterReflectionEnabled) {
 				// Re-create planar reflections FBO if needed
-				if (!lastWaterReflectionEnabled ||
+				if (!lastPlanarReflectionEnabled ||
+					lastPlanarReflectionResolution != reflectionResolution ||
 					lastStretchedCanvasWidth != stretchedCanvasWidth ||
 					lastStretchedCanvasHeight != stretchedCanvasHeight ||
 					lastLinearAlphaBlending != configLinearAlphaBlending
 				) {
 					destroyWaterReflectionFbo();
-					initWaterReflectionFbo(stretchedCanvasWidth, stretchedCanvasHeight);
+					initWaterReflectionFbo(reflectionWidth, reflectionHeight);
 				}
 			} else {
 				destroyWaterReflectionFbo();
@@ -2053,7 +2052,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			lastAntiAliasingMode = antiAliasingMode;
 			lastStretchedCanvasWidth = stretchedCanvasWidth;
 			lastStretchedCanvasHeight = stretchedCanvasHeight;
-			lastWaterReflectionEnabled = waterReflectionEnabled;
+			lastPlanarReflectionEnabled = waterReflectionEnabled;
+			lastPlanarReflectionResolution = reflectionResolution;
 			lastLinearAlphaBlending = configLinearAlphaBlending;
 
 			float[] fogColor = ColorUtils.linearToSrgb(environmentManager.currentFogColor);
@@ -2180,12 +2180,18 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 				frameTimer.begin(Timer.RENDER_REFLECTIONS);
 
+				glViewport(0, 0, reflectionWidth, reflectionHeight);
+
 				// Disable multisampling while rendering to the water reflection texture
 				glDisable(GL_MULTISAMPLE);
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fboWaterReflection);
 				glClearDepth(1);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+				// Since the game was never designed to be viewed from below, a lot of things are missing triangles underneath.
+				// In most cases, it's fine visually to render the top face from below.
 				glDisable(GL_CULL_FACE);
+
 				glEnable(GL_DEPTH_TEST);
 				glDepthFunc(GL_LEQUAL);
 				glUniform1i(uniRenderPass, 1);
@@ -2216,6 +2222,13 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			}
 
 			glUniform3fv(uniCameraPos, cameraPosition);
+
+			glDpiAwareViewport(
+				renderWidthOff,
+				renderCanvasHeight - renderViewportHeight - renderHeightOff,
+				renderViewportWidth,
+				renderViewportHeight
+			);
 
 			frameTimer.begin(Timer.CLEAR_SCENE);
 
@@ -2682,6 +2695,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 							case KEY_UI_SCALING_MODE:
 							case KEY_VANILLA_COLOR_BANDING:
 							case KEY_LINEAR_ALPHA_BLENDING:
+							case KEY_PLANAR_REFLECTION_RESOLUTION:
 								recompilePrograms = true;
 								break;
 							case KEY_SHADOW_MODE:
