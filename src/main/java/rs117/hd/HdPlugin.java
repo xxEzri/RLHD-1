@@ -1437,7 +1437,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		// Create texture
 		texWaterReflectionDepthMap = glGenTextures();
 		glBindTexture(GL_TEXTURE_2D, texWaterReflectionDepthMap);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, 0);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, 0);
 
 		// Bind texture
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texWaterReflectionDepthMap, 0);
