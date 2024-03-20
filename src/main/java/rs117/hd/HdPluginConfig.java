@@ -876,12 +876,26 @@ public interface HdPluginConfig extends Config
 		return false;
 	}
 
+	String KEY_PLANAR_REFLECTION_RESOLUTION = "planarReflectionResolution";
+	@ConfigItem(
+		keyName = KEY_PLANAR_REFLECTION_RESOLUTION,
+		name = "Reflection Resolution",
+		description = "Percentage of screen resolution",
+		position = 404,
+		section = experimentalSettings
+	)
+	@Units(Units.PERCENT)
+	@Range(min = 1)
+	default int reflectionResolution() {
+		return 100;
+	}
+
 	String KEY_LINEAR_ALPHA_BLENDING = "experimentalLinearAlphaBlending";
 	@ConfigItem(
 		keyName = KEY_LINEAR_ALPHA_BLENDING,
 		name = "Linear alpha blending",
 		description = "Use explicit sRGB buffers, allowing for linear alpha blending.",
-		position = 404,
+		position = 405,
 		section = experimentalSettings
 	)
 	default boolean linearAlphaBlending() {

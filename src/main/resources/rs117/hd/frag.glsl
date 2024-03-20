@@ -115,6 +115,14 @@ void main() {
     Material material2 = getMaterial(vMaterialData[1] >> MATERIAL_INDEX_SHIFT);
     Material material3 = getMaterial(vMaterialData[2] >> MATERIAL_INDEX_SHIFT);
 
+    // set initial texture map ids
+    int colorMap1 = material1.colorMap;
+    int colorMap2 = material2.colorMap;
+    int colorMap3 = material3.colorMap;
+
+    // only use one flowMap map
+    int flowMap = material1.flowMap;
+
     // Water data
     bool isTerrain = (vTerrainData[0] & 1) != 0; // 1 = 0b1
     int waterDepth1 = vTerrainData[0] >> 8 & 0x7FF;
@@ -126,14 +134,6 @@ void main() {
         waterDepth3 * IN.texBlend.z;
     int waterTypeIndex = isTerrain ? vTerrainData[0] >> 3 & 0x1F : 0;
     WaterType waterType = getWaterType(waterTypeIndex);
-
-    // set initial texture map ids
-    int colorMap1 = material1.colorMap;
-    int colorMap2 = material2.colorMap;
-    int colorMap3 = material3.colorMap;
-
-    // only use one flowMap map
-    int flowMap = material1.flowMap;
 
     bool isUnderwater = waterDepth != 0;
     bool isWater = waterTypeIndex > 0 && !isUnderwater;
