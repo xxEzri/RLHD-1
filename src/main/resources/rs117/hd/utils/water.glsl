@@ -346,9 +346,11 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 //    // underglow
 //    vec3 underglowOut = underglowColor * max(normals.y, 0) * underglowStrength;
 
-    const float speed = .25;
-    vec2 uv1 = worldUvs(11) + animationFrame(sqrt(11.) / speed * waterType.duration);
-    vec2 uv2 = worldUvs(3) + animationFrame(sqrt(3.) / speed * waterType.duration);
+    const float speed = .15;
+    //vec2 uv1 = worldUvs(11) + animationFrame(sqrt(11.) / speed * waterType.duration);
+    //vec2 uv2 = worldUvs(3) + animationFrame(sqrt(3.) / speed * waterType.duration);
+    vec2 uv1 = worldUvs(11) + animationFrame(sqrt(11.) / -speed * waterType.duration);
+    vec2 uv2 = worldUvs(3) + animationFrame(sqrt(3.) / speed * waterType.duration * 1.7);
 
     // get diffuse textures
     vec3 n1 = linearToSrgb(texture(textureArray, vec3(uv1, MAT_WATER_NORMAL_MAP_1.colorMap)).xyz);
@@ -402,8 +404,8 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         int waterDepth = vTerrainData[0] >> 8 & 0x7FF;
         vec2 distortion = vec2(x, y) * 50 * distortionFactor;
         // TODO: Don't distort too close to the shore
-        float shoreLineMask = 1 - dot(IN.texBlend, vec3(vColor[0].x, vColor[1].x, vColor[2].x));
-//        distortion *= 1 - pow(shoreLineMask, 1 / 5.);
+        float shoreLineMask = 1.0 - dot(IN.texBlend, vec3(vColor[0].x, vColor[1].x, vColor[2].x));
+        distortion *= 1 - (shoreLineMask *1.10); // safety factor to remove artifacts
         uv += texelSize * distortion;
 
         uv = clamp(uv, texelSize, 1 - texelSize);
@@ -456,7 +458,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
 //    outputColor = vec3(0); return;
 
     if (underwaterCaustics) {
-        const float scale = 1.75;
+        const float scale = 2.00;
         const float maxCausticsDepth = 128 * 4;
 
         vec2 causticsUv = worldUvs(scale);
@@ -471,7 +473,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         vec2 flow2 = causticsUv * 1.5 + animationFrame(23) * -direction;
         vec3 caustics = sampleCaustics(flow1, flow2, .005);
 
-        vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength;
+        vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength *0.6;
         outputColor.rgb *= 1 + caustics * causticsColor * depthMultiplier * lightDotNormals * lightStrength;
     }
 
@@ -489,12 +491,14 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
 //    vec3 depthColor2 = srgbToLinear(vec3(6.3, 16, 29.4) / 255.f) * .1;
 //    vec3 depthColor1 = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f);
     vec3 depthColor1 = vec3(0);
-    vec3 depthColor2 = srgbToLinear(vec3(6, 96.5, 50.5) / 255.f) * 1;
+    vec3 depthColor2 = srgbToLinear(vec3(5, 62, 70) / 255.f) * 1;
 //    vec3 depthColor2 = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f) * 1;
-    float extinction = exp(-distance * .008);
+    float extinction = exp(-distance * .001);
+
 //    outputColor = mix(depthColor1, outputColor, extinction);
-//    outputColor = mix(depthColor2, outputColor, extinction);
-    outputColor = mix(mix(depthColor1, depthColor2, extinction), outputColor, extinction);
+    //outputColor = mix(depthColor2, outputColor, extinction);
+    float extinctionMix = extinction*0.32;
+    outputColor = mix(mix(depthColor1, depthColor2, extinctionMix), outputColor, extinctionMix);
 
     int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
     if (waterTypeIndex == 7) {
@@ -504,7 +508,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         outputColor = mix(waterColor, outputColor, extinction);
     }
 
-    outputColor = vec3(0); return;
+    //outputColor = vec3(0); return;
 
     outputColor = linearToSrgb(outputColor);
 }
