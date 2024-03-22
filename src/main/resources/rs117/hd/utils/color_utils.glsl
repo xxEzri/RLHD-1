@@ -8,7 +8,9 @@
  */
 #pragma once
 
-#include utils/constants.glsl
+#ifndef EPS
+#define EPS 1.0e-10
+#endif
 
 /**
  * Row-major transformation matrices for conversion between RGB and XYZ color spaces.
@@ -212,4 +214,8 @@ int srgbToPackedHsl(vec3 srgb) {
 
 vec3 packedHslToSrgb(int hsl) {
     return hslToSrgb(unpackHsl(hsl));
+}
+
+vec3 unpackSrgb(int srgb) {
+    return srgbToLinear(ivec3(srgb >> 16, srgb >> 8 & 0xFF, srgb & 0xFF) / 255.f);
 }
