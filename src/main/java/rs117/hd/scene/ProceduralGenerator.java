@@ -53,7 +53,7 @@ import static rs117.hd.utils.HDUtils.vertexHash;
 @Slf4j
 @Singleton
 public class ProceduralGenerator {
-	public static final int[] DEPTH_LEVEL_SLOPE = new int[] { 150, 300, 470, 610, 700, 750, 820, 920, 1080, 1300, 1350, 1380 };
+	public static final int[] DEPTH_LEVEL_SLOPE = new int[] {150, 300, 430, 600, 760, 920, 1080, 1240, 1380, 1520, 1660, 1800, 1920, 2040, 2160, 2280, 2380, 2480, 2580, 2680, 2780, 2880, 2980, 3060, 3140, 3220, 3300, 3380, 3440, 3500, 3560, 3600};
 
 	public static final int VERTICES_PER_FACE = 3;
 	public static final boolean[][] TILE_OVERLAY_TRIS = new boolean[][]
