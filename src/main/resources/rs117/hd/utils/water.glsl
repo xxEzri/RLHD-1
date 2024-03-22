@@ -364,6 +364,9 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     n2.z *= -1;
     n1.xyz = n1.xzy;
     n2.xyz = n2.xzy;
+
+    n1.y /=0.55;
+    n2.y /=0.55;
     // UDN blending
     vec3 normals = normalize(vec3(n1.xy + n2.xy, n1.z + n2.z));
 //    vec3 normals = normalize(vec3(n1.xy + n2.xy, n1.z));
@@ -405,7 +408,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         vec2 distortion = vec2(x, y) * 50 * distortionFactor;
         // TODO: Don't distort too close to the shore
         float shoreLineMask = 1.0 - dot(IN.texBlend, vec3(vColor[0].x, vColor[1].x, vColor[2].x));
-        distortion *= 1 - (shoreLineMask *1.10); // safety factor to remove artifacts
+        distortion *= 1.2 - (shoreLineMask *1.32); // safety factor to remove artifacts
         uv += texelSize * distortion;
 
         uv = clamp(uv, texelSize, 1 - texelSize);
@@ -494,7 +497,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     vec3 depthColor1 = vec3(0);
     vec3 depthColor2 = srgbToLinear(vec3(45, 108, 100) / 255.f) * 1;
 //    vec3 depthColor2 = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f) * 1;
-    float extinction = exp(-distance * .003);
+    float extinction = exp(-distance * .0033);
 
 //    outputColor = mix(depthColor1, outputColor, extinction);
     //outputColor = mix(depthColor2, outputColor, extinction);
