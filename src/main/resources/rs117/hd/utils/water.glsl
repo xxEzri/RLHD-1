@@ -495,7 +495,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
 //    vec3 depthColor2 = srgbToLinear(vec3(6.3, 16, 29.4) / 255.f) * .1;
 //    vec3 depthColor1 = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f);
     vec3 depthColor1 = vec3(0);
-    vec3 depthColor2 = srgbToLinear(vec3(29, 70, 65) / 255.f) * 1;
+    vec3 depthColor2 = srgbToLinear(vec3(50, 75, 65) / 255.f) * 1;
 //    vec3 depthColor2 = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f) * 1;
     float extinction = exp(-distance * .0033);
 
