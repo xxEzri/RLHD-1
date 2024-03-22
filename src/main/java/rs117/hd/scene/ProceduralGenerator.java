@@ -53,7 +53,7 @@ import static rs117.hd.utils.Vector.add;
 @Slf4j
 @Singleton
 public class ProceduralGenerator {
-	public static final int[] DEPTH_LEVEL_SLOPE = new int[] {150, 300, 430, 600, 760, 920, 1080, 1240, 1380, 1520, 1660, 1800, 1920, 2040, 2160, 2280, 2380, 2480, 2580, 2680, 2780, 2880, 2980, 3060, 3140, 3220, 3300, 3380, 3440, 3500, 3560, 3600};
+	public static final int[] DEPTH_LEVEL_SLOPE = new int[] {320, 536, 696, 821, 940, 1053, 1160, 1262, 1359, 1451, 1539, 1597, 1653, 1730, 1818, 1929, 2120, 2282, 2419, 2537, 2636, 2727, 2805, 2874, 2931, 2985, 3039, 3079, 3109, 3136, 3155, 3169, 3200};
 
 	public static final int VERTICES_PER_FACE = 3;
 	public static final boolean[][] TILE_OVERLAY_TRIS = new boolean[][]
