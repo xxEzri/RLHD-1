@@ -462,6 +462,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         vec2 causticsUv = worldUvs(scale);
 
         float depthMultiplier = (IN.position.y - surfaceLevel - maxCausticsDepth) / -maxCausticsDepth;
+        depthMultiplier = clamp(depthMultiplier, 0, 1);
         depthMultiplier *= depthMultiplier;
 
         causticsUv *= .75;
