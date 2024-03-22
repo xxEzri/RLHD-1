@@ -412,6 +412,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
         // This will be linear or sRGB depending on the linear alpha blending setting
         c = texture(waterReflectionMap, uv, -1).rgb;
+        c.rgb *=0.9;
 //        c = textureBicubic(waterReflectionMap, uv).rgb;
         #if !LINEAR_ALPHA_BLENDING
         // When linear alpha blending is on, the texture is in sRGB, and OpenGL will automatically convert it to linear
@@ -491,13 +492,13 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
 //    vec3 depthColor2 = srgbToLinear(vec3(6.3, 16, 29.4) / 255.f) * .1;
 //    vec3 depthColor1 = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f);
     vec3 depthColor1 = vec3(0);
-    vec3 depthColor2 = srgbToLinear(vec3(5, 62, 70) / 255.f) * 1;
+    vec3 depthColor2 = srgbToLinear(vec3(45, 108, 100) / 255.f) * 1;
 //    vec3 depthColor2 = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f) * 1;
-    float extinction = exp(-distance * .001);
+    float extinction = exp(-distance * .003);
 
 //    outputColor = mix(depthColor1, outputColor, extinction);
     //outputColor = mix(depthColor2, outputColor, extinction);
-    float extinctionMix = extinction*0.32;
+    float extinctionMix = extinction*0.55;
     outputColor = mix(mix(depthColor1, depthColor2, extinctionMix), outputColor, extinctionMix);
 
     int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
