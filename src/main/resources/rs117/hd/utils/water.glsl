@@ -150,7 +150,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
         vec3 c = waterColorLight;
 
-        if (waterReflectionEnabled && distance(waterHeight, IN.position.y) < 32)
+        if (waterReflectionEnabled && distance(waterHeight, IN.position.y) < 16)
             c = texture(waterReflectionMap, uv).rgb;
             c.rgb = c.rgb *0.9; // Dim water reflections, should be done properly via fresnel
 
@@ -408,7 +408,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         vec2 distortion = vec2(x, y) * 50 * distortionFactor;
         // TODO: Don't distort too close to the shore
         float shoreLineMask = 1.0 - dot(IN.texBlend, vec3(vColor[0].x, vColor[1].x, vColor[2].x));
-        distortion *= 1.2 - (shoreLineMask *1.32); // safety factor to remove artifacts
+        distortion *= 1.3 - (shoreLineMask *1.43); // safety factor to remove artifacts
         uv += texelSize * distortion;
 
         uv = clamp(uv, texelSize, 1 - texelSize);
