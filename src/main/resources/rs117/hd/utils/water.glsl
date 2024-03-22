@@ -365,8 +365,8 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     n1.xyz = n1.xzy;
     n2.xyz = n2.xzy;
 
-    n1.y /=0.55;
-    n2.y /=0.55;
+    n1.y /=0.55; // scale normals
+    n2.y /=0.55; // scale normals
     // UDN blending
     vec3 normals = normalize(vec3(n1.xy + n2.xy, n1.z + n2.z));
 //    vec3 normals = normalize(vec3(n1.xy + n2.xy, n1.z));
@@ -495,13 +495,13 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
 //    vec3 depthColor2 = srgbToLinear(vec3(6.3, 16, 29.4) / 255.f) * .1;
 //    vec3 depthColor1 = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f);
     vec3 depthColor1 = vec3(0);
-    vec3 depthColor2 = srgbToLinear(vec3(50, 75, 65) / 255.f) * 1;
+    vec3 depthColor2 = srgbToLinear(vec3(45, 85, 65) / 255.f) * 1; // Color to mix-in due to light penetrating water
 //    vec3 depthColor2 = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f) * 1;
-    float extinction = exp(-distance * .0033);
+    float extinction = exp(-distance * 0.002); // Exponential falloff of light intensity when penetrating water
 
 //    outputColor = mix(depthColor1, outputColor, extinction);
     //outputColor = mix(depthColor2, outputColor, extinction);
-    float extinctionMix = extinction*0.57;
+    float extinctionMix = extinction *0.4; // Easy tuning factor for color strength of depthColor2
     outputColor = mix(mix(depthColor1, depthColor2, extinctionMix), outputColor, extinctionMix);
 
     int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
