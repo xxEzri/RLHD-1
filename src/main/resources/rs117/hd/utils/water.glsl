@@ -501,7 +501,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
 
 //    outputColor = mix(depthColor1, outputColor, extinction);
     //outputColor = mix(depthColor2, outputColor, extinction);
-    float extinctionMix = extinction*0.55;
+    float extinctionMix = extinction*0.57;
     outputColor = mix(mix(depthColor1, depthColor2, extinctionMix), outputColor, extinctionMix);
 
     int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
