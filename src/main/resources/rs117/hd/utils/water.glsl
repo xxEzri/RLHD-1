@@ -449,6 +449,22 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         alpha = 1;
     }
 
+    {
+        vec2 flowMapUv = worldUvs(15) + animationFrame(50 * waterType.duration);
+        float flowMapStrength = 0.025;
+        vec2 uvFlow = texture(textureArray, vec3(flowMapUv, waterType.flowMap)).xy;
+        vec2 uv3 = vUv[0].xy * IN.texBlend.x + vUv[1].xy * IN.texBlend.y + vUv[2].xy * IN.texBlend.z + uvFlow * flowMapStrength;
+        float foamMask = texture(textureArray, vec3(uv3, waterType.foamMap)).r;
+        float foamAmount = 1 - dot(IN.texBlend, vec3(vColor[0].x, vColor[1].x, vColor[2].x));
+        float foamDistance = 1;
+        vec3 foamColor = waterType.foamColor;
+        foamColor = srgbToLinear(foamColor) * foamMask * (ambientColor * ambientStrength + lightColor * lightStrength);
+        foamAmount = clamp(pow(1.0 - ((1.0 - foamAmount) / foamDistance), 3), 0.0, 1.0) * waterType.hasFoam;
+        foamAmount *= 0.05;
+        c.rgb = foamColor * foamAmount + c.rgb * (1 - foamAmount);
+        alpha = foamAmount + alpha * (1 - foamAmount);
+    }
+
     // Like before, sampleWater needs to return sRGB
     c = linearToSrgb(c);
     return vec4(c.rgb, alpha);
@@ -491,7 +507,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     float distance = depth / dot(v, n);
 
 
-    float extinction = exp(-distance * 0.002); // Exponential falloff of light intensity when penetrating water
+    float extinction = exp(-distance * 0.0023); // Exponential falloff of light intensity when penetrating water
     vec3 extinctionColors = vec3(extinction / 1.545, extinction / 1.048, extinction / 0.774); // Different falloff of light depending on the color
     extinctionColors.g *= 1.1; // minor tuning
     vec3 waterColorBias = srgbToLinear(vec3(0, 0, 0) / 255.f);
