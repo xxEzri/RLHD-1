@@ -509,7 +509,9 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
 
     float extinction = exp(-distance * 0.0023); // Exponential falloff of light intensity when penetrating water
     vec3 extinctionColors = vec3(extinction / 1.545, extinction / 1.048, extinction / 0.774); // Different falloff of light depending on the color
+    extinctionColors.r *= 1.0;
     extinctionColors.g *= 1.1; // minor tuning
+    extinctionColors.b *= 1.0;
     vec3 waterColorBias = srgbToLinear(vec3(0, 0, 0) / 255.f);
 
     outputColor = mix(waterColorBias, outputColor, extinctionColors);
