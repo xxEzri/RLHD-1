@@ -3,6 +3,9 @@
 #undef PI
 #define PI 3.14159265358979323846264338327950288419716939937510582097494459230781
 
+#define RENDER_PASS_MAIN 0
+#define RENDER_PASS_WATER_REFLECTION 1
+
 // Any changes here may need to be reflected in OpenCL's constants.cl
 // They are kept separate to avoid accidentally breaking OpenCL compatibility
 #define MATERIAL_INDEX_SHIFT 12
@@ -40,4 +43,5 @@
 #include FLAT_SHADING
 #include SHADOW_MAP_OVERLAY
 #include LINEAR_ALPHA_BLENDING
-#include PLANAR_REFLECTION_RESOLUTION
+#include WATER_REFLECTIONS
+#include WATER_REFLECTION_RESOLUTION

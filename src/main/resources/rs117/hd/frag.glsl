@@ -36,9 +36,6 @@ uniform sampler2D shadowMap;
 uniform sampler2D waterReflectionMap;
 
 uniform int renderPass;
-#define RENDER_PASS_MAIN 0
-#define RENDER_PASS_WATER_REFLECTION 1
-
 uniform vec3 cameraPos;
 uniform mat4 lightProjectionMatrix;
 uniform float elapsedTime;

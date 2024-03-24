@@ -42,6 +42,7 @@ import rs117.hd.model.ModelPusher;
 import rs117.hd.scene.model_overrides.ModelOverride;
 import rs117.hd.scene.model_overrides.ObjectType;
 import rs117.hd.scene.tile_overrides.TileOverride;
+import rs117.hd.utils.ColorUtils;
 import rs117.hd.utils.HDUtils;
 import rs117.hd.utils.ModelHash;
 
@@ -64,6 +65,7 @@ class SceneUploader {
 	public static final int SCENE_OFFSET = (Constants.EXTENDED_SCENE_SIZE - Constants.SCENE_SIZE) / 2; // offset for sxy -> msxy
 
 	private static final float[] UP_NORMAL = { 0, -1, 0 };
+	private static int UNDERWATER_HSL = 7720;
 
 	@Inject
 	private Client client;
@@ -90,6 +92,7 @@ class SceneUploader {
 	public int waterHeight;
 
 	public void upload(SceneContext sceneContext) {
+		UNDERWATER_HSL = ColorUtils.packHslRaw(7, 4, 40);
 		Stopwatch stopwatch = Stopwatch.createStarted();
 
 		// Reset water height counters
@@ -689,10 +692,10 @@ class SceneUploader {
 
 			underwaterTerrain = 1;
 
-			int swColor = 6676;
-			int seColor = 6676;
-			int neColor = 6676;
-			int nwColor = 6676;
+			int swColor = UNDERWATER_HSL;
+			int seColor = UNDERWATER_HSL;
+			int neColor = UNDERWATER_HSL;
+			int nwColor = UNDERWATER_HSL;
 
 			int swDepth = sceneContext.vertexUnderwaterDepth.getOrDefault(swVertexKey, 0);
 			int seDepth = sceneContext.vertexUnderwaterDepth.getOrDefault(seVertexKey, 0);
@@ -1028,9 +1031,9 @@ class SceneUploader {
 
 			// underwater terrain
 			for (int face = 0; face < faceCount; ++face) {
-				int colorA = 6676;
-				int colorB = 6676;
-				int colorC = 6676;
+				int colorA = UNDERWATER_HSL;
+				int colorB = UNDERWATER_HSL;
+				int colorC = UNDERWATER_HSL;
 
 				if (faceColorA[face] == 12345678)
 					continue;

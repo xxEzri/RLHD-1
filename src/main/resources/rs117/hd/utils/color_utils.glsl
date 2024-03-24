@@ -217,5 +217,5 @@ vec3 packedHslToSrgb(int hsl) {
 }
 
 vec3 unpackSrgb(int srgb) {
-    return srgbToLinear(ivec3(srgb >> 16, srgb >> 8 & 0xFF, srgb & 0xFF) / 255.f);
+    return srgbToLinear(vec3(srgb >> 16, srgb >> 8 & 0xFF, srgb & 0xFF) / 255);
 }

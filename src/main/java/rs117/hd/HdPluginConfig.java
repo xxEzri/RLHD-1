@@ -876,21 +876,21 @@ public interface HdPluginConfig extends Config
 		return false;
 	}
 
-	String KEY_PLANAR_REFLECTIONS = "planarReflections";
+	String KEY_WATER_REFLECTIONS = "planarReflections";
 	@ConfigItem(
-		keyName = KEY_PLANAR_REFLECTIONS,
+		keyName = KEY_WATER_REFLECTIONS,
 		name = "Planar Reflections",
 		description = "Render a highly detailed reflection of the game world on bodies of water. EXPENSIVE and WIP.",
 		position = 403,
 		section = experimentalSettings
 	)
-	default boolean enablePlanarReflections() {
+	default boolean waterReflections() {
 		return false;
 	}
 
-	String KEY_PLANAR_REFLECTION_RESOLUTION = "planarReflectionResolution";
+	String KEY_WATER_REFLECTION_RESOLUTION = "planarReflectionResolution";
 	@ConfigItem(
-		keyName = KEY_PLANAR_REFLECTION_RESOLUTION,
+		keyName = KEY_WATER_REFLECTION_RESOLUTION,
 		name = "Reflection Resolution",
 		description = "Percentage of screen resolution",
 		position = 404,

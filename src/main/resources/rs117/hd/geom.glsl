@@ -26,14 +26,21 @@
 
 #version 330
 
-layout(triangles) in;
-layout(triangle_strip, max_vertices = 3) out;
+#include utils/constants.glsl
 
+layout(triangles) in;
+
+//#if WATER_REFLECTIONS
+//layout(triangle_strip, max_vertices = 6) out;
+//#else
+layout(triangle_strip, max_vertices = 3) out;
+//#endif
+
+uniform int renderPass;
 uniform mat4 projectionMatrix;
 uniform float elapsedTime;
 uniform vec3 cameraPos;
 
-#include utils/constants.glsl
 #define USE_VANILLA_UV_PROJECTION
 #include utils/uvs.glsl
 #include utils/color_utils.glsl
@@ -143,4 +150,31 @@ void main() {
     }
 
     EndPrimitive();
+
+    // Works, but is costly
+//    if (renderPass == RENDER_PASS_WATER_REFLECTION) {
+//        bool isTerrain = (vTerrainData[0] & 1) != 0;
+//        if (isTerrain) {
+//            for (int i = 0; i < 3; i++) {
+//                // Flat normals must be applied separately per vertex
+//                vec3 normal = gNormal[i];
+//                vec3 position = gPosition[i];
+//                position.y = .1; // TODO: set to water height
+//                OUT.position = vec3(0);
+//                OUT.flatNormal = N;
+//                #if FLAT_SHADING
+//                OUT.normal = N;
+//                #else
+//                OUT.normal = length(normal) == 0 ? N : normalize(normal);
+//                #endif
+//                OUT.texBlend = vec3(0);
+//                OUT.texBlend[i] = 1;
+//                OUT.fogAmount = gFogAmount[i];
+//                gl_Position = projectionMatrix * vec4(position, 1);
+//                EmitVertex();
+//            }
+//
+//            EndPrimitive();
+//        }
+//    }
 }
