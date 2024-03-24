@@ -350,7 +350,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     //vec2 uv1 = worldUvs(11) + animationFrame(sqrt(11.) / speed * waterType.duration);
     //vec2 uv2 = worldUvs(3) + animationFrame(sqrt(3.) / speed * waterType.duration);
     vec2 uv1 = worldUvs(11) + animationFrame(sqrt(11.) / -speed * waterType.duration);
-    vec2 uv2 = worldUvs(3) + animationFrame(sqrt(3.) / speed * waterType.duration * 1.7);
+    vec2 uv2 = worldUvs(3) + animationFrame(sqrt(3.) / speed * waterType.duration * 1.6);
 
     // get diffuse textures
     vec3 n1 = linearToSrgb(texture(textureArray, vec3(uv1, MAT_WATER_NORMAL_MAP_1.colorMap)).xyz);
@@ -365,8 +365,8 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     n1.xyz = n1.xzy;
     n2.xyz = n2.xzy;
 
-    n1.y /=0.55; // scale normals
-    n2.y /=0.55; // scale normals
+    n1.y /=0.6; // scale normals
+    n2.y /=0.6; // scale normals
     // UDN blending
     vec3 normals = normalize(vec3(n1.xy + n2.xy, n1.z + n2.z));
 //    vec3 normals = normalize(vec3(n1.xy + n2.xy, n1.z));
@@ -380,6 +380,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     float fresnel = calculateFresnel(normals, fragToCam, 1.333);
 
     vec3 c = srgbToLinear(fogColor);
+    c *= 0.9;
     if (waterReflectionEnabled) { // TODO: compare with waterHeight instead && IN.position.y > -128) {
         vec3 I = -viewDir; // incident
         vec3 N = normals; // normal
@@ -408,7 +409,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         vec2 distortion = vec2(x, y) * 50 * distortionFactor;
         // TODO: Don't distort too close to the shore
         float shoreLineMask = 1.0 - dot(IN.texBlend, vec3(vColor[0].x, vColor[1].x, vColor[2].x));
-        distortion *= 1.3 - (shoreLineMask *1.43); // safety factor to remove artifacts
+        distortion *= 1.5 - (shoreLineMask *1.65); // safety factor to remove artifacts
         uv += texelSize * distortion;
 
         uv = clamp(uv, texelSize, 1 - texelSize);
@@ -458,6 +459,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     float lowestColorLevel = 500;
     float midColorLevel = 150;
     float surfaceLevel = IN.position.y - depth; // e.g. -1600
+    outputColor = srgbToLinear(outputColor);
 
 //    outputColor = vec3(0); return;
 
@@ -468,6 +470,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         vec2 causticsUv = worldUvs(scale);
 
         float depthMultiplier = (IN.position.y - surfaceLevel - maxCausticsDepth) / -maxCausticsDepth;
+        depthMultiplier = clamp(depthMultiplier, 0, 1);
         depthMultiplier *= depthMultiplier;
 
         causticsUv *= .75;
@@ -481,28 +484,20 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         outputColor.rgb *= 1 + caustics * causticsColor * depthMultiplier * lightDotNormals * lightStrength;
     }
 
-    outputColor = srgbToLinear(outputColor);
-
     // Since we've already applied refraction displacement, we can simply calculate the distance
     // surface to camera
     vec3 v = normalize(cameraPos - IN.position);
     vec3 n = vec3(0, -1, 0); // assume level surface
     float distance = depth / dot(v, n);
 
-//    outputColor = vec3(0); return;
 
-//    vec3 depthColor2 = srgbToLinear(waterType.depthColor) * .14 * vec3(.4, .275, .09);
-//    vec3 depthColor2 = srgbToLinear(vec3(6.3, 16, 29.4) / 255.f) * .1;
-//    vec3 depthColor1 = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f);
-    vec3 depthColor1 = vec3(0);
-    vec3 depthColor2 = srgbToLinear(vec3(45, 85, 65) / 255.f); // Color to mix-in due to light penetrating water
-//    vec3 depthColor2 = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f) * 1;
     float extinction = exp(-distance * 0.002); // Exponential falloff of light intensity when penetrating water
+    vec3 extinctionColors = vec3(extinction / 1.545, extinction / 1.048, extinction / 0.774); // Different falloff of light depending on the color
+    extinctionColors.g *= 1.1; // minor tuning
+    vec3 waterColorBias = srgbToLinear(vec3(0, 0, 0) / 255.f);
 
-//    outputColor = mix(depthColor1, outputColor, extinction);
-    //outputColor = mix(depthColor2, outputColor, extinction);
-    float extinctionMix = extinction *0.4; // Easy tuning factor for color strength of depthColor2
-    outputColor = mix(mix(depthColor1, depthColor2, extinctionMix), outputColor, extinctionMix);
+    outputColor = mix(waterColorBias, outputColor, extinctionColors);
+
 
     int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
     if (waterTypeIndex == 7) {
