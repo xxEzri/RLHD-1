@@ -480,8 +480,8 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
 //    outputColor = vec3(0); return;
 
     if (underwaterCaustics) {
-        const float scale = 2.00;
-        const float maxCausticsDepth = 128 * 4;
+        const float scale = 2;
+        const float maxCausticsDepth = 128 * 7;
 
         vec2 causticsUv = worldUvs(scale);
 
@@ -496,7 +496,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         vec2 flow2 = causticsUv * 1.5 + animationFrame(23) * -direction;
         vec3 caustics = sampleCaustics(flow1, flow2, .005);
 
-        vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength *0.6;
+        vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength *0.7;
         outputColor.rgb *= 1 + caustics * causticsColor * depthMultiplier * lightDotNormals * lightStrength;
     }
 
