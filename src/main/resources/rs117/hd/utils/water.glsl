@@ -460,7 +460,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         vec3 foamColor = waterType.foamColor;
         foamColor = srgbToLinear(foamColor) * foamMask * (ambientColor * ambientStrength + lightColor * lightStrength);
         foamAmount = clamp(pow(1.0 - ((1.0 - foamAmount) / foamDistance), 3), 0.0, 1.0) * waterType.hasFoam;
-        foamAmount *= 0.05;
+        foamAmount *= 0.035;
         c.rgb = foamColor * foamAmount + c.rgb * (1 - foamAmount);
         alpha = foamAmount + alpha * (1 - foamAmount);
     }
