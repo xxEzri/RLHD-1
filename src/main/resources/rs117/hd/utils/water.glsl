@@ -409,7 +409,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         vec2 distortion = vec2(x, y) * 50 * distortionFactor;
         // TODO: Don't distort too close to the shore
         float shoreLineMask = 1.0 - dot(IN.texBlend, vec3(vColor[0].x, vColor[1].x, vColor[2].x));
-        distortion *= 1.5 - (shoreLineMask *1.65); // safety factor to remove artifacts
+        distortion *= 1.4 - (shoreLineMask *1.54); // safety factor to remove artifacts
         uv += texelSize * distortion;
 
         uv = clamp(uv, texelSize, 1 - texelSize);
@@ -480,8 +480,8 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
 //    outputColor = vec3(0); return;
 
     if (underwaterCaustics) {
-        const float scale = 2.25;
-        const float maxCausticsDepth = 128 * 6;
+        const float scale = 2.5;
+        const float maxCausticsDepth = 128 * 12;
 
         vec2 causticsUv = worldUvs(scale);
 
@@ -496,7 +496,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         vec2 flow2 = causticsUv * 1.5 + animationFrame(23) * -direction;
         vec3 caustics = sampleCaustics(flow1, flow2, .005);
 
-        vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength *0.75;
+        vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength *0.5;
         outputColor.rgb *= 1 + caustics * causticsColor * depthMultiplier * lightDotNormals * lightStrength;
     }
 
