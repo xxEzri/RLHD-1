@@ -42,7 +42,6 @@ import rs117.hd.model.ModelPusher;
 import rs117.hd.scene.model_overrides.ModelOverride;
 import rs117.hd.scene.model_overrides.ObjectType;
 import rs117.hd.scene.tile_overrides.TileOverride;
-import rs117.hd.utils.ColorUtils;
 import rs117.hd.utils.HDUtils;
 import rs117.hd.utils.ModelHash;
 
@@ -92,7 +91,7 @@ class SceneUploader {
 	public int waterHeight;
 
 	public void upload(SceneContext sceneContext) {
-		UNDERWATER_HSL = ColorUtils.packHslRaw(7, 4, 40);
+		UNDERWATER_HSL = 6676;//ColorUtils.packHslRaw(7, 4, 40);
 		Stopwatch stopwatch = Stopwatch.createStarted();
 
 		// Reset water height counters
