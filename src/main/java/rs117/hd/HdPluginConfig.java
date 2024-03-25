@@ -618,28 +618,63 @@ public interface HdPluginConfig extends Config
 		return true;
 	}
 
+	String KEY_HD_TZHAAR_RESKIN = "tzhaarHD";
+	@ConfigItem(
+		keyName = KEY_HD_TZHAAR_RESKIN,
+		name = "HD TzHaar Reskin",
+		description = "Recolors the TzHaar city of Mor Ul Rek to give it an appearance similar to that of its 2008 HD variant.",
+		position = 10,
+		section = environmentSettings
+	)
+	default boolean hdTzHaarReskin() {
+		return true;
+	}
+
+	/*====== Water settings ======*/
+
+	@ConfigSection(
+		name = "Water",
+		description = "Water settings",
+		position = 3
+	)
+	String waterSettings = "waterSettings";
+
 	@ConfigItem(
 		keyName = "underwaterCaustics",
 		name = "Underwater Caustics",
 		description = "Apply underwater lighting effects to imitate sunlight passing through waves on the surface.",
-		position = 10,
-		section = environmentSettings
+		position = 5,
+		section = waterSettings
 	)
 	default boolean underwaterCaustics()
 	{
 		return true;
 	}
 
-	String KEY_HD_TZHAAR_RESKIN = "tzhaarHD";
+	String KEY_PLANAR_REFLECTIONS = "planarReflections";
 	@ConfigItem(
-		keyName = KEY_HD_TZHAAR_RESKIN,
-		name = "HD TzHaar Reskin",
-		description = "Recolors the TzHaar city of Mor Ul Rek to give it an appearance similar to that of its 2008 HD variant.",
-		position = 11,
-		section = environmentSettings
+		keyName = KEY_PLANAR_REFLECTIONS,
+		name = "Planar Reflections",
+		description = "Render a highly detailed reflection of the game world on bodies of water.",
+		position = 2,
+		section = waterSettings
 	)
-	default boolean hdTzHaarReskin() {
+	default boolean enablePlanarReflections() {
 		return true;
+	}
+
+	String KEY_PLANAR_REFLECTION_RESOLUTION = "planarReflectionResolution";
+	@ConfigItem(
+		keyName = KEY_PLANAR_REFLECTION_RESOLUTION,
+		name = "Reflection Resolution",
+		description = "Percentage of screen resolution",
+		position = 3,
+		section = waterSettings
+	)
+	@Units(Units.PERCENT)
+	@Range(min = 25, max = 100)
+	default int reflectionResolution() {
+		return 50;
 	}
 
 
@@ -648,7 +683,7 @@ public interface HdPluginConfig extends Config
 	@ConfigSection(
 		name = "Model caching",
 		description = "Improve performance by reusing model data",
-		position = 3,
+		position = 4,
 		closedByDefault = true
 	)
 	String modelCachingSettings = "modelCachingSettings";
@@ -707,7 +742,7 @@ public interface HdPluginConfig extends Config
 	@ConfigSection(
 		name = "Miscellaneous",
 		description = "Miscellaneous settings",
-		position = 4,
+		position = 5,
 		closedByDefault = true
 	)
 	String miscellaneousSettings = "miscellaneousSettings";
@@ -791,7 +826,7 @@ public interface HdPluginConfig extends Config
 	@ConfigSection(
 		name = "Experimental",
 		description = "Experimental features - if you're experiencing issues you should consider disabling these",
-		position = 5,
+		position = 6,
 		closedByDefault = true
 	)
 	String experimentalSettings = "experimentalSettings";
@@ -862,32 +897,6 @@ public interface HdPluginConfig extends Config
 	)
 	default boolean decoupleSkyAndWaterColor() {
 		return false;
-	}
-
-	String KEY_PLANAR_REFLECTIONS = "planarReflections";
-	@ConfigItem(
-		keyName = KEY_PLANAR_REFLECTIONS,
-		name = "Planar Reflections",
-		description = "Render a highly detailed reflection of the game world on bodies of water. EXPENSIVE and WIP.",
-		position = 403,
-		section = experimentalSettings
-	)
-	default boolean enablePlanarReflections() {
-		return false;
-	}
-
-	String KEY_PLANAR_REFLECTION_RESOLUTION = "planarReflectionResolution";
-	@ConfigItem(
-		keyName = KEY_PLANAR_REFLECTION_RESOLUTION,
-		name = "Reflection Resolution",
-		description = "Percentage of screen resolution",
-		position = 404,
-		section = experimentalSettings
-	)
-	@Units(Units.PERCENT)
-	@Range(min = 1)
-	default int reflectionResolution() {
-		return 100;
 	}
 
 	String KEY_LINEAR_ALPHA_BLENDING = "experimentalLinearAlphaBlending";
