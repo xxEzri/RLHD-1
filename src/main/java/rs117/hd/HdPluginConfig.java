@@ -639,11 +639,40 @@ public interface HdPluginConfig extends Config
 	)
 	String waterSettings = "waterSettings";
 
+	//@ConfigItem(
+		//keyName = "waterTransparencyType",
+		//name = "Water Type",
+		//description =
+		//	"Choose between a default of transparent or opaque water<br>" +
+		//	"'Transparent' shows underwater terrain and effects, while<br>" +
+		//	"'Static' does not.",
+		//position = 1,
+		//section = waterSettings
+	//)
+	//default waterTransparencyType waterTransparencyType()
+	//{
+	//	return waterTransparencyType.Transparent;
+	//}
+
+	String KEY_TRANSPARENCY_PERCENTAGE = "waterTransparencyPercentage";
+	@ConfigItem(
+		keyName = KEY_TRANSPARENCY_PERCENTAGE,
+		name = "Transparency",
+		description = "Amount of transparency on transparent water when it is enabled. <br> Default 80%.",
+		position = 2,
+		section = waterSettings
+	)
+	@Units(Units.PERCENT)
+	@Range(min = 0, max = 100)
+	default int waterTransparencyPercentage() {
+		return 80;
+	}
+
 	@ConfigItem(
 		keyName = "underwaterCaustics",
 		name = "Underwater Caustics",
 		description = "Apply underwater lighting effects to imitate sunlight passing through waves on the surface.",
-		position = 5,
+		position = 3,
 		section = waterSettings
 	)
 	default boolean underwaterCaustics()
@@ -656,7 +685,7 @@ public interface HdPluginConfig extends Config
 		keyName = KEY_PLANAR_REFLECTIONS,
 		name = "Planar Reflections",
 		description = "Render a highly detailed reflection of the game world on bodies of water.",
-		position = 2,
+		position = 4,
 		section = waterSettings
 	)
 	default boolean enablePlanarReflections() {
@@ -667,8 +696,8 @@ public interface HdPluginConfig extends Config
 	@ConfigItem(
 		keyName = KEY_PLANAR_REFLECTION_RESOLUTION,
 		name = "Reflection Resolution",
-		description = "Percentage of screen resolution",
-		position = 3,
+		description = "Percentage of screen resolution to render reflections at. <br> 50% is a good balance of performance and quality.",
+		position = 5,
 		section = waterSettings
 	)
 	@Units(Units.PERCENT)
