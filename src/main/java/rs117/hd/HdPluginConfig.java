@@ -46,6 +46,7 @@ import rs117.hd.config.ShadowResolution;
 import rs117.hd.config.TextureResolution;
 import rs117.hd.config.UIScalingMode;
 import rs117.hd.config.VanillaShadowMode;
+import rs117.hd.config.WaterTransparencyType;
 
 import static rs117.hd.HdPlugin.MAX_DISTANCE;
 import static rs117.hd.HdPlugin.MAX_FOG_DEPTH;
@@ -639,20 +640,20 @@ public interface HdPluginConfig extends Config
 	)
 	String waterSettings = "waterSettings";
 
-	//@ConfigItem(
-		//keyName = "waterTransparencyType",
-		//name = "Water Type",
-		//description =
-		//	"Choose between a default of transparent or opaque water<br>" +
-		//	"'Transparent' shows underwater terrain and effects, while<br>" +
-		//	"'Static' does not.",
-		//position = 1,
-		//section = waterSettings
-	//)
-	//default waterTransparencyType waterTransparencyType()
-	//{
-	//	return waterTransparencyType.Transparent;
-	//}
+	@ConfigItem(
+		keyName = "waterTransparencyType",
+		name = "Water Type",
+		description =
+			"Choose between a default of transparent or opaque water<br>" +
+			"'Transparent' shows underwater terrain and effects, while<br>" +
+			"'Static' does not.",
+		position = 1,
+		section = waterSettings
+	)
+	default WaterTransparencyType waterTransparencyType()
+	{
+		return WaterTransparencyType.TRANSPARENT;
+	}
 
 	String KEY_TRANSPARENCY_PERCENTAGE = "waterTransparencyPercentage";
 	@ConfigItem(

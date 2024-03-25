@@ -485,7 +485,9 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     vec3 n = vec3(0, -1, 0); // assume level surface
     float distance = depth / dot(v, n);
 
-    float extinction = exp(-distance * 0.0025); // Exponential falloff of light intensity when penetrating water
+    float transparencyFactor = 0.016 + (0.002 - 0.016) * (waterTransparency / 100.0); // Scale from a range of min(0.02) to max(0.002)
+    float extinction = exp(-distance * transparencyFactor); // Exponential falloff of light intensity when penetrating water
+
     if (underwaterCaustics) {
         const float scale = 2.5;
         vec2 causticsUv = worldUvs(scale);
