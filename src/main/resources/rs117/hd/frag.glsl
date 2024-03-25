@@ -48,6 +48,8 @@ uniform float fogDepth;
 uniform vec3 waterColorLight;
 uniform vec3 waterColorMid;
 uniform vec3 waterColorDark;
+uniform float waterTransparencyType;
+uniform float waterTransparency;
 uniform vec3 ambientColor;
 uniform float ambientStrength;
 uniform vec3 lightColor;
