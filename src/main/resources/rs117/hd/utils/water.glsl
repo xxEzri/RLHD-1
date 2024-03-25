@@ -500,8 +500,8 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     }
 
     vec3 extinctionColors = vec3(extinction / 1.545, extinction / 1.048, extinction / 0.774); // Different falloff of light depending on the color
-    extinctionColors.r = extinctionColors.r *= 1;
-    extinctionColors.g = extinctionColors.g *= 1.15; // tuning factors
+    extinctionColors.r = extinctionColors.r *= 0.8;
+    extinctionColors.g = extinctionColors.g *= 1.1; // tuning factors
     extinctionColors.b = extinctionColors.b *= 1;
 
     vec3 waterColorBias = sqrt(extinctionColors) * 0.02; // bad fake scattering, adds a bit of light
