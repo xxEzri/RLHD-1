@@ -479,37 +479,35 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
 
 //    outputColor = vec3(0); return;
 
-    if (underwaterCaustics) {
-        const float scale = 2.5;
-        const float maxCausticsDepth = 128 * 12;
-
-        vec2 causticsUv = worldUvs(scale);
-
-        float depthMultiplier = (IN.position.y - surfaceLevel - maxCausticsDepth) / -maxCausticsDepth;
-        depthMultiplier = clamp(depthMultiplier, 0, 1);
-        depthMultiplier *= depthMultiplier;
-
-        causticsUv *= .75;
-
-        const ivec2 direction = ivec2(1, -2);
-        vec2 flow1 = causticsUv + animationFrame(17) * direction;
-        vec2 flow2 = causticsUv * 1.5 + animationFrame(23) * -direction;
-        vec3 caustics = sampleCaustics(flow1, flow2, .005);
-
-        vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength *0.5;
-        outputColor.rgb *= 1 + caustics * causticsColor * depthMultiplier * lightDotNormals * lightStrength;
-    }
-
-    // Since we've already applied refraction displacement, we can simply calculate the distance
+ // Since we've already applied refraction displacement, we can simply calculate the distance
     // surface to camera
     vec3 v = normalize(cameraPos - IN.position);
     vec3 n = vec3(0, -1, 0); // assume level surface
     float distance = depth / dot(v, n);
 
+    float extinction = exp(-distance * 0.0025); // Exponential falloff of light intensity when penetrating water
+    if (underwaterCaustics) {
+        const float scale = 2.5;
+        vec2 causticsUv = worldUvs(scale);
+        float depthMultiplier = extinction;
+        causticsUv *= 0.75;
+        const ivec2 direction = ivec2(1, -2);
+        vec2 flow1 = causticsUv + animationFrame(17) * direction;
+        vec2 flow2 = causticsUv * 1.5 + animationFrame(23) * -direction;
+        vec3 caustics = sampleCaustics(flow1, flow2, .005);
+        vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength;
+        outputColor.rgb *= 1 + caustics * causticsColor * depthMultiplier * lightDotNormals * lightStrength;
+    }
 
-    float extinction = exp(-distance * 0.0023); // Exponential falloff of light intensity when penetrating water
-    vec3 extinctionColors = vec3(extinction / 1.545, extinction / 1.153, extinction / 0.774); // Different falloff of light depending on the color
+    vec3 extinctionColors = vec3(extinction / 1.545, extinction / 1.048, extinction / 0.774); // Different falloff of light depending on the color
+    extinctionColors.r = extinctionColors.r *= 1;
+    extinctionColors.g = extinctionColors.g *= 1; // tuning factors
+    extinctionColors.b = extinctionColors.b *= 1;
+
     vec3 waterColorBias = sqrt(extinctionColors) * 0.02; // bad fake scattering, adds a bit of light
+    vec3 waterTypeColor = vec3(0);
+    waterColorBias = waterColorBias + waterTypeColor;
+    //waterColorBias = vec3(0);
 
     outputColor = mix(waterColorBias, outputColor, extinctionColors);
 
