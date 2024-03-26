@@ -655,17 +655,17 @@ public interface HdPluginConfig extends Config
 		return WaterTransparencyType.TRANSPARENT;
 	}
 
-	String KEY_TRANSPARENCY_PERCENTAGE = "waterTransparencyPercentage";
+	String KEY_LIGHT_PENETRATION = "lightPenetrationPercentage";
 	@ConfigItem(
-		keyName = KEY_TRANSPARENCY_PERCENTAGE,
-		name = "Transparency",
-		description = "Amount of transparency on transparent water when it is enabled. <br> Default 80%.",
+		keyName = KEY_LIGHT_PENETRATION,
+		name = "Light Penetration",
+		description = "Amount of light that can pass through transparent water. <br> Default 80%.",
 		position = 2,
 		section = waterSettings
 	)
 	@Units(Units.PERCENT)
 	@Range(min = 0, max = 100)
-	default int waterTransparencyPercentage() {
+	default int lightPenetrationPercentage() {
 		return 80;
 	}
 
@@ -706,7 +706,6 @@ public interface HdPluginConfig extends Config
 	default int reflectionResolution() {
 		return 50;
 	}
-
 
 	/*====== Model caching settings ======*/
 

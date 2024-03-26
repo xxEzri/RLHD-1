@@ -472,58 +472,48 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
 void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, float lightDotNormals) {
     // underwater terrain
-    float lowestColorLevel = 500;
-    float midColorLevel = 150;
-    float surfaceLevel = IN.position.y - depth; // e.g. -1600
     outputColor = srgbToLinear(outputColor);
+    outputColor.r *=0.75; // dirt texture looks unnaturally dry/bright/red in shallow water, remove some before further blending
 
-//    outputColor = vec3(0); return;
+    vec3 camToFrag = normalize(IN.position - cameraPos);
+    float distanceToSurface = depth / camToFrag.y;
+    float totalDistance = depth + distanceToSurface;
 
- // Since we've already applied refraction displacement, we can simply calculate the distance
-    // surface to camera
-    vec3 v = normalize(cameraPos - IN.position);
-    vec3 n = vec3(0, -1, 0); // assume level surface
-    float distance = depth / dot(v, n);
+    float lightPenetration = 0.5 + (waterTransparencyConfig / 66.667); // Scale from a range of 0.8 to 1.8
 
-    float transparencyFactor = 0.016 + (0.002 - 0.016) * (waterTransparency / 100.0); // Scale from a range of min(0.02) to max(0.002)
-    float extinction = exp(-distance * transparencyFactor); // Exponential falloff of light intensity when penetrating water
+    // Exponential falloff of light intensity when penetrating water, different for each color
+    vec3 extinctionColors = vec3(0);
+    extinctionColors.r = exp(-totalDistance * (0.003090 / lightPenetration));
+    extinctionColors.g = exp(-totalDistance * (0.002096 / lightPenetration));
+    extinctionColors.b = exp(-totalDistance * (0.001548 / lightPenetration));
 
     if (underwaterCaustics) {
         const float scale = 2.5;
         vec2 causticsUv = worldUvs(scale);
-        float depthMultiplier = extinction;
         causticsUv *= 0.75;
         const ivec2 direction = ivec2(1, -2);
         vec2 flow1 = causticsUv + animationFrame(17) * direction;
         vec2 flow2 = causticsUv * 1.5 + animationFrame(23) * -direction;
         vec3 caustics = sampleCaustics(flow1, flow2, .005);
         vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength;
-        outputColor.rgb *= 1 + caustics * causticsColor * depthMultiplier * lightDotNormals * lightStrength;
+        outputColor *= 1 + caustics * causticsColor * extinctionColors * lightDotNormals * lightStrength;
     }
 
-    vec3 extinctionColors = vec3(extinction / 1.545, extinction / 1.048, extinction / 0.774); // Different falloff of light depending on the color
-    extinctionColors.r = extinctionColors.r *= 0.8;
-    extinctionColors.g = extinctionColors.g *= 1.1; // tuning factors
-    extinctionColors.b = extinctionColors.b *= 1;
-
     vec3 waterColorBias = sqrt(extinctionColors) * 0.02; // bad fake scattering, adds a bit of light
-    vec3 waterTypeColor = vec3(0);
+    vec3 waterTypeColor = vec3(0); // Color e.g. swamp water here
     waterColorBias = waterColorBias + waterTypeColor;
     //waterColorBias = vec3(0);
 
     outputColor = mix(waterColorBias, outputColor, extinctionColors);
-
-
-    int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
-    if (waterTypeIndex == 7) {
-        vec3 waterColor = srgbToLinear(vec3(25, 0, 0) / 255.f);
-        float extinction = exp(-distance * 1);
-        extinction = 0;
-        outputColor = mix(waterColor, outputColor, extinction);
-    }
-
-    //outputColor = vec3(0); return;
-
     outputColor = linearToSrgb(outputColor);
+
+    // Some stuff for blood water type - disabled, pending update
+    //int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
+    //if (waterTypeIndex == 7) {
+        //vec3 waterColor = srgbToLinear(vec3(25, 0, 0) / 255.f);
+        //float extinction = exp(-distance * 1);
+        //extinction = 0;
+        //outputColor = mix(waterColor, outputColor, extinction);
+    //}
 }
 #endif
