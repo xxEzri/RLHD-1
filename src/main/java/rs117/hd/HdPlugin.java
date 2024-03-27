@@ -2687,6 +2687,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 							case KEY_PARALLAX_OCCLUSION_MAPPING:
 							case KEY_UI_SCALING_MODE:
 							case KEY_VANILLA_COLOR_BANDING:
+							case KEY_WATER_FOAM:
 							case KEY_LINEAR_ALPHA_BLENDING:
 							case KEY_PLANAR_REFLECTION_RESOLUTION:
 								recompilePrograms = true;
