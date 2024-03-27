@@ -346,22 +346,6 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 //    // underglow
 //    vec3 underglowOut = underglowColor * max(normals.y, 0) * underglowStrength;
 
-     #include WATER_FOAM
-        #if WATER_FOAM
-            vec2 flowMapUv = worldUvs(15) + animationFrame(50 * waterType.duration);
-            float flowMapStrength = 0.025;
-            vec2 uvFlow = texture(textureArray, vec3(flowMapUv, waterType.flowMap)).xy;
-            vec2 uv3 = vUv[0].xy * IN.texBlend.x + vUv[1].xy * IN.texBlend.y + vUv[2].xy * IN.texBlend.z + uvFlow * flowMapStrength;
-            float foamMask = texture(textureArray, vec3(uv3, waterType.foamMap)).r;
-            float foamAmount = 1 - dot(IN.texBlend, vec3(vColor[0].x, vColor[1].x, vColor[2].x));
-            float foamDistance = 1;
-            vec3 foamColor = waterType.foamColor;
-            foamColor = srgbToLinear(foamColor) * foamMask * (ambientColor * ambientStrength + lightColor * lightStrength);
-            foamAmount = clamp(pow(1.0 - ((1.0 - foamAmount) / foamDistance), 3), 0.0, 1.0) * waterType.hasFoam;
-            foamAmount *= 0.035;
-            c.rgb = foamColor * foamAmount + c.rgb * (1 - foamAmount);
-            alpha = foamAmount + alpha * (1 - foamAmount);
-        #endif
 
     const float speed = .15;
     //vec2 uv1 = worldUvs(11) + animationFrame(sqrt(11.) / speed * waterType.duration);
@@ -466,6 +450,22 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         alpha = 1;
     }
 
+     #include WATER_FOAM
+                #if WATER_FOAM
+                    vec2 flowMapUv = worldUvs(15) + animationFrame(50 * waterType.duration);
+                    float flowMapStrength = 0.025;
+                    vec2 uvFlow = texture(textureArray, vec3(flowMapUv, waterType.flowMap)).xy;
+                    vec2 uv3 = vUv[0].xy * IN.texBlend.x + vUv[1].xy * IN.texBlend.y + vUv[2].xy * IN.texBlend.z + uvFlow * flowMapStrength;
+                    float foamMask = texture(textureArray, vec3(uv3, waterType.foamMap)).r;
+                    float foamAmount = 1 - dot(IN.texBlend, vec3(vColor[0].x, vColor[1].x, vColor[2].x));
+                    float foamDistance = 1;
+                    vec3 foamColor = waterType.foamColor;
+                    foamColor = srgbToLinear(foamColor) * foamMask * (ambientColor * ambientStrength + lightColor * lightStrength);
+                    foamAmount = clamp(pow(1.0 - ((1.0 - foamAmount) / foamDistance), 3), 0.0, 1.0) * waterType.hasFoam;
+                    foamAmount *= 0.035;
+                    c.rgb = foamColor * foamAmount + c.rgb * (1 - foamAmount);
+                    alpha = foamAmount + alpha * (1 - foamAmount);
+                #endif
 
     // Like before, sampleWater needs to return sRGB
     c = linearToSrgb(c);
