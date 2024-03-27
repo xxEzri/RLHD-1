@@ -366,8 +366,8 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     n1.xyz = n1.xzy;
     n2.xyz = n2.xzy;
 
-    n1.y /=0.6; // scale normals
-    n2.y /=0.6; // scale normals
+    n1.y /=1; // scale normals
+    n2.y /=1; // scale normals
     // UDN blending
     vec3 normals = normalize(vec3(n1.xy + n2.xy, n1.z + n2.z));
 //    vec3 normals = normalize(vec3(n1.xy + n2.xy, n1.z));
