@@ -479,7 +479,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     float distanceToSurface = depth / camToFrag.y;
     float totalDistance = depth + distanceToSurface;
 
-    float lightPenetration = 0.5 + (waterTransparencyConfig / 66.667); // Scale from a range of 0.8 to 1.8
+    float lightPenetration = 0.5 + (waterTransparencyConfig / 50); // Scale from a range of 0.5 to 2.0
 
     // Exponential falloff of light intensity when penetrating water, different for each color
     vec3 extinctionColors = vec3(0);
