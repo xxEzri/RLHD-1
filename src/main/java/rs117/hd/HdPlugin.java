@@ -293,6 +293,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int texWaterReflection = -1;
 	private int texWaterReflectionDepthMap = -1;
 
+	private boolean enableWaterFoam;
 	private int texTileHeightMap;
 
 	private final GLBuffer hStagingBufferVertices = new GLBuffer(); // temporary scene vertex buffer
@@ -818,6 +819,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			.define("SHADOW_MAP_OVERLAY", enableShadowMapOverlay)
 			.define("LINEAR_ALPHA_BLENDING", configLinearAlphaBlending)
 			.define("PLANAR_REFLECTION_RESOLUTION", config.reflectionResolution() / 100f)
+			.define("WATER_FOAM", config.enableWaterFoam())
 			.addIncludePath(SHADER_PATH);
 
 		glSceneProgram = PROGRAM.compile(template);

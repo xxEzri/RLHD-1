@@ -707,6 +707,19 @@ public interface HdPluginConfig extends Config
 		return 50;
 	}
 
+	String KEY_WATER_FOAM = "waterFoam";
+	@ConfigItem(
+		keyName = KEY_WATER_FOAM,
+		name = "Foam",
+		description = "Render foam around the edges of water bodies.",
+		position = 6,
+		section = waterSettings
+	)
+	default boolean enableWaterFoam() {
+		return true;
+	}
+
+
 	/*====== Model caching settings ======*/
 
 	@ConfigSection(
