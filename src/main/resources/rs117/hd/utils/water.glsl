@@ -347,9 +347,9 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 //    vec3 underglowOut = underglowColor * max(normals.y, 0) * underglowStrength;
 
 
-    const float speed = .02;
-    vec2 uv1 = worldUvs(26) - animationFrame(sqrt(11.) / speed * waterType.duration / vec2(2, 1));
-    vec2 uv2 = worldUvs(6) + animationFrame(sqrt(3.) / speed * waterType.duration /vec2(4, 1));
+    const float speed = .009;
+    vec2 uv1 = worldUvs(26) - animationFrame(sqrt(11.) / speed * waterType.duration / vec2(-2, 16));
+    vec2 uv2 = worldUvs(6) - animationFrame(sqrt(3.) / speed * waterType.duration /vec2(2, 1));
 
     // get diffuse textures
     vec3 n1 = linearToSrgb(texture(textureArray, vec3(uv1, MAT_WATER_NORMAL_MAP_1.colorMap)).xyz);
@@ -363,9 +363,9 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     n2.z *= -1;
     n1.xyz = n1.xzy;
     n2.xyz = n2.xzy;
-    n1.y /=0.2; // scale normals
+    n1.y /=0.125; // scale normals
     n1 = normalize(n1);
-    n2.y /=0.8; // scale normals
+    n2.y /=1; // scale normals
     n2 = normalize(n2);
     vec3 normals = normalize(n1+n2);
     // UDN blending
