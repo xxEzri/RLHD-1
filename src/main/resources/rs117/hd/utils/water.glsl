@@ -346,9 +346,8 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 //    // underglow
 //    vec3 underglowOut = underglowColor * max(normals.y, 0) * underglowStrength;
 
-     #include waterFoam
-        #if waterFoam
-        {
+     #include WATER_FOAM
+        #if WATER_FOAM
             vec2 flowMapUv = worldUvs(15) + animationFrame(50 * waterType.duration);
             float flowMapStrength = 0.025;
             vec2 uvFlow = texture(textureArray, vec3(flowMapUv, waterType.flowMap)).xy;
@@ -362,7 +361,6 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
             foamAmount *= 0.035;
             c.rgb = foamColor * foamAmount + c.rgb * (1 - foamAmount);
             alpha = foamAmount + alpha * (1 - foamAmount);
-        }
         #endif
 
     const float speed = .15;
