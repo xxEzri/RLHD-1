@@ -440,9 +440,9 @@ void main() {
 
             vec3 caustics = sampleCaustics(flow1, flow2) * 2;
 
-            underWaterCausticsColor.r = 255 *= exp(400 * 0.003090);
-            underWaterCausticsColor.r = 255 *= exp(400 * 0.002096);
-            underWaterCausticsColor.r = 255 *= exp(400 * 0.001548);
+            underWaterCausticsColor.r = 255 * exp(400 * 0.003090);
+            underWaterCausticsColor.r = 255 * exp(400 * 0.002096);
+            underWaterCausticsColor.r = 255 * exp(400 * 0.001548);
 
             vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength *50;
             dirLightColor += caustics * causticsColor * lightDotNormals * pow(lightStrength, 1.5);
