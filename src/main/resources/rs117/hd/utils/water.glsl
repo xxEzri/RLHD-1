@@ -363,9 +363,9 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     n2.z *= -1;
     n1.xyz = n1.xzy;
     n2.xyz = n2.xzy;
-    n1.y /=0.125; // scale normals
+    n1.y /=0.225; // scale normals
     n1 = normalize(n1);
-    n2.y /=1; // scale normals
+    n2.y /=0.8; // scale normals
     n2 = normalize(n2);
     vec3 normals = normalize(n1+n2);
     // UDN blending
@@ -383,7 +383,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     float fresnel = calculateFresnel(normals, fragToCam, 1.333);
 
     vec3 c = srgbToLinear(fogColor);
-    vec3 d = vec3(0);
+    vec4 d = vec4(0);
     c *= 0.9;
     if (waterReflectionEnabled) { // TODO: compare with waterHeight instead && IN.position.y > -128) {
         vec3 I = -viewDir; // incident
@@ -470,35 +470,53 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
                     alpha = foamAmount + alpha * (1 - foamAmount);
                 #endif
 
-    float scatterStrength = 0.6;
+    float scatterStrength = 3;
     vec3 scatterExtinction = vec3(0);
-    float scatterDepth = 128 * 2 * 3;
+    float scatterDepth = 128 * 2 * 1;
     scatterExtinction.r = exp(-scatterDepth * 0.003090);
     scatterExtinction.g = exp(-scatterDepth * 0.002096);
     scatterExtinction.b = exp(-scatterDepth * 0.001548);
 
     //return vec4(scatterExtinction, 1);
 
-    //float waveStrength = pow(-normalScatter.y, 1400);
-
     float waveStrength = -normalScatter.y;
     waveStrength = 1 - waveStrength;
-    waveStrength = pow(waveStrength, 1 / 3.f);
+    //waveStrength *=0.5;
+    waveStrength = pow(waveStrength, 1 / 1.4f);
+    waveStrength *=0.3;
     //return vec4(vec3(waveStrength), 1);
 
     d.r = (scatterStrength * scatterExtinction.r * waveStrength);
     d.g = (scatterStrength * scatterExtinction.g * waveStrength);
     d.b = (scatterStrength * scatterExtinction.b * waveStrength);
 
-    //return vec4(d, 1);
+     vec4 reflection = vec4(c, fresnel);
+            vec4 scattering = vec4(d.rgb, 0.5);
 
-    vec4 dst = vec4(c, alpha);
-    //return vec4(dst);
-    dst.rgb += (d / alpha);
-    //dst.rgb += d;
-    //return vec4(dst);
+            vec4 dst = vec4(0);
+
+            dst = scattering * scattering.a + dst * (1 - scattering.a);
+            dst = reflection * reflection.a + dst * (1 - reflection.a);
+
+                    dst.rgb /= (dst.a);
+                    dst.rgb = linearToSrgb(dst.rgb);
+                    return dst;
+
+            c = linearToSrgb(c);
+                d = linearToSrgb(d);
+                return vec4(c.rgb, alpha);
+
+
+
+    d.rgb *= 200;
+    d.rgb = clamp(d.rgb, vec3(0), vec3(1));
+    d.a = 0.05;
+
+    dst.rgb = dst.rgb * dst.a + d.rgb * d.a * (1 - dst.a);
+    dst.a = dst.a + d.a * (1 - dst.a);
 
     dst.rgb = linearToSrgb(dst.rgb);
+
     return vec4(dst);
 
     // Like before, sampleWater needs to return sRGB
