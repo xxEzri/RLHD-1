@@ -347,8 +347,8 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 //    vec3 underglowOut = underglowColor * max(normals.y, 0) * underglowStrength;
 
 
-    const float speed = .012;
-    vec2 uv1 = worldUvs(26) - animationFrame(sqrt(11.) / speed * waterType.duration / vec2(-2, 16));
+    const float speed = .024;
+    vec2 uv1 = worldUvs(26) - animationFrame(sqrt(11.) / speed * waterType.duration / vec2(-1, 4));
     vec2 uv2 = worldUvs(6) - animationFrame(sqrt(3.) / speed * waterType.duration /vec2(2, 1));
 
     // get diffuse textures
@@ -368,9 +368,9 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     n2.y /=1; // scale normals
     n2 = normalize(n2);
     vec3 normals = normalize(n1+n2);
-    vec3 normalScatter = normals;
     // UDN blending
     normals = normalize(vec3(n1.xy + n2.xy, n1.z + n2.z));
+    vec3 normalScatter = normals;
     //normals = n1;
 //    vec3 normals = normalize(vec3(n1.xy + n2.xy, n1.z));
 //    return vec4(n1, 1);
@@ -470,31 +470,36 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
                     alpha = foamAmount + alpha * (1 - foamAmount);
                 #endif
 
-    float scatterStrength = 1;
+    float scatterStrength = 0.6;
     vec3 scatterExtinction = vec3(0);
-    float scatterDepth = -128 * 3 * 2;
-    scatterExtinction.r = exp(scatterDepth * 0.003090);
-    scatterExtinction.g = exp(scatterDepth * 0.002096);
-    scatterExtinction.b = exp(scatterDepth * 0.001548);
+    float scatterDepth = 128 * 2 * 3;
+    scatterExtinction.r = exp(-scatterDepth * 0.003090);
+    scatterExtinction.g = exp(-scatterDepth * 0.002096);
+    scatterExtinction.b = exp(-scatterDepth * 0.001548);
 
-    float waveStrength = pow(-normalScatter.y, 128);
+    //return vec4(scatterExtinction, 1);
 
-    vec3 scatter = vec3(0);
+    //float waveStrength = pow(-normalScatter.y, 1400);
 
-    d.r += (scatterStrength * scatterExtinction.r * waveStrength);
-    d.g += (scatterStrength * scatterExtinction.g * waveStrength);
-    d.b += (scatterStrength * scatterExtinction.b * waveStrength);
+    float waveStrength = -normalScatter.y;
+    waveStrength = 1 - waveStrength;
+    waveStrength = pow(waveStrength, 1 / 3.f);
+    //return vec4(vec3(waveStrength), 1);
+
+    d.r = (scatterStrength * scatterExtinction.r * waveStrength);
+    d.g = (scatterStrength * scatterExtinction.g * waveStrength);
+    d.b = (scatterStrength * scatterExtinction.b * waveStrength);
+
+    //return vec4(d, 1);
 
     vec4 dst = vec4(c, alpha);
-
-    vec4 blah = vec4(vec3(d.r, d.g, d.b), 0.3);
-
-    dst.rgb = dst.rgb * dst.a + blah.rgb * blah.a * (1 - dst.a);
-
-    dst.a = dst.a + blah.a * (1 - dst.a);
+    //return vec4(dst);
+    dst.rgb += (d / alpha);
+    //dst.rgb += d;
+    //return vec4(dst);
 
     dst.rgb = linearToSrgb(dst.rgb);
-    return dst;
+    return vec4(dst);
 
     // Like before, sampleWater needs to return sRGB
     c = linearToSrgb(c);
