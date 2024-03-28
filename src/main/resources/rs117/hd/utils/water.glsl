@@ -347,7 +347,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 //    vec3 underglowOut = underglowColor * max(normals.y, 0) * underglowStrength;
 
 
-    const float speed = .009;
+    const float speed = .012;
     vec2 uv1 = worldUvs(26) - animationFrame(sqrt(11.) / speed * waterType.duration / vec2(-2, 16));
     vec2 uv2 = worldUvs(6) - animationFrame(sqrt(3.) / speed * waterType.duration /vec2(2, 1));
 
@@ -368,6 +368,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     n2.y /=1; // scale normals
     n2 = normalize(n2);
     vec3 normals = normalize(n1+n2);
+    vec3 normalScatter = normals;
     // UDN blending
     normals = normalize(vec3(n1.xy + n2.xy, n1.z + n2.z));
     //normals = n1;
@@ -382,6 +383,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     float fresnel = calculateFresnel(normals, fragToCam, 1.333);
 
     vec3 c = srgbToLinear(fogColor);
+    vec3 d = vec3(0);
     c *= 0.9;
     if (waterReflectionEnabled) { // TODO: compare with waterHeight instead && IN.position.y > -128) {
         vec3 I = -viewDir; // incident
@@ -468,21 +470,48 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
                     alpha = foamAmount + alpha * (1 - foamAmount);
                 #endif
 
+    float scatterStrength = 1;
+    vec3 scatterExtinction = vec3(0);
+    float scatterDepth = -128 * 3 * 2;
+    scatterExtinction.r = exp(scatterDepth * 0.003090);
+    scatterExtinction.g = exp(scatterDepth * 0.002096);
+    scatterExtinction.b = exp(scatterDepth * 0.001548);
+
+    float waveStrength = pow(-normalScatter.y, 128);
+
+    vec3 scatter = vec3(0);
+
+    d.r += (scatterStrength * scatterExtinction.r * waveStrength);
+    d.g += (scatterStrength * scatterExtinction.g * waveStrength);
+    d.b += (scatterStrength * scatterExtinction.b * waveStrength);
+
+    vec4 dst = vec4(c, alpha);
+
+    vec4 blah = vec4(vec3(d.r, d.g, d.b), 0.3);
+
+    dst.rgb = dst.rgb * dst.a + blah.rgb * blah.a * (1 - dst.a);
+
+    dst.a = dst.a + blah.a * (1 - dst.a);
+
+    dst.rgb = linearToSrgb(dst.rgb);
+    return dst;
+
     // Like before, sampleWater needs to return sRGB
     c = linearToSrgb(c);
+    d = linearToSrgb(d);
     return vec4(c.rgb, alpha);
 }
 
 void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, float lightDotNormals) {
     // underwater terrain
     outputColor = srgbToLinear(outputColor);
-    outputColor.r *=0.75; // dirt texture looks unnaturally dry/bright/red in shallow water, remove some before further blending
+    outputColor.r *=0.7; // dirt texture looks unnaturally dry/bright/red in shallow water, remove some before further blending
 
     vec3 camToFrag = normalize(IN.position - cameraPos);
     float distanceToSurface = depth / camToFrag.y;
     float totalDistance = depth + distanceToSurface;
 
-    float lightPenetration = 0.5 + (waterTransparencyConfig / 50); // Scale from a range of 0.5 to 2.0
+    float lightPenetration = 0.5 + (waterTransparencyConfig / 50); // Scale from a range of 0.5 to 2.5
 
     // Exponential falloff of light intensity when penetrating water, different for each color
     vec3 extinctionColors = vec3(0);
@@ -502,12 +531,14 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         outputColor *= 1 + caustics * causticsColor * extinctionColors * lightDotNormals * lightStrength;
     }
 
-    vec3 waterColorBias = sqrt(extinctionColors) * 0.02; // bad fake scattering, adds a bit of light
+    vec3 waterColorBias = vec3(0);
     vec3 waterTypeColor = vec3(0); // Color e.g. swamp water here
+
     waterColorBias = waterColorBias + waterTypeColor;
     //waterColorBias = vec3(0);
 
-    outputColor = mix(waterColorBias, outputColor, extinctionColors);
+    outputColor = mix(vec3(0), outputColor, extinctionColors);
+    outputColor += waterColorBias;
     outputColor = linearToSrgb(outputColor);
 
     // Some stuff for blood water type - disabled, pending update
