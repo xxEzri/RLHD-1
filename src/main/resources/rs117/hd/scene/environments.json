@@ -1494,7 +1494,6 @@
     "area": "OVERWORLD",
     "ambientColor": "#97baff",
     "directionalStrength": 4,
-    "isUnderwater": true,
     "sunAngles": [ 52, 235 ],
     "fogDepth": 6.5
   },
