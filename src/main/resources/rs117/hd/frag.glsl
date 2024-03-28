@@ -444,12 +444,12 @@ void main() {
                     vec3 underwaterCausticsColor = underwaterCausticsColor;
                     float underwaterCausticsStrength = underwaterCausticsStrength;
 
-                    underwaterCausticsStrength *= 15;
+                    underwaterCausticsStrength *= 10;
 
                     vec3 absorptionColor = vec3(.003090, .002096, .001548);
 
                     // hard-coded depth
-                    float depth = 128 * 10;
+                    float depth = 128 * 8;
 
                     // Exponential falloff of light intensity when penetrating water, different for each color
                     vec3 extinctionColors = exp(-depth * absorptionColor);
