@@ -349,7 +349,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     const float speed = .024;
     vec2 uv1 = worldUvs(26) - animationFrame(sqrt(11.) / speed * waterType.duration / vec2(-1, 4));
-    vec2 uv2 = worldUvs(6) - animationFrame(sqrt(3.) / speed * waterType.duration /vec2(2, 1));
+    vec2 uv2 = worldUvs(6) - animationFrame(sqrt(3.) / speed * waterType.duration * 1.5 /vec2(2, -1));
 
     // get diffuse textures
     vec3 n1 = linearToSrgb(texture(textureArray, vec3(uv1, MAT_WATER_NORMAL_MAP_1.colorMap)).xyz);
