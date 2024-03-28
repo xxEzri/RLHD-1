@@ -2208,9 +2208,9 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				// Bind the water reflection texture to index 4
 				glActiveTexture(TEXTURE_UNIT_WATER_REFLECTION_MAP);
 				glBindTexture(GL_TEXTURE_2D, texWaterReflection);
-				frameTimer.begin(Timer.REFLECTIONS_MIPMAPS);
+				frameTimer.begin(Timer.REFLECTION_MIPMAPS);
 				glGenerateMipmap(GL_TEXTURE_2D);
-				frameTimer.end(Timer.REFLECTIONS_MIPMAPS);
+				frameTimer.end(Timer.REFLECTION_MIPMAPS);
 				glActiveTexture(TEXTURE_UNIT_BASE);
 
 				// Reset everything back to the main pass' state
