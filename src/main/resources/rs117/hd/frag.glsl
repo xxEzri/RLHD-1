@@ -428,25 +428,39 @@ void main() {
         vec3 dirLightColor = lightColor * lightStrength;
 
         // underwater caustics based on directional light
-        if (underwaterCaustics && underwaterEnvironment) {
-            float scale = 12.8;
-            vec2 causticsUv = worldUvs(scale);
+                if (underwaterCaustics && underwaterEnvironment) {
+                    float scale = 12.8;
+                    vec2 causticsUv = worldUvs(scale);
 
-            const ivec2 direction = ivec2(1, -1);
-            const int driftSpeed = 231;
-            vec2 drift = animationFrame(231) * ivec2(1, -2);
-            vec2 flow1 = causticsUv + animationFrame(19) * direction + drift;
-            vec2 flow2 = causticsUv * 1.25 + animationFrame(37) * -direction + drift;
+                    const ivec2 direction = ivec2(1, -1);
+                    const int driftSpeed = 231;
+                    vec2 drift = animationFrame(231) * ivec2(1, -2);
+                    vec2 flow1 = causticsUv + animationFrame(19) * direction + drift;
+                    vec2 flow2 = causticsUv * 1.25 + animationFrame(37) * -direction + drift;
 
-            vec3 caustics = sampleCaustics(flow1, flow2) * 2;
+                    vec3 caustics = sampleCaustics(flow1, flow2) * 2;
 
-            underWaterCausticsColor.r = 255 * exp(400 * 0.003090);
-            underWaterCausticsColor.r = 255 * exp(400 * 0.002096);
-            underWaterCausticsColor.r = 255 * exp(400 * 0.001548);
+                    // make a local copy which we can modify
+                    vec3 underwaterCausticsColor = underwaterCausticsColor;
+                    float underwaterCausticsStrength = underwaterCausticsStrength;
 
-            vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength *50;
-            dirLightColor += caustics * causticsColor * lightDotNormals * pow(lightStrength, 1.5);
-        }
+                    underwaterCausticsStrength *= 15;
+
+                    vec3 absorptionColor = vec3(.003090, .002096, .001548);
+
+                    // hard-coded depth
+                    float depth = 128 * 10;
+
+                    // Exponential falloff of light intensity when penetrating water, different for each color
+                    vec3 extinctionColors = exp(-depth * absorptionColor);
+
+                    underwaterCausticsColor *= extinctionColors;
+
+        //            FragColor = vec4(vec3(extinction), 1); return;
+
+                    vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength;
+                    dirLightColor += caustics * causticsColor * lightDotNormals * pow(lightStrength, 1.5);
+                }
 
         // apply shadows
         dirLightColor *= inverseShadow;
