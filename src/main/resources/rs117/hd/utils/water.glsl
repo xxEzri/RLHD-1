@@ -384,7 +384,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     vec3 c = srgbToLinear(fogColor);
     vec4 d = vec4(0);
-    c *= 0.9;
+    //c *= 0.9;
     if (waterReflectionEnabled) { // TODO: compare with waterHeight instead && IN.position.y > -128) {
         vec3 I = -viewDir; // incident
         vec3 N = normals; // normal
@@ -420,7 +420,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
         // This will be linear or sRGB depending on the linear alpha blending setting
         c = texture(waterReflectionMap, uv, -1).rgb;
-        c.rgb *=0.9;
+        //c.rgb *=0.9;
 //        c = textureBicubic(waterReflectionMap, uv).rgb;
         #if !LINEAR_ALPHA_BLENDING
         // When linear alpha blending is on, the texture is in sRGB, and OpenGL will automatically convert it to linear
@@ -435,15 +435,15 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     float alpha = fresnel;
 
-    if (waterTypeIndex == 7) {
-        vec3 waterColor = srgbToLinear(vec3(102, 0, 0) / 255.f) * 1;
-        if (dot(c, c) == 0) {
+   // if (waterTypeIndex == 7) {
+   //     vec3 waterColor = srgbToLinear(vec3(102, 0, 0) / 255.f) * 1;
+   //     if (dot(c, c) == 0) {
 //            c = vec3(167, 66, 66) / 255;
 //            c = vec3(100, 100, 100) / 255;
 //            c = srgbToLinear(vec3(25, 0, 0) / 255.f) * 10;
-            c = srgbToLinear(vec3(100, 0, 0) / 255.f);
-        }
-    }
+   //         c = srgbToLinear(vec3(100, 0, 0) / 255.f);
+   //     }
+   // }
 
     if (waterType.isFlat) {
         vec3 underwaterSrgb = packedHslToSrgb(6676);
@@ -452,6 +452,8 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         c = c * alpha + srgbToLinear(underwaterSrgb) * (1 - alpha);
         alpha = 1;
     }
+
+    vec3 foam = vec3(0);
 
      #include WATER_FOAM
                 #if WATER_FOAM
@@ -465,8 +467,8 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
                     vec3 foamColor = waterType.foamColor;
                     foamColor = srgbToLinear(foamColor) * foamMask * (ambientColor * ambientStrength + lightColor * lightStrength);
                     foamAmount = clamp(pow(1.0 - ((1.0 - foamAmount) / foamDistance), 3), 0.0, 1.0) * waterType.hasFoam;
-                    foamAmount *= 0.035;
-                    c.rgb = foamColor * foamAmount + c.rgb * (1 - foamAmount);
+                    foamAmount *= 0.1;
+                    foam.rgb = foamColor * foamAmount * (1 - foamAmount);
                     alpha = foamAmount + alpha * (1 - foamAmount);
                 #endif
 
@@ -490,39 +492,19 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     d.g = (scatterStrength * scatterExtinction.g * waveStrength);
     d.b = (scatterStrength * scatterExtinction.b * waveStrength);
 
-     vec4 reflection = vec4(c, fresnel);
-            vec4 scattering = vec4(d.rgb, 0.5);
+    vec4 reflection = vec4(c, fresnel);
+    vec4 scattering = vec4(d.rgb, 0.5);
 
-            vec4 dst = vec4(0);
+    //vec4 dst = vec4(foam.r, foam.g, foam.b, 0);
+    vec4 dst = vec4(0);
 
-            dst = scattering * scattering.a + dst * (1 - scattering.a);
-            dst = reflection * reflection.a + dst * (1 - reflection.a);
+    dst = scattering * scattering.a + dst * (1 - scattering.a); // blend in scattering
+    dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
+    dst += vec4(foam, 0); // blend in foam
 
-                    dst.rgb /= (dst.a);
-                    dst.rgb = linearToSrgb(dst.rgb);
-                    return dst;
-
-            c = linearToSrgb(c);
-                d = linearToSrgb(d);
-                return vec4(c.rgb, alpha);
-
-
-
-    d.rgb *= 200;
-    d.rgb = clamp(d.rgb, vec3(0), vec3(1));
-    d.a = 0.05;
-
-    dst.rgb = dst.rgb * dst.a + d.rgb * d.a * (1 - dst.a);
-    dst.a = dst.a + d.a * (1 - dst.a);
-
+    dst.rgb /= (dst.a);
     dst.rgb = linearToSrgb(dst.rgb);
-
-    return vec4(dst);
-
-    // Like before, sampleWater needs to return sRGB
-    c = linearToSrgb(c);
-    d = linearToSrgb(d);
-    return vec4(c.rgb, alpha);
+    return dst;
 }
 
 void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, float lightDotNormals) {
