@@ -527,6 +527,8 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     float totalDistance = depth + distanceToSurface;
 
     float lightPenetration = 0.5 + (waterTransparencyConfig / 33.333); // Scale from a range of 0.5 to 3.5
+    #include WATER_CAUSTICS_STRENGTH_CONFIG
+    //WATER_CAUSTICS_STRENGTH_CONFIG = int (waterCausticsStrengthConfig);
 
     // Exponential falloff of light intensity when penetrating water, different for each color
     vec3 extinctionColors = vec3(0);
