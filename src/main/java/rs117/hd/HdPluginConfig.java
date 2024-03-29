@@ -685,7 +685,7 @@ public interface HdPluginConfig extends Config
 	@ConfigItem(
 		keyName = KEY_PLANAR_REFLECTIONS,
 		name = "Planar Reflections",
-		description = "Render a highly detailed reflection of the game world on bodies of water.",
+		description = "Render a highly detailed reflection of the game world on bodies of water. <br> GPU intensive.",
 		position = 4,
 		section = waterSettings
 	)
@@ -716,6 +716,18 @@ public interface HdPluginConfig extends Config
 		section = waterSettings
 	)
 	default boolean enableWaterFoam() {
+		return true;
+	}
+
+	String KEY_WATER_LIGHT_SCATTERING = "waterLightScattering";
+	@ConfigItem(
+		keyName = KEY_WATER_LIGHT_SCATTERING,
+		name = "Light Scattering",
+		description = "Approximate light scattering on water surface/waves.",
+		position = 8,
+		section = waterSettings
+	)
+	default boolean waterLightScattering() {
 		return true;
 	}
 
