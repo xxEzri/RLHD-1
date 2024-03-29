@@ -669,24 +669,12 @@ public interface HdPluginConfig extends Config
 		return 75;
 	}
 
-	@ConfigItem(
-		keyName = "underwaterCaustics",
-		name = "Underwater Caustics",
-		description = "Apply underwater lighting effects to imitate sunlight passing through waves on the surface.",
-		position = 3,
-		section = waterSettings
-	)
-	default boolean underwaterCaustics()
-	{
-		return true;
-	}
-
 	String KEY_PLANAR_REFLECTIONS = "planarReflections";
 	@ConfigItem(
 		keyName = KEY_PLANAR_REFLECTIONS,
 		name = "Planar Reflections",
 		description = "Render a highly detailed reflection of the game world on bodies of water. <br> GPU intensive.",
-		position = 4,
+		position = 3,
 		section = waterSettings
 	)
 	default boolean enablePlanarReflections() {
@@ -698,7 +686,7 @@ public interface HdPluginConfig extends Config
 		keyName = KEY_PLANAR_REFLECTION_RESOLUTION,
 		name = "Reflection Resolution",
 		description = "Percentage of screen resolution to render reflections at. <br> 50% is a good balance of performance and quality.",
-		position = 5,
+		position = 4,
 		section = waterSettings
 	)
 	@Units(Units.PERCENT)
@@ -707,16 +695,58 @@ public interface HdPluginConfig extends Config
 		return 50;
 	}
 
-	String KEY_WATER_FOAM = "waterFoam";
 	@ConfigItem(
-		keyName = KEY_WATER_FOAM,
-		name = "Foam",
-		description = "Render foam around the edges of water bodies.",
+		keyName = "underwaterCaustics",
+		name = "Underwater Caustics",
+		description = "Apply underwater lighting effects to imitate sunlight passing through waves on the surface.",
+		position = 5,
+		section = waterSettings
+	)
+	default boolean underwaterCaustics()
+	{
+		return true;
+	}
+
+	String KEY_WATER_CAUSTICS_STRENGTH_CONFIG = "waterCausticsStrengthConfig";
+	@ConfigItem(
+		keyName = KEY_WATER_CAUSTICS_STRENGTH_CONFIG,
+		name = "Caustics Strength",
+		description = "Light strength for caustics.",
 		position = 6,
 		section = waterSettings
 	)
-	default boolean enableWaterFoam() {
-		return true;
+	@Units(Units.PERCENT)
+	@Range(min = 1, max = 200)
+	default int waterCausticsStrengthConfig() {
+		return 100;
+	}
+
+	String KEY_WATER_WAVE_SIZE_CONFIG = "waterWaveSizeConfig";
+	@ConfigItem(
+		keyName = KEY_WATER_WAVE_SIZE_CONFIG,
+		name = "Wave Size",
+		description = "The size of waves.",
+		position = 7,
+		section = waterSettings
+	)
+	@Units(Units.PERCENT)
+	@Range(min = 1, max = 200)
+	default int waterWaveSizeConfig() {
+		return 100;
+	}
+
+	String KEY_WATER_WAVE_SPEED_CONFIG = "waterWaveSpeedConfig";
+	@ConfigItem(
+		keyName = KEY_WATER_WAVE_SPEED_CONFIG,
+		name = "Wave Speed",
+		description = "The speed of waves.",
+		position = 8,
+		section = waterSettings
+	)
+	@Units(Units.PERCENT)
+	@Range(min = 25, max = 200)
+	default int waterWaveSpeedConfig() {
+		return 100;
 	}
 
 	String KEY_WATER_LIGHT_SCATTERING = "waterLightScattering";
@@ -724,11 +754,37 @@ public interface HdPluginConfig extends Config
 		keyName = KEY_WATER_LIGHT_SCATTERING,
 		name = "Light Scattering",
 		description = "Approximate light scattering on water surface/waves.",
-		position = 8,
+		position = 9,
 		section = waterSettings
 	)
 	default boolean waterLightScattering() {
 		return true;
+	}
+
+	String KEY_WATER_FOAM = "waterFoam";
+	@ConfigItem(
+		keyName = KEY_WATER_FOAM,
+		name = "Foam",
+		description = "Render foam around the edges of water bodies.",
+		position = 10,
+		section = waterSettings
+	)
+	default boolean enableWaterFoam() {
+		return true;
+	}
+
+	String KEY_WATER_FOAM_AMOUNT_CONFIG = "waterFoamAmountConfig";
+	@ConfigItem(
+		keyName = KEY_WATER_FOAM_AMOUNT_CONFIG,
+		name = "Foam Amount",
+		description = "The amount of foam around shorelines.",
+		position = 11,
+		section = waterSettings
+	)
+	@Units(Units.PERCENT)
+	@Range(min = 1, max = 200)
+	default int waterFoamAmountConfig() {
+		return 100;
 	}
 
 

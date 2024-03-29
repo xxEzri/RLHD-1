@@ -341,6 +341,11 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private float lastPlanarReflectionResolution;
 	private boolean lastLinearAlphaBlending;
 
+	private int waterCausticsStrengthConfig;
+	private int waterWaveSizeConfig;
+	private int waterWaveSpeedConfig;
+	private int waterFoamAmountConfig;
+
 	private int viewportOffsetX;
 	private int viewportOffsetY;
 
@@ -380,6 +385,10 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int uniWaterHeight;
 	private int uniWaterReflectionEnabled;
 	private int uniCameraPos;
+	private int uniWaterCausticsStrengthConfig;
+	private int uniWaterWaveSizeConfig;
+	private int uniWaterWaveSpeedConfig;
+	private int uniWaterFoamAmountConfig;
 
 	// Shadow program uniforms
 	private int uniShadowLightProjectionMatrix;
@@ -821,6 +830,10 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			.define("PLANAR_REFLECTION_RESOLUTION", config.reflectionResolution() / 100f)
 			.define("WATER_FOAM", config.enableWaterFoam())
 			.define("WATER_LIGHT_SCATTERING", config.waterLightScattering())
+			.define("WATER_CAUSTICS_STRENGTH_CONFIG", config.waterCausticsStrengthConfig())
+			.define("WATER_WAVE_SIZE_CONFIG", config.waterWaveSizeConfig())
+			.define("WATER_WAVE_SPEED_CONFIG", config.waterWaveSpeedConfig())
+			.define("WATER_FOAM_AMOUNT_CONFIG", config.waterFoamAmountConfig())
 			.addIncludePath(SHADER_PATH);
 
 		glSceneProgram = PROGRAM.compile(template);
@@ -916,6 +929,10 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		uniUnderwaterCausticsStrength = glGetUniformLocation(glSceneProgram, "underwaterCausticsStrength");
 		uniWaterHeight = glGetUniformLocation(glSceneProgram, "waterHeight");
 		uniWaterReflectionEnabled = glGetUniformLocation(glSceneProgram, "waterReflectionEnabled");
+		uniWaterCausticsStrengthConfig = glGetUniformLocation(glSceneProgram, "waterCausticsStrengthConfig");
+		uniWaterWaveSizeConfig = glGetUniformLocation(glSceneProgram, "waterWaveSizeConfig");
+		uniWaterWaveSpeedConfig = glGetUniformLocation(glSceneProgram, "waterWaveSpeedConfig");
+		uniWaterFoamAmountConfig = glGetUniformLocation(glSceneProgram, "waterFoamAmountConfig");
 		uniCameraPos = glGetUniformLocation(glSceneProgram, "cameraPos");
 		uniTextureArray = glGetUniformLocation(glSceneProgram, "textureArray");
 		uniElapsedTime = glGetUniformLocation(glSceneProgram, "elapsedTime");
