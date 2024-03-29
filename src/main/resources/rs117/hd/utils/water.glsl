@@ -385,7 +385,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     vec3 c = srgbToLinear(fogColor);
     vec4 d = vec4(0);
     //c *= 0.9;
-    if (waterReflectionEnabled && abs(IN.position.y - waterHeight) < 32) {
+    if (waterReflectionEnabled && abs(IN.position.y - waterHeight) < 32) { //only render reflection on water within a quarter-tile height of correct for the reflection texture
         vec3 I = -viewDir; // incident
         vec3 N = normals; // normal
         vec3 R = reflect(I, N);
