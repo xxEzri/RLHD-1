@@ -437,41 +437,45 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     vec3 foam = vec3(0);
 
-     #include WATER_FOAM
-        #if WATER_FOAM
-            vec2 flowMapUv = worldUvs(15) + animationFrame(50 * waterType.duration);
-            float flowMapStrength = 0.025;
-            vec2 uvFlow = texture(textureArray, vec3(flowMapUv, waterType.flowMap)).xy;
-            vec2 uv3 = vUv[0].xy * IN.texBlend.x + vUv[1].xy * IN.texBlend.y + vUv[2].xy * IN.texBlend.z + uvFlow * flowMapStrength;
-            float foamMask = texture(textureArray, vec3(uv3, waterType.foamMap)).r;
-            float foamAmount = 1 - dot(IN.texBlend, vec3(vColor[0].x, vColor[1].x, vColor[2].x));
-            float foamDistance = 1;
-            vec3 foamColor = waterType.foamColor;
-            foamColor = srgbToLinear(foamColor) * foamMask * (ambientColor * ambientStrength + lightColor * lightStrength);
-            foamAmount = clamp(pow(1.0 - ((1.0 - foamAmount) / foamDistance), 3), 0.0, 1.0) * waterType.hasFoam;
-            foamAmount *= 0.1;
-            foam.rgb = foamColor * foamAmount * (1 - foamAmount);
-            alpha = foamAmount + alpha * (1 - foamAmount);
-        #endif
+    #include WATER_FOAM
+    #if WATER_FOAM
+        vec2 flowMapUv = worldUvs(15) + animationFrame(50 * waterType.duration);
+        float flowMapStrength = 0.025;
+        vec2 uvFlow = texture(textureArray, vec3(flowMapUv, waterType.flowMap)).xy;
+        vec2 uv3 = vUv[0].xy * IN.texBlend.x + vUv[1].xy * IN.texBlend.y + vUv[2].xy * IN.texBlend.z + uvFlow * flowMapStrength;
+        float foamMask = texture(textureArray, vec3(uv3, waterType.foamMap)).r;
+        float foamAmount = 1 - dot(IN.texBlend, vec3(vColor[0].x, vColor[1].x, vColor[2].x));
+        float foamDistance = 1;
+        vec3 foamColor = waterType.foamColor;
+        foamColor = srgbToLinear(foamColor) * foamMask * (ambientColor * ambientStrength + lightColor * lightStrength);
+        foamAmount = clamp(pow(1.0 - ((1.0 - foamAmount) / foamDistance), 3), 0.0, 1.0) * waterType.hasFoam;
+        foamAmount *= 0.1;
+        foam.rgb = foamColor * foamAmount * (1 - foamAmount);
+        alpha = foamAmount + alpha * (1 - foamAmount);
+    #endif
 
-    float scatterStrength = 3;
-    vec3 scatterExtinction = vec3(0);
-    float scatterDepth = 128 * 2 * 1;
-    scatterExtinction.r = exp(-scatterDepth * 0.003090);
-    scatterExtinction.g = exp(-scatterDepth * 0.001981);
-    scatterExtinction.b = exp(-scatterDepth * 0.001548);
+    #include WATER_LIGHT_SCATTERING
+    #if WATER_LIGHT_SCATTERING
 
-    //return vec4(scatterExtinction, 1);
+        float scatterStrength = 3;
+        vec3 scatterExtinction = vec3(0);
+        float scatterDepth = 128 * 2 * 1;
+        scatterExtinction.r = exp(-scatterDepth * 0.003090);
+        scatterExtinction.g = exp(-scatterDepth * 0.001981);
+        scatterExtinction.b = exp(-scatterDepth * 0.001548);
 
-    float waveStrength = -normalScatter.y;
-    waveStrength = 1 - waveStrength;
-    waveStrength = pow(waveStrength, 1 / 1.4f);
-    waveStrength *=0.3;
-    //return vec4(vec3(waveStrength), 1);
+        //return vec4(scatterExtinction, 1);
 
-    d.r = (scatterStrength * scatterExtinction.r * waveStrength);
-    d.g = (scatterStrength * scatterExtinction.g * waveStrength);
-    d.b = (scatterStrength * scatterExtinction.b * waveStrength);
+        float waveStrength = -normalScatter.y;
+        waveStrength = 1 - waveStrength;
+        waveStrength = pow(waveStrength, 1 / 1.4f);
+        waveStrength *=0.3;
+        //return vec4(vec3(waveStrength), 1);
+
+        d.r = (scatterStrength * scatterExtinction.r * waveStrength);
+        d.g = (scatterStrength * scatterExtinction.g * waveStrength);
+        d.b = (scatterStrength * scatterExtinction.b * waveStrength);
+    #endif
 
     vec4 reflection = vec4(c, fresnel);
     vec4 scattering = vec4(d.rgb, 0.5);

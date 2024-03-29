@@ -820,6 +820,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			.define("LINEAR_ALPHA_BLENDING", configLinearAlphaBlending)
 			.define("PLANAR_REFLECTION_RESOLUTION", config.reflectionResolution() / 100f)
 			.define("WATER_FOAM", config.enableWaterFoam())
+			.define("WATER_LIGHT_SCATTERING", config.waterLightScattering())
 			.addIncludePath(SHADER_PATH);
 
 		glSceneProgram = PROGRAM.compile(template);
@@ -2707,6 +2708,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 							case KEY_UI_SCALING_MODE:
 							case KEY_VANILLA_COLOR_BANDING:
 							case KEY_WATER_FOAM:
+							case KEY_WATER_LIGHT_SCATTERING:
 							case KEY_LINEAR_ALPHA_BLENDING:
 							case KEY_PLANAR_REFLECTION_RESOLUTION:
 								recompilePrograms = true;
