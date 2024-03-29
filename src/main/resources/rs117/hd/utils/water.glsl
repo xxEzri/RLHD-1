@@ -347,6 +347,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 //    vec3 underglowOut = underglowColor * max(normals.y, 0) * underglowStrength;
 
 
+
     const float speed = .024;
     vec2 uv1 = worldUvs(26) - animationFrame(sqrt(11.) / speed * waterType.duration / vec2(-1, 4));
     vec2 uv2 = worldUvs(6) - animationFrame(sqrt(3.) / speed * waterType.duration * 1.5 /vec2(2, -1));
@@ -541,8 +542,8 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         vec2 flow1 = causticsUv + animationFrame(17) * direction;
         vec2 flow2 = causticsUv * 1.5 + animationFrame(23) * -direction;
         vec3 caustics = sampleCaustics(flow1, flow2, .005);
-        vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength;
-        if(waterTransparencyType ==0 || depth <=500)
+        vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength * (waterCausticsStrengthConfig / 100);
+        if(waterTransparencyType ==0 || waterTransparencyType ==1 && depth <=500)
         {
             causticsColor = underwaterCausticsColor * (underwaterCausticsStrength * 0.5);
         }

@@ -69,6 +69,10 @@ uniform bool underwaterEnvironment;
 uniform bool underwaterCaustics;
 uniform vec3 underwaterCausticsColor;
 uniform float underwaterCausticsStrength;
+uniform int waterCausticsStrengthConfig;
+uniform int waterWaveSizeConfig;
+uniform int waterWaveSpeedConfig;
+uniform int waterFoamAmountConfig;
 
 // general HD settings
 uniform float saturation;
