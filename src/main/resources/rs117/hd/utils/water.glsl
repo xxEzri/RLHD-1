@@ -480,14 +480,14 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     if (waterType.isFlat || waterTransparencyType == 1)
     {
-        float flatWaterTileDepth = 2;
-        float depth = 128 * 3.5 * flatWaterTileDepth; // tile depth, *2 for round trip, * for number of tiles
+        float flatWaterTileDepth = 3;
+        float depth = 128 * 2 * flatWaterTileDepth; // tile depth, *2 for round trip, * for number of tiles
         vec3 underwaterExtinction = vec3(0);
         underwaterExtinction.r = exp(-depth * 0.003090);
         underwaterExtinction.g = exp(-depth * 0.001981);
         underwaterExtinction.b = exp(-depth * 0.001548);
 
-        vec3 underwaterLinear = vec3(lightStrength) * 0.125 * underwaterExtinction;
+        vec3 underwaterLinear = vec3(lightStrength) * 0.1 * underwaterExtinction;
         vec3 underwaterSrgb = linearToSrgb(underwaterLinear);
 
         sampleUnderwater(underwaterSrgb, waterType, depth, dot(lightDir, normals));
@@ -538,6 +538,10 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         vec2 flow2 = causticsUv * 1.5 + animationFrame(23) * -direction;
         vec3 caustics = sampleCaustics(flow1, flow2, .005);
         vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength;
+        if(waterTransparencyType ==0 || depth <=500)
+        {
+            causticsColor = underwaterCausticsColor * (underwaterCausticsStrength * 0.5);
+        }
         outputColor *= 1 + caustics * causticsColor * extinctionColors * lightDotNormals * lightStrength;
     }
 
