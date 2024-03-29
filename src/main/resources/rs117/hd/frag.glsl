@@ -446,7 +446,7 @@ void main() {
 
                     underwaterCausticsStrength *= 10;
 
-                    vec3 absorptionColor = vec3(.003090, .002096, .001548);
+                    vec3 absorptionColor = vec3(.003090, .001981, .001548);
 
                     // hard-coded depth
                     float depth = 128 * 8;

@@ -385,7 +385,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     vec3 c = srgbToLinear(fogColor);
     vec4 d = vec4(0);
     //c *= 0.9;
-    if (waterReflectionEnabled) { // TODO: compare with waterHeight instead && IN.position.y > -128) {
+    if (waterReflectionEnabled && abs(IN.position.y - waterHeight) < 32) {
         vec3 I = -viewDir; // incident
         vec3 N = normals; // normal
         vec3 R = reflect(I, N);
@@ -476,7 +476,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     vec3 scatterExtinction = vec3(0);
     float scatterDepth = 128 * 2 * 1;
     scatterExtinction.r = exp(-scatterDepth * 0.003090);
-    scatterExtinction.g = exp(-scatterDepth * 0.002096);
+    scatterExtinction.g = exp(-scatterDepth * 0.001981);
     scatterExtinction.b = exp(-scatterDepth * 0.001548);
 
     //return vec4(scatterExtinction, 1);
@@ -521,7 +521,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     // Exponential falloff of light intensity when penetrating water, different for each color
     vec3 extinctionColors = vec3(0);
     extinctionColors.r = exp(-totalDistance * (0.003090 / lightPenetration));
-    extinctionColors.g = exp(-totalDistance * (0.002096 / lightPenetration));
+    extinctionColors.g = exp(-totalDistance * (0.001981 / lightPenetration));
     extinctionColors.b = exp(-totalDistance * (0.001548 / lightPenetration));
 
     if (underwaterCaustics) {
