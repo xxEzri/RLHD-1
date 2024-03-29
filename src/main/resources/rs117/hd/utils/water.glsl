@@ -480,14 +480,14 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     if (waterType.isFlat || waterTransparencyType == 1)
     {
-        float flatWaterTileDepth = 3;
-        float depth = 128 * 2 * flatWaterTileDepth; // tile depth, *2 for round trip, * for number of tiles
+        float flatWaterTileDepth = 2;
+        float depth = 128 * 3.5 * flatWaterTileDepth; // tile depth, *2 for round trip, * for number of tiles
         vec3 underwaterExtinction = vec3(0);
         underwaterExtinction.r = exp(-depth * 0.003090);
         underwaterExtinction.g = exp(-depth * 0.001981);
         underwaterExtinction.b = exp(-depth * 0.001548);
 
-        vec3 underwaterLinear = vec3(lightStrength) * 0.1 * underwaterExtinction;
+        vec3 underwaterLinear = vec3(lightStrength) * 0.125 * underwaterExtinction;
         vec3 underwaterSrgb = linearToSrgb(underwaterLinear);
 
         sampleUnderwater(underwaterSrgb, waterType, depth, dot(lightDir, normals));
@@ -498,7 +498,6 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
         dst += vec4(foam, 0); // add foam on top
 
-        dst.rgb /= (dst.a);
         dst.rgb = linearToSrgb(dst.rgb);
         return vec4(dst.rgb, 1); // flat water
     }
@@ -530,7 +529,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     extinctionColors.g = exp(-totalDistance * (0.001981 / lightPenetration));
     extinctionColors.b = exp(-totalDistance * (0.001548 / lightPenetration));
 
-    if (underwaterCaustics && (waterTransparencyType ==0 || depth <=512)) {
+    if (underwaterCaustics && (waterTransparencyType ==0 || depth <=500)) {
         const float scale = 2.5;
         vec2 causticsUv = worldUvs(scale);
         causticsUv *= 0.75;
