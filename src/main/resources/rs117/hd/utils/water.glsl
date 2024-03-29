@@ -368,23 +368,17 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     n2.y /=0.8; // scale normals
     n2 = normalize(n2);
     vec3 normals = normalize(n1+n2);
-    // UDN blending
     normals = normalize(vec3(n1.xy + n2.xy, n1.z + n2.z));
     vec3 normalScatter = normals;
-    //normals = n1;
-//    vec3 normals = normalize(vec3(n1.xy + n2.xy, n1.z));
-//    return vec4(n1, 1);
-//    return vec4(n2, 1);
-//    return vec4(normals, 1);
 
     vec3 fragToCam = viewDir;
 
-    // fresnel reflection
+    // fresnel for fake sky reflection and real planar reflection
     float fresnel = calculateFresnel(normals, fragToCam, 1.333);
 
     vec3 c = srgbToLinear(fogColor);
     vec4 d = vec4(0);
-    //c *= 0.9;
+
     if (waterReflectionEnabled && abs(IN.position.y - waterHeight) < 32) { //only render reflection on water within a quarter-tile height of correct for the reflection texture
         vec3 I = -viewDir; // incident
         vec3 N = normals; // normal
@@ -420,8 +414,6 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
         // This will be linear or sRGB depending on the linear alpha blending setting
         c = texture(waterReflectionMap, uv, -1).rgb;
-        //c.rgb *=0.9;
-//        c = textureBicubic(waterReflectionMap, uv).rgb;
         #if !LINEAR_ALPHA_BLENDING
         // When linear alpha blending is on, the texture is in sRGB, and OpenGL will automatically convert it to linear
         c = srgbToLinear(c);
@@ -429,9 +421,6 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     }
 
     // ALWAYS RETURN IN sRGB FROM THIS FUNCTION (been burned by this a couple times)
-
-//    return vec4(linearToSrgb(c * fresnel), 1); // correct, but disables alpha blending
-//    return vec4(linearToSrgb(c), fresnel); // correct, but bad banding due to alpha precision
 
     float alpha = fresnel;
 
@@ -445,32 +434,25 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
    //     }
    // }
 
-    if (waterType.isFlat) {
-        vec3 underwaterSrgb = packedHslToSrgb(6676);
-        int depth = 50;
-        sampleUnderwater(underwaterSrgb, waterType, depth, dot(lightDir, normals));
-        c = c * alpha + srgbToLinear(underwaterSrgb) * (1 - alpha);
-        alpha = 1;
-    }
 
     vec3 foam = vec3(0);
 
      #include WATER_FOAM
-                #if WATER_FOAM
-                    vec2 flowMapUv = worldUvs(15) + animationFrame(50 * waterType.duration);
-                    float flowMapStrength = 0.025;
-                    vec2 uvFlow = texture(textureArray, vec3(flowMapUv, waterType.flowMap)).xy;
-                    vec2 uv3 = vUv[0].xy * IN.texBlend.x + vUv[1].xy * IN.texBlend.y + vUv[2].xy * IN.texBlend.z + uvFlow * flowMapStrength;
-                    float foamMask = texture(textureArray, vec3(uv3, waterType.foamMap)).r;
-                    float foamAmount = 1 - dot(IN.texBlend, vec3(vColor[0].x, vColor[1].x, vColor[2].x));
-                    float foamDistance = 1;
-                    vec3 foamColor = waterType.foamColor;
-                    foamColor = srgbToLinear(foamColor) * foamMask * (ambientColor * ambientStrength + lightColor * lightStrength);
-                    foamAmount = clamp(pow(1.0 - ((1.0 - foamAmount) / foamDistance), 3), 0.0, 1.0) * waterType.hasFoam;
-                    foamAmount *= 0.1;
-                    foam.rgb = foamColor * foamAmount * (1 - foamAmount);
-                    alpha = foamAmount + alpha * (1 - foamAmount);
-                #endif
+        #if WATER_FOAM
+            vec2 flowMapUv = worldUvs(15) + animationFrame(50 * waterType.duration);
+            float flowMapStrength = 0.025;
+            vec2 uvFlow = texture(textureArray, vec3(flowMapUv, waterType.flowMap)).xy;
+            vec2 uv3 = vUv[0].xy * IN.texBlend.x + vUv[1].xy * IN.texBlend.y + vUv[2].xy * IN.texBlend.z + uvFlow * flowMapStrength;
+            float foamMask = texture(textureArray, vec3(uv3, waterType.foamMap)).r;
+            float foamAmount = 1 - dot(IN.texBlend, vec3(vColor[0].x, vColor[1].x, vColor[2].x));
+            float foamDistance = 1;
+            vec3 foamColor = waterType.foamColor;
+            foamColor = srgbToLinear(foamColor) * foamMask * (ambientColor * ambientStrength + lightColor * lightStrength);
+            foamAmount = clamp(pow(1.0 - ((1.0 - foamAmount) / foamDistance), 3), 0.0, 1.0) * waterType.hasFoam;
+            foamAmount *= 0.1;
+            foam.rgb = foamColor * foamAmount * (1 - foamAmount);
+            alpha = foamAmount + alpha * (1 - foamAmount);
+        #endif
 
     float scatterStrength = 3;
     vec3 scatterExtinction = vec3(0);
@@ -483,7 +465,6 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     float waveStrength = -normalScatter.y;
     waveStrength = 1 - waveStrength;
-    //waveStrength *=0.5;
     waveStrength = pow(waveStrength, 1 / 1.4f);
     waveStrength *=0.3;
     //return vec4(vec3(waveStrength), 1);
@@ -495,16 +476,41 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     vec4 reflection = vec4(c, fresnel);
     vec4 scattering = vec4(d.rgb, 0.5);
 
-    //vec4 dst = vec4(foam.r, foam.g, foam.b, 0);
     vec4 dst = vec4(0);
+
+    if (waterType.isFlat || waterTransparencyType == 1)
+    {
+        float flatWaterTileDepth = 3;
+        float depth = 128 * 2 * flatWaterTileDepth; // tile depth, *2 for round trip, * for number of tiles
+        vec3 underwaterExtinction = vec3(0);
+        underwaterExtinction.r = exp(-depth * 0.003090);
+        underwaterExtinction.g = exp(-depth * 0.001981);
+        underwaterExtinction.b = exp(-depth * 0.001548);
+
+        vec3 underwaterLinear = vec3(lightStrength) * 0.1 * underwaterExtinction;
+        vec3 underwaterSrgb = linearToSrgb(underwaterLinear);
+
+        sampleUnderwater(underwaterSrgb, waterType, depth, dot(lightDir, normals));
+        c = c * alpha + srgbToLinear(underwaterSrgb) * (1 - alpha);
+        alpha = 1;
+
+        dst = scattering * scattering.a + vec4(c.rgb, alpha) * (1 - scattering.a); // blend in scattering
+        dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
+        dst += vec4(foam, 0); // add foam on top
+
+        dst.rgb /= (dst.a);
+        dst.rgb = linearToSrgb(dst.rgb);
+        return vec4(dst.rgb, 1); // flat water
+    }
 
     dst = scattering * scattering.a + dst * (1 - scattering.a); // blend in scattering
     dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
-    dst += vec4(foam, 0); // blend in foam
+    foam.rgb *= 1.5; // foam otherwise looks disproportionately weak on transparent water due to reduced alpha
+    dst += vec4(foam, 0); // add foam on top
 
     dst.rgb /= (dst.a);
     dst.rgb = linearToSrgb(dst.rgb);
-    return dst;
+    return dst; // transparent water
 }
 
 void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, float lightDotNormals) {
@@ -516,7 +522,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     float distanceToSurface = depth / camToFrag.y;
     float totalDistance = depth + distanceToSurface;
 
-    float lightPenetration = 0.5 + (waterTransparencyConfig / 33.334); // Scale from a range of 0.5 to 3.5
+    float lightPenetration = 0.5 + (waterTransparencyConfig / 33.333); // Scale from a range of 0.5 to 3.5
 
     // Exponential falloff of light intensity when penetrating water, different for each color
     vec3 extinctionColors = vec3(0);
@@ -524,7 +530,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     extinctionColors.g = exp(-totalDistance * (0.001981 / lightPenetration));
     extinctionColors.b = exp(-totalDistance * (0.001548 / lightPenetration));
 
-    if (underwaterCaustics) {
+    if (underwaterCaustics && (waterTransparencyType ==0 || depth <=512)) {
         const float scale = 2.5;
         vec2 causticsUv = worldUvs(scale);
         causticsUv *= 0.75;
