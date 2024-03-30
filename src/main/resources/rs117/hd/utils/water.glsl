@@ -449,7 +449,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     #include WATER_LIGHT_SCATTERING
     #if WATER_LIGHT_SCATTERING
-        if(waterTypeIndex ==2) // Standard Water
+        if(waterTypeIndex ==1) // Standard Water
         {
             float scatterStrength = 3;
             vec3 scatterExtinction = vec3(0);
@@ -477,8 +477,21 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     vec4 dst = vec4(0);
 
-    if (waterType.isFlat || waterTransparencyType == 1)
+    if (waterType.isFlat || waterTransparencyType == 1 || waterTypeIndex == 7)
     {
+        if(waterTypeIndex == 7)
+        {
+            vec3 bloodSrgb = vec3(0.35, 0, 0);
+            c = 0 + (srgbToLinear(bloodSrgb) * (1 - alpha));
+            alpha = 1;
+            foam.rgb *= vec3(1, 0.5, 0.5);
+            dst = vec4(c.rgb, alpha);
+            dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
+            dst += vec4(foam, 0); // add foam on top
+            dst.rgb = linearToSrgb(dst.rgb);
+            return vec4(dst.rgb, 1); // blood water
+        }
+
         float flatWaterTileDepth = 3;
         float depth = 128 * 2 * flatWaterTileDepth; // tile depth, *2 for round trip, * for number of tiles
         vec3 underwaterExtinction = vec3(0);
@@ -522,10 +535,10 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
 
     float lightPenetration = 0.5 + (waterTransparencyConfig / 44.444); // Scale from a range of 0% = 0.5, 100% = 2.75, 130% = 3.425
-    if(waterTypeIndex == 1) // tune for different water types, 7 = blood
-    {
-       //lightPenetration *= 0.1; // for blood
-    }
+    //if(waterTypeIndex == x) // tune for different water types
+    //{
+       //lightPenetration *= 0.1;
+    //}
 
     // Exponential falloff of light intensity when penetrating water, different for each color
     vec3 extinctionColors = vec3(0);
@@ -546,16 +559,10 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         {
             causticsColor *= 0.5;
         }
-        outputColor *= 1 + caustics * causticsColor * extinctionColors * lightDotNormals * lightStrength * (waterCausticsStrengthConfig /100.f);
+        outputColor *= 1 + caustics * causticsColor * extinctionColors * lightDotNormals * lightStrength * (waterCausticsStrengthConfig / 100.f);
     }
-    if (waterTypeIndex == 1) // Standard Water
-    {
-        outputColor = mix(vec3(0), outputColor, extinctionColors);
-        outputColor = linearToSrgb(outputColor);
-    }
-    if (waterTypeIndex == 7) // Blood Water
-    {
-        outputColor = vec3(0.3, 0, 0);
-    }
+
+    outputColor = mix(vec3(0), outputColor, extinctionColors);
+    outputColor = linearToSrgb(outputColor);
 }
 #endif
