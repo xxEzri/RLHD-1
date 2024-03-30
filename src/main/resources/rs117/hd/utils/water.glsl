@@ -527,8 +527,6 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     float totalDistance = depth + distanceToSurface;
 
     float lightPenetration = 0.5 + (waterTransparencyConfig / 33.333); // Scale from a range of 0.5 to 3.5
-    #include WATER_CAUSTICS_STRENGTH_CONFIG
-    //WATER_CAUSTICS_STRENGTH_CONFIG = int (waterCausticsStrengthConfig);
 
     // Exponential falloff of light intensity when penetrating water, different for each color
     vec3 extinctionColors = vec3(0);
@@ -544,12 +542,12 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         vec2 flow1 = causticsUv + animationFrame(17) * direction;
         vec2 flow2 = causticsUv * 1.5 + animationFrame(23) * -direction;
         vec3 caustics = sampleCaustics(flow1, flow2, .005);
-        vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength * WATER_CAUSTICS_STRENGTH_CONFIG;
-        if(waterTransparencyType ==0 || waterTransparencyType ==1 && depth <=500)
+        vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength;
+        if(waterTransparencyType ==1 && depth <=500) // reduce caustics brightness for opaque water
         {
-            causticsColor = underwaterCausticsColor * (underwaterCausticsStrength * 0.5);
+            causticsColor *= 0.5;
         }
-        outputColor *= 1 + caustics * causticsColor * extinctionColors * lightDotNormals * lightStrength;
+        outputColor *= 1 + caustics * causticsColor * extinctionColors * lightDotNormals * lightStrength * (waterCausticsStrengthConfig /100.f);
     }
 
     vec3 waterColorBias = vec3(0);
