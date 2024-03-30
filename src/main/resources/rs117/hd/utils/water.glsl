@@ -347,7 +347,6 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 //    vec3 underglowOut = underglowColor * max(normals.y, 0) * underglowStrength;
 
 
-
     float speed = .024;
     float waveSizeConfig = waterWaveSizeConfig / 100.f;
     float waveSpeedConfig = waterWaveSpeedConfig / 100.f;
@@ -558,20 +557,17 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     vec3 waterColorBias = vec3(0);
     vec3 waterTypeColor = vec3(0); // Color e.g. swamp water here
 
+    // Some stuff for blood water type - disabled, pending update
+        //int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
+         //if (waterTypeIndex == 1) {
+            //waterTypeColor = vec3(0.25, 0, 0);
+        //}
+
     waterColorBias = waterColorBias + waterTypeColor;
     //waterColorBias = vec3(0);
 
     outputColor = mix(vec3(0), outputColor, extinctionColors);
     outputColor += waterColorBias;
     outputColor = linearToSrgb(outputColor);
-
-    // Some stuff for blood water type - disabled, pending update
-    //int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
-    //if (waterTypeIndex == 7) {
-        //vec3 waterColor = srgbToLinear(vec3(25, 0, 0) / 255.f);
-        //float extinction = exp(-distance * 1);
-        //extinction = 0;
-        //outputColor = mix(waterColor, outputColor, extinction);
-    //}
 }
 #endif
