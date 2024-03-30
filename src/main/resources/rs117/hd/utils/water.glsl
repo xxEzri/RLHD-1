@@ -543,7 +543,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         vec2 flow2 = causticsUv * 1.5 + animationFrame(23) * -direction;
         vec3 caustics = sampleCaustics(flow1, flow2, .005);
         vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength;
-        if(waterTransparencyType ==1 && depth <=500) // reduce caustics brightness for opaque water
+        if(waterTransparencyType ==1 && depth <=500) // reduce caustics brightness for shallow opaque water
         {
             causticsColor *= 0.5;
         }
