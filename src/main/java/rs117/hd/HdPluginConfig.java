@@ -664,9 +664,9 @@ public interface HdPluginConfig extends Config
 		section = waterSettings
 	)
 	@Units(Units.PERCENT)
-	@Range(min = 0, max = 100)
+	@Range(min = 0, max = 130)
 	default int lightPenetrationPercentage() {
-		return 75;
+		return 100;
 	}
 
 	String KEY_PLANAR_REFLECTIONS = "planarReflections";
@@ -730,7 +730,7 @@ public interface HdPluginConfig extends Config
 		section = waterSettings
 	)
 	@Units(Units.PERCENT)
-	@Range(min = 1, max = 200)
+	@Range(min = 25, max = 200)
 	default int waterWaveSizeConfig() {
 		return 100;
 	}
@@ -744,7 +744,7 @@ public interface HdPluginConfig extends Config
 		section = waterSettings
 	)
 	@Units(Units.PERCENT)
-	@Range(min = 25, max = 200)
+	@Range(min = 50, max = 200)
 	default int waterWaveSpeedConfig() {
 		return 100;
 	}
@@ -782,7 +782,7 @@ public interface HdPluginConfig extends Config
 		section = waterSettings
 	)
 	@Units(Units.PERCENT)
-	@Range(min = 1, max = 200)
+	@Range(min = 1, max = 300)
 	default int waterFoamAmountConfig() {
 		return 100;
 	}
