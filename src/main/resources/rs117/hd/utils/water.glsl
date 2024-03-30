@@ -428,18 +428,6 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     // ALWAYS RETURN IN sRGB FROM THIS FUNCTION (been burned by this a couple times)
 
     float alpha = fresnel;
-
-   // if (waterTypeIndex == 7) {
-   //     vec3 waterColor = srgbToLinear(vec3(102, 0, 0) / 255.f) * 1;
-   //     if (dot(c, c) == 0) {
-//            c = vec3(167, 66, 66) / 255;
-//            c = vec3(100, 100, 100) / 255;
-//            c = srgbToLinear(vec3(25, 0, 0) / 255.f) * 10;
-   //         c = srgbToLinear(vec3(100, 0, 0) / 255.f);
-   //     }
-   // }
-
-
     vec3 foam = vec3(0);
 
     #include WATER_FOAM
@@ -461,25 +449,27 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     #include WATER_LIGHT_SCATTERING
     #if WATER_LIGHT_SCATTERING
+        if(waterTypeIndex ==2) // Standard Water
+        {
+            float scatterStrength = 3;
+            vec3 scatterExtinction = vec3(0);
+            float scatterDepth = 128 * 2 * 1;
+            scatterExtinction.r = exp(-scatterDepth * 0.003090);
+            scatterExtinction.g = exp(-scatterDepth * 0.001981);
+            scatterExtinction.b = exp(-scatterDepth * 0.001548);
 
-        float scatterStrength = 3;
-        vec3 scatterExtinction = vec3(0);
-        float scatterDepth = 128 * 2 * 1;
-        scatterExtinction.r = exp(-scatterDepth * 0.003090);
-        scatterExtinction.g = exp(-scatterDepth * 0.001981);
-        scatterExtinction.b = exp(-scatterDepth * 0.001548);
+            //return vec4(scatterExtinction, 1);
 
-        //return vec4(scatterExtinction, 1);
+            float waveStrength = -normalScatter.y;
+            waveStrength = 1 - waveStrength;
+            waveStrength = pow(waveStrength, 1 / 1.4f);
+            waveStrength *=0.3;
+            //return vec4(vec3(waveStrength), 1);
 
-        float waveStrength = -normalScatter.y;
-        waveStrength = 1 - waveStrength;
-        waveStrength = pow(waveStrength, 1 / 1.4f);
-        waveStrength *=0.3;
-        //return vec4(vec3(waveStrength), 1);
-
-        d.r = (scatterStrength * scatterExtinction.r * waveStrength);
-        d.g = (scatterStrength * scatterExtinction.g * waveStrength);
-        d.b = (scatterStrength * scatterExtinction.b * waveStrength);
+            d.r = (scatterStrength * scatterExtinction.r * waveStrength);
+            d.g = (scatterStrength * scatterExtinction.g * waveStrength);
+            d.b = (scatterStrength * scatterExtinction.b * waveStrength);
+        }
     #endif
 
     vec4 reflection = vec4(c, fresnel);
@@ -529,8 +519,13 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     vec3 camToFrag = normalize(IN.position - cameraPos);
     float distanceToSurface = depth / camToFrag.y;
     float totalDistance = depth + distanceToSurface;
+    int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
 
     float lightPenetration = 0.5 + (waterTransparencyConfig / 44.444); // Scale from a range of 0% = 0.5, 100% = 2.75, 130% = 3.425
+    if(waterTypeIndex == 1) // tune for different water types, 7 = blood
+    {
+       //lightPenetration *= 0.1; // for blood
+    }
 
     // Exponential falloff of light intensity when penetrating water, different for each color
     vec3 extinctionColors = vec3(0);
@@ -553,21 +548,14 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         }
         outputColor *= 1 + caustics * causticsColor * extinctionColors * lightDotNormals * lightStrength * (waterCausticsStrengthConfig /100.f);
     }
-
-    vec3 waterColorBias = vec3(0);
-    vec3 waterTypeColor = vec3(0); // Color e.g. swamp water here
-
-    // Some stuff for blood water type - disabled, pending update
-        //int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
-         //if (waterTypeIndex == 1) {
-            //waterTypeColor = vec3(0.25, 0, 0);
-        //}
-
-    waterColorBias = waterColorBias + waterTypeColor;
-    //waterColorBias = vec3(0);
-
-    outputColor = mix(vec3(0), outputColor, extinctionColors);
-    outputColor += waterColorBias;
-    outputColor = linearToSrgb(outputColor);
+    if (waterTypeIndex == 1) // Standard Water
+    {
+        outputColor = mix(vec3(0), outputColor, extinctionColors);
+        outputColor = linearToSrgb(outputColor);
+    }
+    if (waterTypeIndex == 7) // Blood Water
+    {
+        outputColor = vec3(0.3, 0, 0);
+    }
 }
 #endif
