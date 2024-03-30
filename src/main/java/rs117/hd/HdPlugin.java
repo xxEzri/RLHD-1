@@ -830,10 +830,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			.define("PLANAR_REFLECTION_RESOLUTION", config.reflectionResolution() / 100f)
 			.define("WATER_FOAM", config.enableWaterFoam())
 			.define("WATER_LIGHT_SCATTERING", config.waterLightScattering())
-			.define("WATER_CAUSTICS_STRENGTH_CONFIG", config.waterCausticsStrengthConfig())
-			.define("WATER_WAVE_SIZE_CONFIG", config.waterWaveSizeConfig())
-			.define("WATER_WAVE_SPEED_CONFIG", config.waterWaveSpeedConfig())
-			.define("WATER_FOAM_AMOUNT_CONFIG", config.waterFoamAmountConfig())
 			.addIncludePath(SHADER_PATH);
 
 		glSceneProgram = PROGRAM.compile(template);
@@ -2150,6 +2146,11 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniform3fv(uniUnderwaterCausticsColor, environmentManager.currentUnderwaterCausticsColor);
 			glUniform1f(uniUnderwaterCausticsStrength, environmentManager.currentUnderwaterCausticsStrength);
 			glUniform1f(uniElapsedTime, elapsedTime);
+
+			glUniform1i(uniWaterCausticsStrengthConfig, config.waterCausticsStrengthConfig());
+			glUniform1i(uniWaterWaveSizeConfig, config.waterWaveSizeConfig());
+			glUniform1i(uniWaterWaveSpeedConfig, config.waterWaveSpeedConfig());
+			glUniform1i(uniWaterFoamAmountConfig, config.waterFoamAmountConfig());
 
 			// Extract the 3rd column from the light view matrix (the float array is column-major)
 			// This produces the light's forward direction vector in world space
