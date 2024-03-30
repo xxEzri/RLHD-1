@@ -348,7 +348,10 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
 
 
-    const float speed = .024;
+    float speed = .024;
+    float waveSizeConfig = waterWaveSizeConfig / 100.f;
+    float waveSpeedConfig = waterWaveSpeedConfig / 100.f;
+    speed *= waveSpeedConfig;
     vec2 uv1 = worldUvs(26) - animationFrame(sqrt(11.) / speed * waterType.duration / vec2(-1, 4));
     vec2 uv2 = worldUvs(6) - animationFrame(sqrt(3.) / speed * waterType.duration * 1.5 /vec2(2, -1));
 
@@ -364,9 +367,11 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     n2.z *= -1;
     n1.xyz = n1.xzy;
     n2.xyz = n2.xzy;
-    n1.y /=0.225; // scale normals
+    n1.y /= 0.225; // scale normals
+    n1.y /= waveSizeConfig;
     n1 = normalize(n1);
-    n2.y /=0.8; // scale normals
+    n2.y /= 0.8; // scale normals
+    n2.y /= waveSizeConfig;
     n2 = normalize(n2);
     vec3 normals = normalize(n1+n2);
     normals = normalize(vec3(n1.xy + n2.xy, n1.z + n2.z));
@@ -450,8 +455,8 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         vec3 foamColor = waterType.foamColor;
         foamColor = srgbToLinear(foamColor) * foamMask * (ambientColor * ambientStrength + lightColor * lightStrength);
         foamAmount = clamp(pow(1.0 - ((1.0 - foamAmount) / foamDistance), 3), 0.0, 1.0) * waterType.hasFoam;
-        foamAmount *= 0.1;
-        foam.rgb = foamColor * foamAmount * (1 - foamAmount);
+        foamAmount *= 0.08;
+        foam.rgb = foamColor * foamAmount * (1 - foamAmount) * (waterFoamAmountConfig /100.f);
         alpha = foamAmount + alpha * (1 - foamAmount);
     #endif
 
@@ -526,7 +531,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     float distanceToSurface = depth / camToFrag.y;
     float totalDistance = depth + distanceToSurface;
 
-    float lightPenetration = 0.5 + (waterTransparencyConfig / 33.333); // Scale from a range of 0.5 to 3.5
+    float lightPenetration = 0.5 + (waterTransparencyConfig / 44.444); // Scale from a range of 0% = 0.5, 100% = 2.75, 130% = 3.425
 
     // Exponential falloff of light intensity when penetrating water, different for each color
     vec3 extinctionColors = vec3(0);
