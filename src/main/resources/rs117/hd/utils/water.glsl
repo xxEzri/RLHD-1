@@ -249,6 +249,21 @@ float calculateFresnel(const vec3 I, const vec3 N, const float ior) {
 void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, float lightDotNormals);
 
 vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
+
+    waterTypeIndex = 1; // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEUNDERWATER
+        // 1 = water
+        // 2 = flat water
+        // 3 = swamp water
+        // 4 = swamp water flat
+        // 5 = poison waste
+        // 6 = black tar flat
+        // 7 = blood water
+        // 8 = ice
+        // 9 = ice flat
+        // 10 = muddy water
+        // 11 = scar sludge
+        // 12 = abyss bile
+
     WaterType waterType = getWaterType(waterTypeIndex);
 
 //    vec2 baseUv = vUv[0].xy * IN.texBlend.x + vUv[1].xy * IN.texBlend.y + vUv[2].xy * IN.texBlend.z;
@@ -541,6 +556,20 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     float distanceToSurface = depth / camToFrag.y;
     float totalDistance = depth + distanceToSurface;
     int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
+
+    waterTypeIndex = 1; // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEWATER
+    // 1 = water
+    // 2 = flat water
+    // 3 = swamp water
+    // 4 = swamp water flat
+    // 5 = poison waste
+    // 6 = black tar flat
+    // 7 = blood water
+    // 8 = ice
+    // 9 = ice flat
+    // 10 = muddy water
+    // 11 = scar sludge
+    // 12 = abyss bile
 
     float lightPenetration = 0.5 + (waterTransparencyConfig / 44.444); // Scale from a range of 0% = 0.5, 100% = 2.75, 130% = 3.425
 
