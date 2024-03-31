@@ -666,7 +666,7 @@ public interface HdPluginConfig extends Config
 	@Units(Units.PERCENT)
 	@Range(min = 0, max = 130)
 	default int lightPenetrationPercentage() {
-		return 100;
+		return 75;
 	}
 
 	String KEY_PLANAR_REFLECTIONS = "planarReflections";
