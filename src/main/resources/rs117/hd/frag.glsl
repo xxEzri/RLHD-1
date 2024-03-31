@@ -435,7 +435,12 @@ void main() {
         }
 
         // apply shadows
+        #ifdef OLD_WATER
         dirLightColor *= inverseShadow;
+        #else
+        if (!isUnderwater)
+            dirLightColor *= inverseShadow;
+        #endif
 
         vec3 lightColor = dirLightColor;
         vec3 lightOut = max(lightDotNormals, 0.0) * lightColor;
@@ -506,7 +511,11 @@ void main() {
         outputColor.rgb = linearToSrgb(outputColor.rgb);
 
         if (isUnderwater) {
+            #ifdef OLD_WATER
             sampleUnderwater(outputColor.rgb, waterType, waterDepth, lightDotNormals);
+            #else
+            sampleUnderwater(outputColor.rgb, waterType, waterDepth, shadow);
+            #endif
         }
     }
 

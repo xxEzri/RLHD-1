@@ -91,7 +91,8 @@ class SceneUploader {
 	public int waterHeight;
 
 	public void upload(SceneContext sceneContext) {
-		UNDERWATER_HSL = 6676;//ColorUtils.packHslRaw(7, 4, 40);
+		UNDERWATER_HSL = ColorUtils.packRawHsl(7, 4, 40);
+		UNDERWATER_HSL = 6676;
 		Stopwatch stopwatch = Stopwatch.createStarted();
 
 		// Reset water height counters

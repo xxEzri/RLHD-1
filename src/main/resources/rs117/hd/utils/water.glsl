@@ -25,8 +25,8 @@
 #include utils/misc.glsl
 #include utils/texture_tiling.glsl
 
-//#define OLD
-#ifdef OLD
+//#define OLD_WATER
+#ifdef OLD_WATER
 vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     WaterType waterType = getWaterType(waterTypeIndex);
 
@@ -258,7 +258,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 //    const float speed = .25 / sqrt(scale);
 
     const float scale = 1;
-    const float waveHeight = .2;
+    const float waveHeight = 1;
     const float speed = .25 / sqrt(scale);
     vec2 uv1 = worldUvs(11 * scale) + animationFrame(sqrt(11. * scale) / speed * waterType.duration);
     vec2 uv2 = worldUvs(3 * scale) + animationFrame(sqrt(3. * scale) / speed * waterType.duration);
@@ -300,7 +300,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     float fresnel = calculateFresnel(normals, fragToCam, IOR_WATER);
 
     vec3 reflectionColor = srgbToLinear(fogColor);
-    if (waterReflectionEnabled) { // TODO: compare with waterHeight instead && IN.position.y > -128) {
+    if (waterReflectionEnabled && abs(IN.position.y - waterHeight) < 16) {
         vec3 I = -viewDir; // incident
         vec3 N = normals; // normal
         vec3 R = reflect(I, N);
@@ -313,7 +313,6 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         screenSize /= WATER_REFLECTION_RESOLUTION;
         vec2 texelSize = 1 / screenSize;
         vec2 uv = gl_FragCoord.xy / screenSize;
-//        uv.y = 1 - uv.y;
 
         vec3 flatRxz = normalize(flatR - vec3(0, flatR.y, 0));
         vec3 uvY = normalize(flatR - flatRxz);
@@ -344,7 +343,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 //        uv = clamp(uv, texelSize * mipRadius, 1 - texelSize * mipRadius);
 
         // This will be linear or sRGB depending on the linear alpha blending setting
-        reflectionColor = texture(waterReflectionMap, uv, 0).rgb;
+        reflectionColor = texture(waterReflectionMap, uv, .5).rgb;
 //        c = textureBicubic(waterReflectionMap, uv).rgb;
         #if !LINEAR_ALPHA_BLENDING
         // When linear alpha blending is on, the texture is in sRGB, and OpenGL will automatically convert it to linear
@@ -364,69 +363,86 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     if (waterTypeIndex == 7) {
         if (dot(reflectionColor, reflectionColor) == 0) {
-            vec3 waterColor = srgbToLinear(vec3(102, 0, 0) / 255.f) * 1;
-//            c = vec3(167, 66, 66) / 255;
-//            c = vec3(100, 100, 100) / 255;
-//            c = srgbToLinear(vec3(25, 0, 0) / 255.f) * 10;
-            dst.rgb = srgbToLinear(vec3(100, 0, 0) / 255.f);
+            dst.rgb = srgbToLinear(vec3(100, 0, 0) / 255.f) * 2.5;
         }
     } else {
-        vec3 refractionDir = refract(-viewDir, normals, 1 / IOR_WATER);
-        vec3 scatteringColor = srgbToLinear(vec3(0, 161, 148) / 255.f);
-        float NdotV = dot(normals, viewDir);
-        float angleSin = sqrt(1 - NdotV * NdotV);
-        float amount = angleSin / IOR_WATER;
+        float cosUp = -normals.y;
 
-        amount = 1 - exp(-amount * .3);
+        float H = (1 - pow(cosUp, 1.f)) * 50; // wave height
+        float k_1 = 1;
+        float k_2 = .01;
+        float k_3 = .02;
+        float k_4 = 0;
+        vec3 C_ss = vec3(0, .32, .32); // water scatter color
+        vec3 C_f = vec3(1); // air bubble color
+        float P_f = .01; // density of air bubbles
 
-        // not bad, but doesn't make too much sense
-//        amount = clamp(exp(-refractionDir.y * 2), 0, 1);
+        vec3 omega_i = lightDir; // incoming = sun to frag
+        vec3 omega_o = viewDir; // outgoing = frag to camera
+        vec3 omega_h = normalize(omega_o - omega_i); // half-way between incoming and outgoing
+        vec3 omega_n = IN.normal.xzy; // macro scale normal
+        vec3 w_n = normals; // presumably wave normal?
+        omega_n = w_n;
 
-//        return vec4(scatteringColor * amount, 1);
-//        dst.rgb = dst.rgb * dst.a + scatteringColor * amount * (1 - dst.a);
-//        dst.a = dst.a + amount * (1 - dst.a);
+        vec3 L_sun = lightColor * lightStrength;
+        vec3 L_scatter = (
+            k_1*H*pow(max(0, dot(omega_i, -omega_o)), 4.f) * pow(.5 - .5*dot(omega_i, omega_n), 3.f)
+            + k_2*pow(max(0, dot(omega_o, omega_n)), 2.f)
+        ) * C_ss*L_sun;
+        L_scatter += k_3*max(0, dot(omega_i, w_n))*C_ss*L_sun + k_4*P_f*C_f*L_sun;
+//        return vec4(linearToSrgb(L_scatter), 1);
+
+        dst.rgb += L_scatter / dst.a;
+
+        float roughnessSquared = .1;
+        omega_h = normalize(omega_o + omega_i); // half-way between incoming and outgoing
+        float p_22 = 1 / (PI * roughnessSquared) * exp((-omega_h.x*omega_h.x - omega_h.z*omega_h.z) / roughnessSquared);
+        vec3 L_specular = L_sun * calculateFresnel(omega_h, -omega_i, IOR_WATER) * p_22 / (4 * dot(omega_n, omega_o));
+//        return vec4(linearToSrgb(L_specular), 1);
+//        dst.rgb += L_specular / dst.a;
+
+        float clip = max(max(dst.r, dst.g), dst.b);
+        if (clip > 1) {
+            dst.a *= clip;
+            dst.rgb /= clip;
+        }
     }
 
     // If the water is opaque, blend in a fake underwater surface
     if (waterType.isFlat) {
         vec3 underwaterSrgb = packedHslToSrgb(6676);
-        int depth = 50;
-        sampleUnderwater(underwaterSrgb, waterType, depth, dot(lightDir, normals));
-        reflectionColor = reflectionColor * dst.a + srgbToLinear(underwaterSrgb) * (1 - dst.a);
+        int depth = 5000;
+        sampleUnderwater(underwaterSrgb, waterType, depth, 0);
+        dst.rgb = dst.rgb * dst.a + srgbToLinear(underwaterSrgb) * (1 - dst.a);
         dst.a = 1;
     }
-
-//    return vec4(0);
-
     // Like before, sampleWater needs to return sRGB
     dst.rgb = linearToSrgb(dst.rgb);
     return dst;
 }
 
-void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, float lightDotNormals /* not used */) {
+void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, float shadow) {
     outputColor = srgbToLinear(outputColor);
 
-//    outputColor = linearToSrgb(outputColor); return;
-
     // Pure water based on https://en.wikipedia.org/wiki/Electromagnetic_absorption_by_water#/media/File:Absorption_coefficient_of_water.svg
-    // For RGB wavelengths of 610 nm, 555 nm and 465 nm respectively
-    const vec3 waterAbsorbance = vec3(0.275, .055, .01);
-    const float extinctionCoefficient = .08;
-    const float scatteringCoefficient = .00002;
+    // Converted to RGB through https://en.wikipedia.org/wiki/CIE_1931_color_space#Color_matching_functions
+    vec3 waterAbsorbance = vec3(5.89243, 1.44154, 0.195755);
+    float extinctionCoefficient = .00175;
 
-    // Kind of similar to Aeryn's branch
-//    const float extinctionCoefficient = .01;
-//    const float scatteringCoefficient = .0003;
-//    const vec3 waterAbsorbance = vec3(1 / 1545.f, 1 / 1205.f, 1 / 774.f) * 570;
+    // Trying to approximate some kind of ocean water with phytoplankton absorption based on https://www.oceanopticsbook.info/view/absorption/absorption-by-oceanic-constituents
+    waterAbsorbance += vec3(0.105, .315, .525);
 
-//    const float extinctionCoefficient = .003;
-//    const float scatteringCoefficient = .0003;
-//    vec3 waterColor = srgbToLinear(vec3(6, 96.5, 50.5) / 255.f);
-//    vec3 waterColor = unpackSrgb(0x011d4f);
-//    vec3 waterColor = unpackSrgb(0x255fa3);
-//    vec3 waterColor = vec3(.5, .5, .8);
-//    vec3 waterColor = vec3(.99, .3, .1);
-//    vec3 waterAbsorbance = 1 - waterColor;
+    int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
+    if (waterTypeIndex == 7) {
+        waterAbsorbance = 1 - srgbToLinear(vec3(25, 0, 0) / 255.f);
+        extinctionCoefficient = .2;
+        outputColor = vec3(0);
+    }
+
+    // Our environmental ambient lighting might be totally out of whack for this
+    vec3 ambientLight = ambientColor * ambientStrength;
+//    ambientLight = fogColor; // maybe this is more correct?
+//    outputColor *= ambientLight;
 
     vec3 extinctionCoefficientRgb = extinctionCoefficient * waterAbsorbance;
 
@@ -438,7 +454,11 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     vec3 extinction = exp(-totalDistance * extinctionCoefficientRgb);
     outputColor *= extinction;
 
-//    outputColor = linearToSrgb(outputColor); return;
+    // TODO: (directional light * extinction in lightdir + ambient light * extinction down) * extinction towards camera
+
+    // This is wrong
+    vec3 shadowRgb = shadow * extinction;
+    outputColor *= 1 - shadowRgb;
 
     if (underwaterCaustics) {
         vec2 causticsUv = worldUvs(7);
@@ -463,56 +483,6 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         // Mix light from caustics in with the seabed
         outputColor.rgb *= 1 + caustics;
     }
-
-//    outputColor = linearToSrgb(outputColor); return;
-
-    // Along the ray back to the surface, some ambient light will be scattered through the water
-
-    // Scattering = sum of all light scattered at each depth along the view ray,
-    // modulated by absorption on the way down, the scattering probability,
-    // and absorption on the way back up towards the camera
-    // = \int_0^depth downwardsExtinction * scatteringCoefficient * towardsCameraExtinction
-    // = scatteringCoefficient * \int_0^depth downwardsExtinction * towardsCameraExtinction dx
-    // = scatteringCoefficient * \int_0^depth e^(-x * extinctionCoefficientRgb) * e^(-x/v.y * extinctionCoefficientRgb) dx
-    // = scatteringCoefficient * \int_0^depth e^((-x + -x/v.y) * extinctionCoefficientRgb) dx
-    // = scatteringCoefficient * \int_0^depth e^(-(x + x/v.y) * extinctionCoefficientRgb) dx
-    // = ...
-    vec3 scattering = scatteringCoefficient * camToFrag.y / (camToFrag.y + 1) * (1 - extinction) / extinctionCoefficientRgb;
-
-    // Artificially tint the scattering, to approximate multiple scattering
-//    scattering *= 1 - waterAbsorbance;
-
-//    outputColor = linearToSrgb(scattering); return;
-
-    // Our environmental ambient lighting might be totally out of whack for this
-    vec3 ambientLight = ambientColor * ambientStrength;
-    ambientLight = fogColor; // maybe this is more correct?
-//    ambientLight = vec3(1);
-    outputColor += scattering * ambientLight;
-
-//    vec3 depthColor2 = srgbToLinear(waterType.depthColor) * .14 * vec3(.4, .275, .09);
-//    vec3 depthColor2 = srgbToLinear(vec3(6.3, 16, 29.4) / 255.f) * .1;
-//    vec3 depthColor1 = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f);
-//    vec3 depthColor1 = vec3(0);
-//    vec3 depthColor2 = srgbToLinear(vec3(6, 96.5, 50.5) / 255.f) * 1;
-//    vec3 depthColor2 = srgbToLinear(vec3(25.5, 73.5, 100) / 255.f) * 1;
-//    float extinction = exp(-distance * .001);
-//    outputColor = mix(depthColor1, outputColor, extinction);
-//    outputColor = mix(depthColor2, outputColor, extinction);
-//    outputColor = mix(mix(depthColor1, depthColor2, extinction), outputColor, extinction);
-
-//    vec3 waterColor = srgbToLinear(vec3(0, 20, 43) / 255.f);
-//    outputColor = mix(waterColor, outputColor, extinction);
-
-    int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
-    if (waterTypeIndex == 7) {
-        vec3 waterColor = srgbToLinear(vec3(25, 0, 0) / 255.f);
-        float extinction = exp(-distanceToSurface * 1);
-        extinction = 0;
-        outputColor = mix(waterColor, outputColor, extinction);
-    }
-
-//    outputColor = vec3(0); return;
 
     outputColor = clamp(outputColor, vec3(0), vec3(1));
     outputColor = linearToSrgb(outputColor);
