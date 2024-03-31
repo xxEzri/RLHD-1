@@ -67,6 +67,7 @@ uniform int waterHeight;
 uniform bool waterReflectionEnabled;
 uniform bool underwaterEnvironment;
 uniform bool underwaterCaustics;
+uniform bool shorelineCaustics;
 uniform vec3 underwaterCausticsColor;
 uniform float underwaterCausticsStrength;
 uniform int waterCausticsStrengthConfig;
