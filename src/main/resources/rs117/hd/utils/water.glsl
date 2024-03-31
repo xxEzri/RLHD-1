@@ -150,9 +150,8 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
         vec3 c = waterColorLight;
 
-        if (waterReflectionEnabled && distance(waterHeight, IN.position.y) < 16)
+        if (waterReflectionEnabled && distance(waterHeight, IN.position.y) < 48)
             c = texture(waterReflectionMap, uv).rgb;
-            c.rgb = c.rgb *0.9; // Dim water reflections, should be done properly via fresnel
 
         surfaceColor = mix(waterColorMid, c, (fresnel - 0.5) * 2);
 
@@ -251,18 +250,18 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
 vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     waterTypeIndex = 1; // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEUNDERWATER
-        // 1 = water
-        // 2 = flat water
-        // 3 = swamp water
-        // 4 = swamp water flat
-        // 5 = poison waste
-        // 6 = black tar flat
-        // 7 = blood water
-        // 8 = ice
-        // 9 = ice flat
-        // 10 = muddy water
-        // 11 = scar sludge
-        // 12 = abyss bile
+    // 1 = water
+    // 2 = flat water
+    // 3 = swamp water
+    // 4 = swamp water flat
+    // 5 = poison waste
+    // 6 = black tar flat
+    // 7 = blood water
+    // 8 = ice
+    // 9 = ice flat
+    // 10 = muddy water
+    // 11 = scar sludge
+    // 12 = abyss bile
 
     WaterType waterType = getWaterType(waterTypeIndex);
 
@@ -460,18 +459,39 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         foamAmount *= 0.08;
         foam.rgb = foamColor * foamAmount * (1 - foamAmount) * (waterFoamAmountConfig /100.f);
         alpha = foamAmount + alpha * (1 - foamAmount);
+
+        if(waterTypeIndex == 3 || waterTypeIndex == 4) // swamp water + swamp water flat
+        {
+            foam.rgb *= vec3(1.3, 1.3, 0.4);
+        }
+
+        if(waterTypeIndex == 7) // blood
+        {
+            foam.rgb *= vec3(1.6, 0.7, 0.7);
+        }
     #endif
 
     #include WATER_LIGHT_SCATTERING
     #if WATER_LIGHT_SCATTERING
-        if(waterTypeIndex == 1) // Standard Water
+        if(waterTypeIndex == 1 || waterTypeIndex == 2 || waterTypeIndex == 3) // Calculate if whitelisted water type is used - Standard Water, Flat Water
         {
+
+            vec3 waterTypeExtinction = vec3(1);
+            if(waterTypeIndex == 1 || waterTypeIndex == 2)
+            {
+                waterTypeExtinction = vec3(1);
+            }
+            if(waterTypeIndex == 3 || waterTypeIndex == 4)
+            {
+                waterTypeExtinction = vec3(2, 2, 10); // Light absorption for swamp water
+            }
+
             float scatterStrength = 3;
             vec3 scatterExtinction = vec3(0);
             float scatterDepth = 128 * 2 * 1;
-            scatterExtinction.r = exp(-scatterDepth * 0.003090);
-            scatterExtinction.g = exp(-scatterDepth * 0.001981);
-            scatterExtinction.b = exp(-scatterDepth * 0.001548);
+            scatterExtinction.r = exp(-scatterDepth * 0.003090 * waterTypeExtinction.r);
+            scatterExtinction.g = exp(-scatterDepth * 0.001981 * waterTypeExtinction.g);
+            scatterExtinction.b = exp(-scatterDepth * 0.001548 * waterTypeExtinction.b);
 
             //return vec4(scatterExtinction, 1);
 
@@ -492,14 +512,26 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     vec4 dst = vec4(0);
 
-    if (waterTransparencyType == 1 || waterTypeIndex == 2 || waterTypeIndex == 7) // Opaque setting, Flat Water, Blood Water
+    if (waterTransparencyType == 1 || waterTypeIndex == 2 || waterTypeIndex == 4 || waterTypeIndex == 7) // Opaque setting, Flat Water, Blood Water
     {
+        if(waterTypeIndex == 3 || waterTypeIndex == 4) // Swamp Water Flat
+        {
+            vec3 swampFlatSrgb = vec3(0.3, 0.3, 0);
+            c = 0 + (srgbToLinear(swampFlatSrgb) * (1 - alpha));
+            alpha = 1;
+            dst = vec4(c.rgb, alpha);
+            reflection.rgb *= 0.25;
+            dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
+            dst += vec4(foam, 0); // add foam on top
+            dst.rgb = linearToSrgb(dst.rgb);
+            return vec4(dst.rgb, 1); // swamp water flat
+        }
+
         if(waterTypeIndex == 7) // Blood
         {
             vec3 bloodSrgb = vec3(0.3, 0, 0);
             c = 0 + (srgbToLinear(bloodSrgb) * (1 - alpha));
             alpha = 1;
-            foam.rgb *= vec3(1.5, 0.6, 0.6);
             dst = vec4(c.rgb, alpha);
             reflection.rgb *= 0.6;
             dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
@@ -530,16 +562,17 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         return vec4(dst.rgb, 1); // flat water
     }
 
-    if(waterTypeIndex == 1)
+    if(waterTypeIndex == 3) // swamp water
     {
-        //dst.rgb = vec3(0);
-        scattering.rgb *= vec3(0.5, 0.8, 0.2);
-        reflection.rgb *= 0.3;
+        reflection.rgb *= 0.3; // dim reflection
+        dst.rgb += vec3(0.1, 0.1, 0); // inject color
+
     }
 
     dst = scattering * scattering.a + dst * (1 - scattering.a); // blend in scattering
     dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
     foam.rgb *= 1.5; // foam otherwise looks disproportionately weak on transparent water due to reduced alpha
+
     dst += vec4(foam, 0); // add foam on top
 
     dst.rgb /= (dst.a);
@@ -577,18 +610,18 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     vec3 extinctionColors = vec3(0);
     vec3 waterTypeExtinction = vec3(0);
 
-    if(waterTypeIndex == 1)
+    if(waterTypeIndex == 1 || waterTypeIndex == 2)
     {
         waterTypeExtinction = vec3(1);
     }
-    if(waterTypeIndex == 1)
+    if(waterTypeIndex == 3 || waterTypeIndex == 4)
     {
-        waterTypeExtinction = vec3(0, 3, 0);
-        //waterTypeExtinction = vec3(0);
+        waterTypeExtinction = vec3(2, 2, 10); // Light absorption for swamp water
     }
-    extinctionColors.r = exp(-totalDistance * (0.003090 / lightPenetration) / waterTypeExtinction.r);
-    extinctionColors.g = exp(-totalDistance * (0.001981 / lightPenetration) / waterTypeExtinction.g);
-    extinctionColors.b = exp(-totalDistance * (0.001548 / lightPenetration) / waterTypeExtinction.b);
+
+    extinctionColors.r = exp(-totalDistance * (0.003090 / lightPenetration) * waterTypeExtinction.r);
+    extinctionColors.g = exp(-totalDistance * (0.001981 / lightPenetration) * waterTypeExtinction.g);
+    extinctionColors.b = exp(-totalDistance * (0.001548 / lightPenetration) * waterTypeExtinction.b);
 
     if (underwaterCaustics && (waterTransparencyType ==0 || depth <=500)) {
         const float scale = 2.5;
