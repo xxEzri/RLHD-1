@@ -310,7 +310,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
         // TODO: use actual viewport size here
         vec2 screenSize = vec2(textureSize(waterReflectionMap, 0));
-        screenSize /= WATER_REFLECTION_RESOLUTION;
+        screenSize /= PLANAR_REFLECTION_RESOLUTION;
         vec2 texelSize = 1 / screenSize;
         vec2 uv = gl_FragCoord.xy / screenSize;
 

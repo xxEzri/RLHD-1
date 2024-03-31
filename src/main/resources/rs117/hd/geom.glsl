@@ -30,7 +30,7 @@
 
 layout(triangles) in;
 
-//#if WATER_REFLECTIONS
+//#if PLANAR_REFLECTIONS
 //layout(triangle_strip, max_vertices = 6) out;
 //#else
 layout(triangle_strip, max_vertices = 3) out;

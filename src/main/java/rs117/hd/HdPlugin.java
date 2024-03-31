@@ -818,8 +818,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			.define("FLAT_SHADING", config.flatShading())
 			.define("SHADOW_MAP_OVERLAY", enableShadowMapOverlay)
 			.define("LINEAR_ALPHA_BLENDING", configLinearAlphaBlending)
-			.define("WATER_REFLECTIONS", config.waterReflections())
-			.define("WATER_REFLECTION_RESOLUTION", config.reflectionResolution() / 100f)
+			.define("PLANAR_REFLECTIONS", config.enablePlanarReflections())
+			.define("PLANAR_REFLECTION_RESOLUTION", config.reflectionResolution() / 100f)
 			.addIncludePath(SHADER_PATH);
 
 		glSceneProgram = PROGRAM.compile(template);
@@ -2037,7 +2037,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			}
 
 			// Setup planar reflection FBO
-			final boolean waterReflectionEnabled = config.waterReflections();
+			final boolean waterReflectionEnabled = config.enablePlanarReflections();
 			final float reflectionResolution = config.reflectionResolution() / 100f;
 			final int reflectionWidth = Math.max(1, Math.round(stretchedCanvasWidth * reflectionResolution));
 			final int reflectionHeight = Math.max(1, Math.round(stretchedCanvasHeight * reflectionResolution));
@@ -2704,7 +2704,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 							case KEY_UI_SCALING_MODE:
 							case KEY_VANILLA_COLOR_BANDING:
 							case KEY_LINEAR_ALPHA_BLENDING:
-							case KEY_WATER_REFLECTION_RESOLUTION:
+							case KEY_PLANAR_REFLECTION_RESOLUTION:
 								recompilePrograms = true;
 								break;
 							case KEY_SHADOW_MODE:
