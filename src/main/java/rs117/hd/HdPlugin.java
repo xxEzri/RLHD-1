@@ -83,6 +83,7 @@ import rs117.hd.config.ShadingMode;
 import rs117.hd.config.ShadowMode;
 import rs117.hd.config.UIScalingMode;
 import rs117.hd.config.VanillaShadowMode;
+import rs117.hd.config.WaterTransparencyType;
 import rs117.hd.data.WaterType;
 import rs117.hd.data.environments.Area;
 import rs117.hd.data.materials.Material;
@@ -296,6 +297,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int texWaterReflection = -1;
 	private int texWaterReflectionDepthMap = -1;
 
+	private boolean enableWaterFoam;
 	private int texTileHeightMap;
 
 	private final GLBuffer hStagingBufferVertices = new GLBuffer(); // temporary scene vertex buffer
@@ -343,6 +345,11 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private float lastPlanarReflectionResolution;
 	private boolean lastLinearAlphaBlending;
 
+	private int waterCausticsStrengthConfig;
+	private int waterWaveSizeConfig;
+	private int waterWaveSpeedConfig;
+	private int waterFoamAmountConfig;
+
 	private int viewportOffsetX;
 	private int viewportOffsetY;
 
@@ -358,6 +365,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int uniWaterColorLight;
 	private int uniWaterColorMid;
 	private int uniWaterColorDark;
+	private int uniWaterTransparencyType;
+	private int uniWaterTransparencyConfig;
 	private int uniAmbientStrength;
 	private int uniAmbientColor;
 	private int uniLightStrength;
@@ -380,6 +389,10 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int uniWaterHeight;
 	private int uniWaterReflectionEnabled;
 	private int uniCameraPos;
+	private int uniWaterCausticsStrengthConfig;
+	private int uniWaterWaveSizeConfig;
+	private int uniWaterWaveSpeedConfig;
+	private int uniWaterFoamAmountConfig;
 
 	// Shadow program uniforms
 	private int uniShadowLightProjectionMatrix;
@@ -411,6 +424,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	public boolean configTzhaarHD;
 	public boolean configProjectileLights;
 	public boolean configNpcLights;
+	public WaterTransparencyType waterTransparencyType;
+	public int waterTransparencyConfig;
 	public boolean configHideFakeShadows;
 	public boolean configLegacyGreyColors;
 	public boolean configModelBatching;
@@ -820,6 +835,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			.define("LINEAR_ALPHA_BLENDING", configLinearAlphaBlending)
 			.define("PLANAR_REFLECTIONS", config.enablePlanarReflections())
 			.define("PLANAR_REFLECTION_RESOLUTION", config.reflectionResolution() / 100f)
+			.define("WATER_FOAM", config.enableWaterFoam())
+			.define("WATER_LIGHT_SCATTERING", config.waterLightScattering())
 			.addIncludePath(SHADER_PATH);
 
 		glSceneProgram = PROGRAM.compile(template);
@@ -891,6 +908,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		uniWaterColorMid = glGetUniformLocation(glSceneProgram, "waterColorMid");
 		uniWaterColorDark = glGetUniformLocation(glSceneProgram, "waterColorDark");
 		uniDrawDistance = glGetUniformLocation(glSceneProgram, "drawDistance");
+		uniWaterTransparencyConfig = glGetUniformLocation(glSceneProgram, "waterTransparencyConfig");
+		uniWaterTransparencyType = glGetUniformLocation(glSceneProgram, "waterTransparencyType");
 		uniExpandedMapLoadingChunks = glGetUniformLocation(glSceneProgram, "expandedMapLoadingChunks");
 		uniAmbientStrength = glGetUniformLocation(glSceneProgram, "ambientStrength");
 		uniAmbientColor = glGetUniformLocation(glSceneProgram, "ambientColor");
@@ -913,6 +932,10 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		uniUnderwaterCausticsStrength = glGetUniformLocation(glSceneProgram, "underwaterCausticsStrength");
 		uniWaterHeight = glGetUniformLocation(glSceneProgram, "waterHeight");
 		uniWaterReflectionEnabled = glGetUniformLocation(glSceneProgram, "waterReflectionEnabled");
+		uniWaterCausticsStrengthConfig = glGetUniformLocation(glSceneProgram, "waterCausticsStrengthConfig");
+		uniWaterWaveSizeConfig = glGetUniformLocation(glSceneProgram, "waterWaveSizeConfig");
+		uniWaterWaveSpeedConfig = glGetUniformLocation(glSceneProgram, "waterWaveSpeedConfig");
+		uniWaterFoamAmountConfig = glGetUniformLocation(glSceneProgram, "waterFoamAmountConfig");
 		uniCameraPos = glGetUniformLocation(glSceneProgram, "cameraPos");
 		uniTextureArray = glGetUniformLocation(glSceneProgram, "textureArray");
 		uniElapsedTime = glGetUniformLocation(glSceneProgram, "elapsedTime");
@@ -2104,7 +2127,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniform3fv(uniWaterColorLight, waterColorLight);
 			glUniform3fv(uniWaterColorMid, waterColorMid);
 			glUniform3fv(uniWaterColorDark, waterColorDark);
-
+			glUniform1f(uniWaterTransparencyType, waterTransparencyType.ordinal());
+			glUniform1f(uniWaterTransparencyConfig, waterTransparencyConfig);
 			float brightness = config.brightness() / 20f;
 			glUniform1f(uniAmbientStrength, environmentManager.currentAmbientStrength * brightness);
 			glUniform3fv(uniAmbientColor, environmentManager.currentAmbientColor);
@@ -2130,6 +2154,11 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniform1f(uniUnderwaterCausticsStrength, environmentManager.currentUnderwaterCausticsStrength);
 			glUniform1f(uniElapsedTime, elapsedTime);
 
+			glUniform1i(uniWaterCausticsStrengthConfig, config.waterCausticsStrengthConfig());
+			glUniform1i(uniWaterWaveSizeConfig, config.waterWaveSizeConfig());
+			glUniform1i(uniWaterWaveSpeedConfig, config.waterWaveSpeedConfig());
+			glUniform1i(uniWaterFoamAmountConfig, config.waterFoamAmountConfig());
+
 			// Extract the 3rd column from the light view matrix (the float array is column-major)
 			// This produces the light's forward direction vector in world space
 			glUniform3f(uniLightDir, lightViewMatrix[2], lightViewMatrix[6], lightViewMatrix[10]);
@@ -2148,6 +2177,14 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniformBlockBinding(glSceneProgram, uniBlockMaterials, UNIFORM_BLOCK_MATERIALS);
 			glUniformBlockBinding(glSceneProgram, uniBlockWaterTypes, UNIFORM_BLOCK_WATER_TYPES);
 			glUniformBlockBinding(glSceneProgram, uniBlockPointLights, UNIFORM_BLOCK_LIGHTS);
+
+			frameTimer.begin(Timer.CLEAR_SCENE);
+
+			// Clear scene
+			glClear(GL_COLOR_BUFFER_BIT);
+
+			frameTimer.end(Timer.CLEAR_SCENE);
+			frameTimer.begin(Timer.RENDER_SCENE);
 
 			// Draw with buffers bound to scene VAO
 			glBindVertexArray(vaoSceneHandle);
@@ -2617,6 +2654,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		configTzhaarHD = config.hdTzHaarReskin();
 		configProjectileLights = config.projectileLights();
 		configNpcLights = config.npcLights();
+		waterTransparencyType = config.waterTransparencyType();
+		waterTransparencyConfig = config.lightPenetrationPercentage();
 		configVanillaShadowMode = config.vanillaShadowMode();
 		configHideFakeShadows = configVanillaShadowMode != VanillaShadowMode.SHOW;
 		configLegacyGreyColors = config.legacyGreyColors();
@@ -2705,6 +2744,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 							case KEY_VANILLA_COLOR_BANDING:
 							case KEY_LINEAR_ALPHA_BLENDING:
 							case KEY_PLANAR_REFLECTION_RESOLUTION:
+							case KEY_WATER_FOAM:
+							case KEY_WATER_LIGHT_SCATTERING:
 								recompilePrograms = true;
 								break;
 							case KEY_SHADOW_MODE:

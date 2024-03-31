@@ -45,6 +45,8 @@ uniform float fogDepth;
 uniform vec3 waterColorLight;
 uniform vec3 waterColorMid;
 uniform vec3 waterColorDark;
+uniform float waterTransparencyType;
+uniform float waterTransparencyConfig;
 uniform vec3 ambientColor;
 uniform float ambientStrength;
 uniform vec3 lightColor;
@@ -64,6 +66,10 @@ uniform bool underwaterEnvironment;
 uniform bool underwaterCaustics;
 uniform vec3 underwaterCausticsColor;
 uniform float underwaterCausticsStrength;
+uniform int waterCausticsStrengthConfig;
+uniform int waterWaveSizeConfig;
+uniform int waterWaveSpeedConfig;
+uniform int waterFoamAmountConfig;
 
 // general HD settings
 uniform float saturation;
@@ -429,6 +435,24 @@ void main() {
             vec2 flow2 = causticsUv * 1.25 + animationFrame(37) * -direction + drift;
 
             vec3 caustics = sampleCaustics(flow1, flow2) * 2;
+
+            // make a local copy which we can modify
+            vec3 underwaterCausticsColor = underwaterCausticsColor;
+            float underwaterCausticsStrength = underwaterCausticsStrength;
+
+            underwaterCausticsStrength *= 10;
+
+            vec3 absorptionColor = vec3(.003090, .001981, .001548);
+
+            // hard-coded depth
+            float depth = 128 * 8;
+
+            // Exponential falloff of light intensity when penetrating water, different for each color
+            vec3 extinctionColors = exp(-depth * absorptionColor);
+
+            underwaterCausticsColor *= extinctionColors;
+
+//            FragColor = vec4(vec3(extinction), 1); return;
 
             vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength;
             dirLightColor += caustics * causticsColor * lightDotNormals * pow(lightStrength, 1.5);
