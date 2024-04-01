@@ -51,7 +51,7 @@ float calculateFresnel(const vec3 I, const vec3 N, const float ior) {
 void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, float lightDotNormals);
 
 vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
-//    waterTypeIndex = 13; // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEUNDERWATER //TODO look here for water
+    //waterTypeIndex = 14; // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEUNDERWATER //TODO look here for water
     // 1 = water
     // 2 = flat water
     // 3 = swamp water
@@ -65,6 +65,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     // 11 = scar sludge
     // 12 = abyss bile
     // 13 = plain flat water --- #2 is color-matched to model-water in caves etc, while this one isn't
+    // 14 = flat blood - //todo NYI
 
     WaterType waterType = getWaterType(waterTypeIndex);
 
@@ -295,7 +296,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
             foam.rgb *= vec3(1.0, 1.0, 1.0);
         }
 
-        if(waterTypeIndex == 7) // blood
+        if(waterTypeIndex == 7 || waterTypeIndex == 14) // blood
         {
             foam.rgb *= vec3(1.6, 0.7, 0.7);
         }
@@ -349,7 +350,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
                 waterTypeExtinction = vec3(2, 2, 2); // Light absorption for swamp water and toxic waste
             }
 
-            if(waterTypeIndex == 7)
+            if(waterTypeIndex == 7 || waterTypeIndex == 14)
             {
                 waterTypeExtinction = vec3(0.6, 30, 30); // Light absorption for blood
             }
@@ -394,7 +395,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     vec4 dst = vec4(0);
 
-    if (waterTransparencyType == 1 || waterTypeIndex == 2 || waterTypeIndex == 4 || waterTypeIndex == 6 || waterTypeIndex == 9 || waterTypeIndex == 13) // Opaque setting or flat water
+    if (waterTransparencyType == 1 || waterTypeIndex == 2 || waterTypeIndex == 4 || waterTypeIndex == 6 || waterTypeIndex == 9 || waterTypeIndex == 13 || waterTypeIndex == 14) // Opaque setting or flat water
     {
         if(waterTypeIndex == 2) // Flat cave water
         {
@@ -448,7 +449,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
             return vec4(dst.rgb, 1); // black tar flat
         }
 
-        if(waterTypeIndex == 7) // Blood flat
+        if(waterTypeIndex == 7 || waterTypeIndex ==14) // Blood flat
         {
             vec3 bloodSrgb = vec3(0.3, 0, 0);
             c = 0 + (srgbToLinear(bloodSrgb) * (1 - alpha));
@@ -616,7 +617,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
 
     //TODO water types are here
-//    waterTypeIndex = 13; // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEWATER
+    //waterTypeIndex = 14; // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEWATER
     // 1 = water
     // 2 = flat water
     // 3 = swamp water
@@ -630,6 +631,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     // 11 = scar sludge
     // 12 = abyss bile
     // 13 = plain flat water --- #2 is color-matched to model-water in caves etc, while this one isn't
+    // 14 = flat blood
 
     float lightPenetration = 0.5 + (waterTransparencyConfig / 44.444); // Scale from a range of 0% = 0.5, 100% = 2.75, 130% = 3.425
 
