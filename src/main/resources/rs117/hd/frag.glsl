@@ -539,7 +539,10 @@ void main() {
             #ifdef OLD_WATER
             sampleUnderwater(outputColor.rgb, waterType, waterDepth, lightDotNormals);
             #else
+            #ifdef HOODER_WATER
             sampleUnderwater(outputColor.rgb, waterType, waterDepth, shadow);
+            #else
+            sampleUnderwater(outputColor.rgb, waterType, waterDepth, lightDotNormals);
             #endif
         }
     }
