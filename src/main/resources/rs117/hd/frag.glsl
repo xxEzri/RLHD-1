@@ -383,7 +383,7 @@ void main() {
         if ((vMaterialData[0] >> MATERIAL_FLAG_DISABLE_SHADOW_RECEIVING & 1) == 0)
             shadow = sampleShadowMap(fragPos, waterTypeIndex, vec2(0), lightDotNormals);
         shadow = max(shadow, selfShadowing);
-        float inverseShadow = 1 - shadow;
+        float inverseShadow = 1 - shadow * baseColor1.a;
 
 
 
