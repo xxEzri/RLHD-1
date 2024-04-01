@@ -51,7 +51,7 @@ float calculateFresnel(const vec3 I, const vec3 N, const float ior) {
 void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, float lightDotNormals);
 
 vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
-    waterTypeIndex = 13; // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEUNDERWATER //TODO look here for water
+//    waterTypeIndex = 13; // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEUNDERWATER //TODO look here for water
     // 1 = water
     // 2 = flat water
     // 3 = swamp water
@@ -616,7 +616,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
 
     //TODO water types are here
-    waterTypeIndex = 13; // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEWATER
+//    waterTypeIndex = 13; // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEWATER
     // 1 = water
     // 2 = flat water
     // 3 = swamp water
