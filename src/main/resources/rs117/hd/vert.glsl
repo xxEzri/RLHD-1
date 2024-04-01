@@ -53,8 +53,23 @@ uniform vec3 cameraPos;
 void main() {
     int ahsl = vPosition.w;
     vec3 position = vec3(vPosition.xyz);
-    vec3 rgb = packedHslToSrgb(ahsl);
+    vec3 hsl = unpackHsl(ahsl);
+    vec3 rgb = hslToSrgb(hsl);
     float alpha = 1 - float(ahsl >> 24 & 0xff) / 255.;
+
+    // Hide vertices with barely any opacity, since Jagex often includes hitboxes as part of the model.
+    // This prevents them from showing up in planar reflections due to depth testing.
+    if (alpha < .004) {
+        alpha = 0;
+        position = vec3(0);
+    } else if (alpha < 1) {
+        #if LINEAR_ALPHA_BLENDING
+        // Blending in linear color space makes transparent glass overly opaque.
+        // Bias the opacity somewhat to look closer to vanilla colors overall.
+        float alphaCorrectionMask = (1 - pow(hsl.y, 5.f)) * (1 - pow(alpha, 3.f));
+        alpha = pow(alpha, 1 + alphaCorrectionMask);
+        #endif
+    }
 
     vec2 tiledist = abs(floor(position.xz / 128) - floor(cameraPos.xz / 128));
     float maxDist = max(tiledist.x, tiledist.y);
