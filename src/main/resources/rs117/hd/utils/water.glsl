@@ -51,6 +51,21 @@ float calculateFresnel(const vec3 I, const vec3 N, const float ior) {
 void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, float lightDotNormals);
 
 vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
+    waterTypeIndex = 13; // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEUNDERWATER //TODO look here for water
+    // 1 = water
+    // 2 = flat water
+    // 3 = swamp water
+    // 4 = swamp water flat
+    // 5 = poison waste
+    // 6 = black tar flat
+    // 7 = blood water
+    // 8 = ice
+    // 9 = ice flat
+    // 10 = muddy water
+    // 11 = scar sludge
+    // 12 = abyss bile
+    // 13 = plain flat water --- #2 is color-matched to model-water in caves etc, while this one isn't
+
     WaterType waterType = getWaterType(waterTypeIndex);
 
 //    vec2 baseUv = vUv[0].xy * IN.texBlend.x + vUv[1].xy * IN.texBlend.y + vUv[2].xy * IN.texBlend.z;
@@ -149,8 +164,13 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 //    vec3 underglowOut = underglowColor * max(normals.y, 0) * underglowStrength;
 
 
-
     float speed = .024;
+    if(waterTypeIndex == 8 || waterTypeIndex == 9) // ice
+    {
+        speed = 0.00000001; // 0 speed bugs out the normals code and prevents rendering, glacier speed is fine
+    }
+    else
+    speed = 0.024;
     float waveSizeConfig = waterWaveSizeConfig / 100.f;
     float waveSpeedConfig = waterWaveSpeedConfig / 100.f;
     speed *= waveSpeedConfig;
@@ -170,9 +190,17 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     n1.xyz = n1.xzy;
     n2.xyz = n2.xzy;
     n1.y /= 0.225; // scale normals
+    if(waterTypeIndex == 6 || waterTypeIndex == 8 || waterTypeIndex == 9 || waterTypeIndex == 12) // black tar, ice, ice flat, abyss bile
+    {
+        n1.y /= 0.3;
+    }
     n1.y /= waveSizeConfig;
     n1 = normalize(n1);
     n2.y /= 0.8; // scale normals
+    if(waterTypeIndex == 6 || waterTypeIndex == 8 || waterTypeIndex == 9 || waterTypeIndex == 12) // black tar, ice, ice flat, abyss bile
+    {
+        n2.y /= 0.3;
+    }
     n2.y /= waveSizeConfig;
     n2 = normalize(n2);
     vec3 normals = normalize(n1+n2);
@@ -230,18 +258,6 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     // ALWAYS RETURN IN sRGB FROM THIS FUNCTION (been burned by this a couple times)
 
     float alpha = fresnel;
-
-   // if (waterTypeIndex == 7) {
-   //     vec3 waterColor = srgbToLinear(vec3(102, 0, 0) / 255.f) * 1;
-   //     if (dot(c, c) == 0) {
-//            c = vec3(167, 66, 66) / 255;
-//            c = vec3(100, 100, 100) / 255;
-//            c = srgbToLinear(vec3(25, 0, 0) / 255.f) * 10;
-   //         c = srgbToLinear(vec3(100, 0, 0) / 255.f);
-   //     }
-   // }
-
-
     vec3 foam = vec3(0);
 
     #include WATER_FOAM
@@ -254,34 +270,123 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         float foamAmount = 1 - dot(IN.texBlend, vec3(vColor[0].x, vColor[1].x, vColor[2].x));
         float foamDistance = 1;
         vec3 foamColor = waterType.foamColor;
+        if(waterTypeIndex == 13)
+        {
+            foamColor = vec3(0.5);
+        }
         foamColor = srgbToLinear(foamColor) * foamMask * (ambientColor * ambientStrength + lightColor * lightStrength);
         foamAmount = clamp(pow(1.0 - ((1.0 - foamAmount) / foamDistance), 3), 0.0, 1.0) * waterType.hasFoam;
         foamAmount *= 0.08;
         foam.rgb = foamColor * foamAmount * (1 - foamAmount) * (waterFoamAmountConfig /100.f);
         alpha = foamAmount + alpha * (1 - foamAmount);
+
+        if(waterTypeIndex == 3 || waterTypeIndex == 4) // swamp water + swamp water flat
+        {
+            foam.rgb *= vec3(1.3, 1.3, 0.4);
+        }
+
+        if(waterTypeIndex == 5) // toxic waste
+        {
+            foam.rgb *= vec3(0.7, 0.7, 0.7);
+        }
+
+        if(waterTypeIndex == 6) // black tar
+        {
+            foam.rgb *= vec3(1.0, 1.0, 1.0);
+        }
+
+        if(waterTypeIndex == 7) // blood
+        {
+            foam.rgb *= vec3(1.6, 0.7, 0.7);
+        }
+
+        if(waterTypeIndex == 8) // ice
+        {
+            foam.rgb *= vec3(0.5, 0.5, 0.5);
+        }
+
+        if(waterTypeIndex == 9) // ice flat
+        {
+            foam.rgb *= vec3(0.5, 0.5, 0.5);
+        }
+
+        if(waterTypeIndex == 10) // muddy water
+        {
+            foam.rgb *= vec3(1.0, 0.5, 0.5);
+        }
+
+        if(waterTypeIndex == 11) // scar sludge
+        {
+            foam.rgb *= vec3(0.9, 1.2, 0.9);
+        }
+
+        if(waterTypeIndex == 12) // abyss bile
+        {
+            foam.rgb *= vec3(1.0, 0.7, 0.3);
+        }
+
+        if(waterTypeIndex == 13) // plain water flat
+        {
+            foam.rgb *= vec3(1);
+        }
+
     #endif
 
     #include WATER_LIGHT_SCATTERING
     #if WATER_LIGHT_SCATTERING
+        if(waterTypeIndex == 1 || waterTypeIndex == 2 || waterTypeIndex == 3 || waterTypeIndex == 4 || waterTypeIndex == 5 || waterTypeIndex == 13)
+        {
 
-        float scatterStrength = 3;
-        vec3 scatterExtinction = vec3(0);
-        float scatterDepth = 128 * 2 * 1;
-        scatterExtinction.r = exp(-scatterDepth * 0.003090);
-        scatterExtinction.g = exp(-scatterDepth * 0.001981);
-        scatterExtinction.b = exp(-scatterDepth * 0.001548);
+            vec3 waterTypeExtinction = vec3(1);
 
-        //return vec4(scatterExtinction, 1);
+            if(waterTypeIndex == 1 || waterTypeIndex == 2 || waterTypeIndex == 13)
+            {
+                waterTypeExtinction = vec3(1);
+            }
 
-        float waveStrength = -normalScatter.y;
-        waveStrength = 1 - waveStrength;
-        waveStrength = pow(waveStrength, 1 / 1.4f);
-        waveStrength *=0.3;
-        //return vec4(vec3(waveStrength), 1);
+            if(waterTypeIndex == 3 || waterTypeIndex == 4 || waterTypeIndex == 5)
+            {
+                waterTypeExtinction = vec3(2, 2, 2); // Light absorption for swamp water and toxic waste
+            }
 
-        d.r = (scatterStrength * scatterExtinction.r * waveStrength);
-        d.g = (scatterStrength * scatterExtinction.g * waveStrength);
-        d.b = (scatterStrength * scatterExtinction.b * waveStrength);
+            if(waterTypeIndex == 7)
+            {
+                waterTypeExtinction = vec3(0.6, 30, 30); // Light absorption for blood
+            }
+
+            if(waterTypeIndex == 10)
+            {
+                waterTypeExtinction = vec3(2, 2, 5); // Light absorption for muddy water
+            }
+
+            if(waterTypeIndex == 11)
+            {
+                waterTypeExtinction = vec3(2, 2, 2); // Light absorption for scar sludge
+            }
+            if(waterTypeIndex == 12)
+            {
+                waterTypeExtinction = vec3(1, 1, 1); // Light absorption for abyss bile
+            }
+
+            float scatterStrength = 3;
+            vec3 scatterExtinction = vec3(0);
+            float scatterDepth = 128 * 2 * 1;
+            scatterExtinction.r = exp(-scatterDepth * 0.003090 * waterTypeExtinction.r);
+            scatterExtinction.g = exp(-scatterDepth * 0.001981 * waterTypeExtinction.g);
+            scatterExtinction.b = exp(-scatterDepth * 0.001548 * waterTypeExtinction.b);
+
+            //return vec4(scatterExtinction, 1);
+
+            float waveStrength = -normalScatter.y;
+            waveStrength = 1 - waveStrength;
+            waveStrength = pow(waveStrength, 1 / 1.4f);
+            waveStrength *=0.3;
+            //return vec4(vec3(waveStrength), 1);
+
+            d.r = (scatterStrength * scatterExtinction.r * waveStrength);
+            d.g = (scatterStrength * scatterExtinction.g * waveStrength);
+            d.b = (scatterStrength * scatterExtinction.b * waveStrength);
+        }
     #endif
 
     vec4 reflection = vec4(c, fresnel);
@@ -289,8 +394,138 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     vec4 dst = vec4(0);
 
-    if (waterType.isFlat || waterTransparencyType == 1)
+    if (waterTransparencyType == 1 || waterTypeIndex == 2 || waterTypeIndex == 4 || waterTypeIndex == 6 || waterTypeIndex == 9 || waterTypeIndex == 13) // Opaque setting or flat water
     {
+        if(waterTypeIndex == 2) // Flat cave water
+        {
+            vec3 caveWaterFlatSrgb = vec3(0.22, 0.51, 0.6);
+            c = 0 + (srgbToLinear(caveWaterFlatSrgb) * (1 - alpha));
+            alpha = 1;
+            dst = vec4(c.rgb, alpha);
+            reflection.rgb *= 1;
+            dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
+            dst += vec4(foam, 0); // add foam on top
+            dst.rgb = linearToSrgb(dst.rgb);
+            return vec4(dst.rgb, 1); // cave water flat
+        }
+
+        if(waterTypeIndex == 3 || waterTypeIndex == 4) // Swamp Water Flat
+        {
+            vec3 swampFlatSrgb = vec3(0.275, 0.275, 0.1375);
+            c = 0 + (srgbToLinear(swampFlatSrgb) * (1 - alpha));
+            alpha = 1;
+            dst = vec4(c.rgb, alpha);
+            reflection.rgb *= 0.25;
+            dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
+            dst += vec4(foam, 0); // add foam on top
+            dst.rgb = linearToSrgb(dst.rgb);
+            return vec4(dst.rgb, 1); // swamp water flat
+        }
+
+        if(waterTypeIndex == 5) // toxic waste flat
+        {
+            vec3 wasteFlatSrgb = vec3(0.2, 0.2, 0.2);
+            c = 0 + (srgbToLinear(wasteFlatSrgb) * (1 - alpha));
+            alpha = 1;
+            dst = vec4(c.rgb, alpha);
+            reflection.rgb *= 0.3;
+            dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
+            dst += vec4(foam, 0); // add foam on top
+            dst.rgb = linearToSrgb(dst.rgb);
+            return vec4(dst.rgb, 1); // black tar flat
+        }
+
+        if(waterTypeIndex == 6) // black tar flat
+        {
+            vec3 tarFlatSrgb = vec3(0, 0, 0);
+            c = 0 + (srgbToLinear(tarFlatSrgb) * (1 - alpha));
+            alpha = 1;
+            dst = vec4(c.rgb, alpha);
+            reflection.rgb *= 0.3;
+            dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
+            dst += vec4(foam, 0); // add foam on top
+            dst.rgb = linearToSrgb(dst.rgb);
+            return vec4(dst.rgb, 1); // black tar flat
+        }
+
+        if(waterTypeIndex == 7) // Blood flat
+        {
+            vec3 bloodSrgb = vec3(0.3, 0, 0);
+            c = 0 + (srgbToLinear(bloodSrgb) * (1 - alpha));
+            alpha = 1;
+            dst = vec4(c.rgb, alpha);
+            reflection.rgb *= 0.75;
+            dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
+            dst += vec4(foam, 0); // add foam on top
+            dst.rgb = linearToSrgb(dst.rgb);
+            return vec4(dst.rgb, 1); // blood flat water
+        }
+
+        if(waterTypeIndex == 8 || waterTypeIndex == 9) // Ice flat
+        {
+            vec3 iceFlatSrgb = vec3(0.25, 0.25, 0.28);
+            c = 0 + (srgbToLinear(iceFlatSrgb) * (1 - alpha));
+            alpha = 1;
+            dst = vec4(c.rgb, alpha);
+            reflection.rgb *= 0.8;
+            dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
+            dst += vec4(foam, 0); // add foam on top
+            dst.rgb = linearToSrgb(dst.rgb);
+            return vec4(dst.rgb, 1); // flat ice
+        }
+
+        if(waterTypeIndex == 10) // Muddy water flat
+        {
+            vec3 mudFlatSrgb = vec3(0.28, 0.18, 0);
+            c = 0 + (srgbToLinear(mudFlatSrgb) * (1 - alpha));
+            alpha = 1;
+            dst = vec4(c.rgb, alpha);
+            reflection.rgb *= 0.4;
+            dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
+            dst += vec4(foam, 0); // add foam on top
+            dst.rgb = linearToSrgb(dst.rgb);
+            return vec4(dst.rgb, 1); // flat mud
+        }
+
+        if(waterTypeIndex == 11) // Scar Sludge flat
+        {
+            vec3 sludgeFlatSrgb = vec3(0.45, 0.49, 0.43);
+            c = 0 + (srgbToLinear(sludgeFlatSrgb) * (1 - alpha));
+            alpha = 1;
+            dst = vec4(c.rgb, alpha);
+            reflection.rgb *= 0.9;
+            dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
+            dst += vec4(foam, 0); // add foam on top
+            dst.rgb = linearToSrgb(dst.rgb);
+            return vec4(dst.rgb, 1); // flat scar sludge
+        }
+
+        if(waterTypeIndex == 12) // abyss bile flat
+        {
+            vec3 abyssBileFlatSrgb = vec3(0.52, 0.43, 0.18);
+            c = 0 + (srgbToLinear(abyssBileFlatSrgb) * (1 - alpha));
+            alpha = 1;
+            dst = vec4(c.rgb, alpha);
+            reflection.rgb *= 0.9;
+            dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
+            dst += vec4(foam, 0); // add foam on top
+            dst.rgb = linearToSrgb(dst.rgb);
+            return vec4(dst.rgb, 1); // flat abyss bile
+        }
+
+        if(waterTypeIndex == 13 || waterTypeIndex == 1) // plain water flat
+        {
+            vec3 plainWaterFlatSrgb = vec3(0.05, 0.1, 0.1);
+            c = 0 + (srgbToLinear(plainWaterFlatSrgb) * (1 - alpha));
+            alpha = 1;
+            dst = vec4(c.rgb, alpha);
+            reflection.rgb *= 1;
+            dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
+            dst += vec4(foam, 0); // add foam on top
+            dst.rgb = linearToSrgb(dst.rgb);
+            return vec4(dst.rgb, 1); // flat plain water
+        }
+
         float flatWaterTileDepth = 3;
         float depth = 128 * 2 * flatWaterTileDepth; // tile depth, *2 for round trip, * for number of tiles
         vec3 underwaterExtinction = vec3(0);
@@ -313,9 +548,56 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         return vec4(dst.rgb, 1); // flat water
     }
 
+    if(waterTypeIndex == 3) // swamp water
+    {
+        reflection.rgb *= 0.3; // dim reflection
+        dst.rgb += vec3(0.1, 0.1, 0.05); // inject color
+
+    }
+
+    if(waterTypeIndex == 5) // toxic waste
+    {
+        reflection.rgb *= 0.3; // dim reflection
+        dst.rgb += vec3(0.05, 0.05, 0.05); // inject color
+
+    }
+
+     if(waterTypeIndex == 7) // blood
+    {
+        reflection.rgb *= 0.75; // dim reflection
+        dst.rgb += vec3(0.16, 0, 0); // inject color
+
+    }
+
+    if(waterTypeIndex == 8) // ice
+    {
+        reflection.rgb *= 0.8; // dim reflection
+        dst.rgb += vec3(0.07, 0.07, 0.1); // inject color
+    }
+
+    if(waterTypeIndex == 10) // muddy water
+    {
+        reflection.rgb *= 0.4; // dim reflection
+        dst.rgb += vec3(0.13, 0.06, 0); // inject color
+    }
+
+    if(waterTypeIndex == 11) // scar sludge
+    {
+        reflection.rgb *= 0.9;
+        dst.rgb += vec3(0.3, 0.37, 0.3); // inject color
+    }
+
+    if(waterTypeIndex == 12) // abyss bile
+    {
+        reflection.rgb *= 0.9;
+        dst.rgb += vec3(0.42, 0.29, 0.075); // inject color
+    }
+
+
     dst = scattering * scattering.a + dst * (1 - scattering.a); // blend in scattering
     dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
     foam.rgb *= 1.5; // foam otherwise looks disproportionately weak on transparent water due to reduced alpha
+
     dst += vec4(foam, 0); // add foam on top
 
     dst.rgb /= (dst.a);
@@ -331,14 +613,68 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     vec3 camToFrag = normalize(IN.position - cameraPos);
     float distanceToSurface = depth / camToFrag.y;
     float totalDistance = depth + distanceToSurface;
+    int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
+
+    //TODO water types are here
+    waterTypeIndex = 13; // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEWATER
+    // 1 = water
+    // 2 = flat water
+    // 3 = swamp water
+    // 4 = swamp water flat
+    // 5 = poison waste
+    // 6 = black tar flat
+    // 7 = blood water
+    // 8 = ice
+    // 9 = ice flat
+    // 10 = muddy water
+    // 11 = scar sludge
+    // 12 = abyss bile
+    // 13 = plain flat water --- #2 is color-matched to model-water in caves etc, while this one isn't
 
     float lightPenetration = 0.5 + (waterTransparencyConfig / 44.444); // Scale from a range of 0% = 0.5, 100% = 2.75, 130% = 3.425
 
     // Exponential falloff of light intensity when penetrating water, different for each color
     vec3 extinctionColors = vec3(0);
-    extinctionColors.r = exp(-totalDistance * (0.003090 / lightPenetration));
-    extinctionColors.g = exp(-totalDistance * (0.001981 / lightPenetration));
-    extinctionColors.b = exp(-totalDistance * (0.001548 / lightPenetration));
+    vec3 waterTypeExtinction = vec3(0);
+
+    if(waterTypeIndex == 1 || waterTypeIndex == 2 || waterTypeIndex == 8 || waterTypeIndex == 13)
+    {
+        waterTypeExtinction = vec3(1);
+    }
+
+    if(waterTypeIndex == 3 || waterTypeIndex == 4)
+    {
+        waterTypeExtinction = vec3(2, 2, 2); // Light absorption for swamp water
+    }
+
+    if(waterTypeIndex == 5)
+    {
+        waterTypeExtinction = vec3(3, 3, 3); // Light absorption for toxic waste
+    }
+
+    if(waterTypeIndex == 7)
+    {
+        waterTypeExtinction = vec3(0.6, 30, 30); // Light absorption for blood
+    }
+
+    if(waterTypeIndex == 10)
+    {
+        waterTypeExtinction = vec3(1.5, 3, 6); // Light absorption for muddy water
+    }
+
+    if(waterTypeIndex == 11)
+    {
+        waterTypeExtinction = vec3(0.75, 1.125, 1.5); // Light absorption for scar sludge
+    }
+
+    if(waterTypeIndex == 12)
+    {
+        waterTypeExtinction = vec3(1, 1, 1); // Light absorption for abyss bile
+    }
+
+    extinctionColors.r = exp(-totalDistance * (0.003090 / lightPenetration) * waterTypeExtinction.r);
+    extinctionColors.g = exp(-totalDistance * (0.001981 / lightPenetration) * waterTypeExtinction.g);
+    extinctionColors.b = exp(-totalDistance * (0.001548 / lightPenetration) * waterTypeExtinction.b);
 
     if (underwaterCaustics && (waterTransparencyType ==0 || depth <=500)) {
         const float scale = 2.5;
@@ -353,26 +689,14 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         {
             causticsColor *= 0.5;
         }
-        outputColor *= 1 + caustics * causticsColor * extinctionColors * lightDotNormals * lightStrength * (waterCausticsStrengthConfig /100.f);
+        if(waterTypeIndex == 8 || waterTypeIndex == 9) // ice
+        {
+            causticsColor *= 0;
+        }
+        outputColor *= 1 + caustics * causticsColor * extinctionColors * lightDotNormals * lightStrength * (waterCausticsStrengthConfig / 100.f);
     }
 
-    vec3 waterColorBias = vec3(0);
-    vec3 waterTypeColor = vec3(0); // Color e.g. swamp water here
-
-    waterColorBias = waterColorBias + waterTypeColor;
-    //waterColorBias = vec3(0);
-
     outputColor = mix(vec3(0), outputColor, extinctionColors);
-    outputColor += waterColorBias;
     outputColor = linearToSrgb(outputColor);
-
-    // Some stuff for blood water type - disabled, pending update
-    //int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
-    //if (waterTypeIndex == 7) {
-        //vec3 waterColor = srgbToLinear(vec3(25, 0, 0) / 255.f);
-        //float extinction = exp(-distance * 1);
-        //extinction = 0;
-        //outputColor = mix(waterColor, outputColor, extinction);
-    //}
 }
 #endif

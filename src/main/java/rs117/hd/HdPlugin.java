@@ -384,6 +384,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int uniShadowsEnabled;
 	private int uniUnderwaterEnvironment;
 	private int uniUnderwaterCaustics;
+	private int uniShorelineCaustics;
 	private int uniUnderwaterCausticsColor;
 	private int uniUnderwaterCausticsStrength;
 	private int uniWaterHeight;
@@ -928,6 +929,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		uniShadowsEnabled = glGetUniformLocation(glSceneProgram, "shadowsEnabled");
 		uniUnderwaterEnvironment = glGetUniformLocation(glSceneProgram, "underwaterEnvironment");
 		uniUnderwaterCaustics = glGetUniformLocation(glSceneProgram, "underwaterCaustics");
+		uniShorelineCaustics = glGetUniformLocation(glSceneProgram, "shorelineCaustics");
 		uniUnderwaterCausticsColor = glGetUniformLocation(glSceneProgram, "underwaterCausticsColor");
 		uniUnderwaterCausticsStrength = glGetUniformLocation(glSceneProgram, "underwaterCausticsStrength");
 		uniWaterHeight = glGetUniformLocation(glSceneProgram, "waterHeight");
@@ -2150,6 +2152,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniform1f(uniContrast, config.contrast() / 100f);
 			glUniform1i(uniUnderwaterEnvironment, environmentManager.isUnderwater() ? 1 : 0);
 			glUniform1i(uniUnderwaterCaustics, config.underwaterCaustics() ? 1 : 0);
+			glUniform1i(uniShorelineCaustics, config.shorelineCaustics() ? 1 : 0);
 			glUniform3fv(uniUnderwaterCausticsColor, environmentManager.currentUnderwaterCausticsColor);
 			glUniform1f(uniUnderwaterCausticsStrength, environmentManager.currentUnderwaterCausticsStrength);
 			glUniform1f(uniElapsedTime, elapsedTime);
@@ -2177,6 +2180,14 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniformBlockBinding(glSceneProgram, uniBlockMaterials, UNIFORM_BLOCK_MATERIALS);
 			glUniformBlockBinding(glSceneProgram, uniBlockWaterTypes, UNIFORM_BLOCK_WATER_TYPES);
 			glUniformBlockBinding(glSceneProgram, uniBlockPointLights, UNIFORM_BLOCK_LIGHTS);
+
+			frameTimer.begin(Timer.CLEAR_SCENE);
+
+			// Clear scene
+			glClear(GL_COLOR_BUFFER_BIT);
+
+			frameTimer.end(Timer.CLEAR_SCENE);
+			frameTimer.begin(Timer.RENDER_SCENE);
 
 			frameTimer.begin(Timer.CLEAR_SCENE);
 

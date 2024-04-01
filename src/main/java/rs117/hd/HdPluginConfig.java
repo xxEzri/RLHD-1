@@ -666,7 +666,7 @@ public interface HdPluginConfig extends Config
 	@Units(Units.PERCENT)
 	@Range(min = 0, max = 130)
 	default int lightPenetrationPercentage() {
-		return 100;
+		return 75;
 	}
 
 	String KEY_PLANAR_REFLECTIONS = "planarReflections";
@@ -696,14 +696,24 @@ public interface HdPluginConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "underwaterCaustics",
-		name = "Underwater Caustics",
+		keyName = "shorelineCaustics",
+		name = "Shoreline Caustics",
 		description = "Apply underwater lighting effects to imitate sunlight passing through waves on the surface.",
 		position = 5,
 		section = waterSettings
 	)
-	default boolean underwaterCaustics()
-	{
+	default boolean shorelineCaustics() {
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "underwaterCaustics",
+		name = "Underwater Caustics",
+		description = "Apply underwater lighting effects to imitate sunlight passing through waves on the surface.",
+		position = 6,
+		section = waterSettings
+	)
+	default boolean underwaterCaustics() {
 		return true;
 	}
 
@@ -712,7 +722,7 @@ public interface HdPluginConfig extends Config
 		keyName = KEY_WATER_CAUSTICS_STRENGTH_CONFIG,
 		name = "Caustics Strength",
 		description = "Light strength for caustics.",
-		position = 6,
+		position = 7,
 		section = waterSettings
 	)
 	@Units(Units.PERCENT)
@@ -726,7 +736,7 @@ public interface HdPluginConfig extends Config
 		keyName = KEY_WATER_WAVE_SIZE_CONFIG,
 		name = "Wave Size",
 		description = "The size of waves.",
-		position = 7,
+		position = 8,
 		section = waterSettings
 	)
 	@Units(Units.PERCENT)
@@ -740,7 +750,7 @@ public interface HdPluginConfig extends Config
 		keyName = KEY_WATER_WAVE_SPEED_CONFIG,
 		name = "Wave Speed",
 		description = "The speed of waves.",
-		position = 8,
+		position = 9,
 		section = waterSettings
 	)
 	@Units(Units.PERCENT)
@@ -754,7 +764,7 @@ public interface HdPluginConfig extends Config
 		keyName = KEY_WATER_LIGHT_SCATTERING,
 		name = "Light Scattering",
 		description = "Approximate light scattering on water surface/waves.",
-		position = 9,
+		position = 10,
 		section = waterSettings
 	)
 	default boolean waterLightScattering() {
@@ -766,7 +776,7 @@ public interface HdPluginConfig extends Config
 		keyName = KEY_WATER_FOAM,
 		name = "Foam",
 		description = "Render foam around the edges of water bodies.",
-		position = 10,
+		position = 11,
 		section = waterSettings
 	)
 	default boolean enableWaterFoam() {
@@ -778,7 +788,7 @@ public interface HdPluginConfig extends Config
 		keyName = KEY_WATER_FOAM_AMOUNT_CONFIG,
 		name = "Foam Amount",
 		description = "The amount of foam around shorelines.",
-		position = 11,
+		position = 12,
 		section = waterSettings
 	)
 	@Units(Units.PERCENT)
