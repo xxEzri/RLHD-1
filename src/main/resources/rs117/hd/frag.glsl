@@ -535,13 +535,13 @@ void main() {
         outputColor.rgb *= mix(compositeLight, vec3(1), unlit);
         outputColor.rgb = linearToSrgb(outputColor.rgb);
 
-        if (isUnderwater) {
-            #ifdef OLD_WATER
-            sampleUnderwater(outputColor.rgb, waterType, waterDepth, lightDotNormals);
-            #else
-            sampleUnderwater(outputColor.rgb, waterType, waterDepth, shadow);
-            #endif
-        }
+           if (isUnderwater) {
+               #ifdef HOODER_WATER
+               sampleUnderwater(outputColor.rgb, waterType, waterDepth, shadow);
+               #else
+               sampleUnderwater(outputColor.rgb, waterType, waterDepth, lightDotNormals);
+               #endif
+           }
     }
 
 
