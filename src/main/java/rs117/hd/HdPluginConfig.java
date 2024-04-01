@@ -659,14 +659,14 @@ public interface HdPluginConfig extends Config
 	@ConfigItem(
 		keyName = KEY_LIGHT_PENETRATION,
 		name = "Light Penetration",
-		description = "Amount of light that can pass through transparent water. <br> Default 75%.",
+		description = "Amount of light that can pass through transparent water.",
 		position = 2,
 		section = waterSettings
 	)
 	@Units(Units.PERCENT)
 	@Range(min = 0, max = 130)
 	default int lightPenetrationPercentage() {
-		return 75;
+		return 100;
 	}
 
 	String KEY_PLANAR_REFLECTIONS = "planarReflections";
