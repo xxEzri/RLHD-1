@@ -2181,22 +2181,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniformBlockBinding(glSceneProgram, uniBlockWaterTypes, UNIFORM_BLOCK_WATER_TYPES);
 			glUniformBlockBinding(glSceneProgram, uniBlockPointLights, UNIFORM_BLOCK_LIGHTS);
 
-			frameTimer.begin(Timer.CLEAR_SCENE);
-
-			// Clear scene
-			glClear(GL_COLOR_BUFFER_BIT);
-
-			frameTimer.end(Timer.CLEAR_SCENE);
-			frameTimer.begin(Timer.RENDER_SCENE);
-
-			frameTimer.begin(Timer.CLEAR_SCENE);
-
-			// Clear scene
-			glClear(GL_COLOR_BUFFER_BIT);
-
-			frameTimer.end(Timer.CLEAR_SCENE);
-			frameTimer.begin(Timer.RENDER_SCENE);
-
 			// Draw with buffers bound to scene VAO
 			glBindVertexArray(vaoSceneHandle);
 
