@@ -282,7 +282,10 @@ class SceneUploader {
 			// other model, all at once at the start of the frame. This bypasses any issues with draw order, and even partially solves the
 			// draw order artifacts resulting from skipped geometry updates for our extension to unlocked FPS.
 			final int[][][] tileHeights = sceneContext.scene.getTileHeights();
-			if (hasUnderwaterTerrain == 1 && tileHeights[tile.getRenderLevel()][tileExX][tileExY] >= -16) {
+			if (hasUnderwaterTerrain == 1 &&
+				sceneTilePaint.getNeColor() == 12345678 &&
+				tileHeights[tile.getRenderLevel()][tileExX][tileExY] >= -16
+			) {
 				int tileX = tileExX - SCENE_OFFSET;
 				int tileY = tileExY - SCENE_OFFSET;
 
