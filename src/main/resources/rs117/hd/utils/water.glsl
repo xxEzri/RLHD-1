@@ -216,11 +216,11 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     vec3 c = srgbToLinear(fogColor);
     vec4 d = vec4(0);
 
-    if (waterReflectionEnabled && abs(IN.position.y - waterHeight) < 32) { //only render reflection on water within a quarter-tile height of correct for the reflection texture
-        vec3 I = -viewDir; // incident
-        vec3 N = normals; // normal
-        vec3 R = reflect(I, N);
+    vec3 I = -viewDir; // incident
+    vec3 N = normals; // normal
+    vec3 R = reflect(I, N);
 
+    if (waterReflectionEnabled && abs(IN.position.y - waterHeight) < 32) { //only render reflection on water within a quarter-tile height of correct for the reflection texture
         // for now, assume the water is level
         vec3 flatR = reflect(I, vec3(0, -1, 0));
 
@@ -250,6 +250,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
         // This will be linear or sRGB depending on the linear alpha blending setting
         c = texture(waterReflectionMap, uv, -1).rgb;
+//        c = textureBicubic(waterReflectionMap, uv).rgb;
         #if !LINEAR_ALPHA_BLENDING
         // When linear alpha blending is on, the texture is in sRGB, and OpenGL will automatically convert it to linear
         c = srgbToLinear(c);
@@ -599,9 +600,27 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
     foam.rgb *= 1.5; // foam otherwise looks disproportionately weak on transparent water due to reduced alpha
 
-    dst += vec4(foam, 0); // add foam on top
+    dst.rgb += foam; // add foam on top
 
-    dst.rgb /= (dst.a);
+    // TODO: This isn't right, as it's artificially increasing brightness based on transparency, but the look is based on it
+    dst.rgb /= dst.a;
+
+    const float specularGloss = 100;
+    vec3 specular = pow(dot(R, lightDir), specularGloss) * lightStrength * lightColor;
+    dst.rgb += lightColor * lightStrength * specular / dst.a;
+
+    // Adjust alpha to try to clip colors as little as possible
+    // This should allow for additive blending without too much consideration of the alpha channel
+    float maxChannel = max(max(dst.r, dst.g), dst.b);
+    if (maxChannel > 1) {
+        float alpha = dst.a * maxChannel;
+        // Since it's already divided by dst.a, skip it here to avoid breaking things further
+        // dst.rgb *= maxChannel / dst.a;
+        dst.rgb *= maxChannel;
+        dst.a = min(1, alpha);
+    }
+
+    dst.rgb = clamp(dst.rgb, vec3(0), vec3(1));
     dst.rgb = linearToSrgb(dst.rgb);
     return dst; // transparent water
 }
