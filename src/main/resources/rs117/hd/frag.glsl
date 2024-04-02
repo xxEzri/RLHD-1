@@ -62,9 +62,9 @@ uniform float shadowMaxBias;
 uniform int shadowsEnabled;
 uniform int waterHeight;
 uniform bool waterReflectionEnabled;
-uniform bool underwaterEnvironment;
-uniform bool underwaterCaustics;
 uniform bool shorelineCaustics;
+uniform bool underwaterCaustics;
+uniform bool underwaterEnvironment;
 uniform vec3 underwaterCausticsColor;
 uniform float underwaterCausticsStrength;
 uniform int waterCausticsStrengthConfig;
@@ -425,7 +425,7 @@ void main() {
         vec3 dirLightColor = lightColor * lightStrength;
 
         // underwater caustics based on directional light
-        if (underwaterCaustics && underwaterEnvironment) {
+        if (underwaterEnvironment && underwaterCaustics) {
             float scale = 12.8;
             vec2 causticsUv = worldUvs(scale);
 

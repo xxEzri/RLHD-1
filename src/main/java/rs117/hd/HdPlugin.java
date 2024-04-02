@@ -382,9 +382,9 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int uniLightDir;
 	private int uniShadowMaxBias;
 	private int uniShadowsEnabled;
-	private int uniUnderwaterEnvironment;
-	private int uniUnderwaterCaustics;
 	private int uniShorelineCaustics;
+	private int uniUnderwaterCaustics;
+	private int uniUnderwaterEnvironment;
 	private int uniUnderwaterCausticsColor;
 	private int uniUnderwaterCausticsStrength;
 	private int uniWaterHeight;
@@ -927,9 +927,9 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		uniLightDir = glGetUniformLocation(glSceneProgram, "lightDir");
 		uniShadowMaxBias = glGetUniformLocation(glSceneProgram, "shadowMaxBias");
 		uniShadowsEnabled = glGetUniformLocation(glSceneProgram, "shadowsEnabled");
-		uniUnderwaterEnvironment = glGetUniformLocation(glSceneProgram, "underwaterEnvironment");
-		uniUnderwaterCaustics = glGetUniformLocation(glSceneProgram, "underwaterCaustics");
 		uniShorelineCaustics = glGetUniformLocation(glSceneProgram, "shorelineCaustics");
+		uniUnderwaterCaustics = glGetUniformLocation(glSceneProgram, "underwaterCaustics");
+		uniUnderwaterEnvironment = glGetUniformLocation(glSceneProgram, "underwaterEnvironment");
 		uniUnderwaterCausticsColor = glGetUniformLocation(glSceneProgram, "underwaterCausticsColor");
 		uniUnderwaterCausticsStrength = glGetUniformLocation(glSceneProgram, "underwaterCausticsStrength");
 		uniWaterHeight = glGetUniformLocation(glSceneProgram, "waterHeight");
@@ -2150,9 +2150,9 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 			glUniform1f(uniSaturation, config.saturation() / 100f);
 			glUniform1f(uniContrast, config.contrast() / 100f);
-			glUniform1i(uniUnderwaterEnvironment, environmentManager.isUnderwater() ? 1 : 0);
-			glUniform1i(uniUnderwaterCaustics, config.underwaterCaustics() ? 1 : 0);
 			glUniform1i(uniShorelineCaustics, config.shorelineCaustics() ? 1 : 0);
+			glUniform1i(uniUnderwaterCaustics, config.underwaterCaustics() ? 1 : 0);
+			glUniform1i(uniUnderwaterEnvironment, environmentManager.isUnderwater() ? 1 : 0);
 			glUniform3fv(uniUnderwaterCausticsColor, environmentManager.currentUnderwaterCausticsColor);
 			glUniform1f(uniUnderwaterCausticsStrength, environmentManager.currentUnderwaterCausticsStrength);
 			glUniform1f(uniElapsedTime, elapsedTime);
@@ -3411,10 +3411,10 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	}
 
 	private void displayUpdateMessage() {
-		int messageId = 1;
-		if (config.getPluginUpdateMessage() >= messageId)
-			return; // Don't show the same message multiple times
-
+//		int messageId = 1;
+//		if (config.getPluginUpdateMessage() >= messageId)
+//			return; // Don't show the same message multiple times
+//
 //		PopupUtils.displayPopupMessage(client, "117HD Update",
 //			"<br><br>" +
 //			"If you experience any issues, please report them in the <a href=\"" + DISCORD_URL +"\">117HD Discord</a>.",

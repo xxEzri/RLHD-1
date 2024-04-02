@@ -678,7 +678,7 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     extinctionColors.g = exp(-totalDistance * (0.001981 / lightPenetration) * waterTypeExtinction.g);
     extinctionColors.b = exp(-totalDistance * (0.001548 / lightPenetration) * waterTypeExtinction.b);
 
-    if (underwaterCaustics && (waterTransparencyType ==0 || depth <=500)) {
+    if (shorelineCaustics && (waterTransparencyType ==0 || depth <=500)) {
         const float scale = 2.5;
         vec2 causticsUv = worldUvs(scale);
         causticsUv *= 0.75;
