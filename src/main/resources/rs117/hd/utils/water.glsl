@@ -602,12 +602,34 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     dst.rgb += foam; // add foam on top
 
-    // TODO: This isn't right, as it's artificially increasing brightness based on transparency, but the look is based on it
+    // TODO: This isn't right, as it affects the reflection too, but the look is based upon this currently
     dst.rgb /= dst.a;
 
-    const float specularGloss = 100;
-    vec3 specular = pow(dot(R, lightDir), specularGloss) * lightStrength * lightColor;
+    float specularGloss = waterType.specularGloss;
+    float specularStrength = waterType.specularStrength;
+    vec3 specular = pow(dot(R, lightDir), specularGloss) * lightStrength * lightColor * specularStrength;
     dst.rgb += lightColor * lightStrength * specular / dst.a;
+
+    // point lights
+    vec3 pointLightsSpecular = vec3(0);
+    for (int i = 0; i < pointLightsCount; i++) {
+        vec4 pos = PointLightArray[i].position;
+        vec3 lightToFrag = pos.xyz - IN.position;
+        float distanceSquared = dot(lightToFrag, lightToFrag);
+        float radiusSquared = pos.w;
+        // TODO: decide whether we want to restrict this. It doesn't really make sense to
+        // if (distanceSquared <= radiusSquared) {
+            vec3 pointLightColor = PointLightArray[i].color;
+            vec3 pointLightDir = normalize(lightToFrag);
+
+            float attenuation = 1 - min(distanceSquared / radiusSquared, 1);
+            pointLightColor *= attenuation * attenuation;
+
+            vec3 pointLightReflectDir = reflect(-pointLightDir, normals);
+            pointLightsSpecular += pointLightColor * pow(max(0, dot(pointLightReflectDir, viewDir)), specularGloss) * specularStrength;
+        // }
+    }
+    dst.rgb += pointLightsSpecular / dst.a;
 
     // Adjust alpha to try to clip colors as little as possible
     // This should allow for additive blending without too much consideration of the alpha channel
