@@ -541,13 +541,10 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         dst.rgb += vec3(0.42, 0.29, 0.075); // inject color
     }
 
-
     dst = scattering * scattering.a + dst * (1 - scattering.a); // blend in scattering
     dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
+    dst.rgb /= (dst.a * 1.25); // TODO: Very wrong but holding up the jenga tower
     dst.rgb += (foam / dst.a); // add foam on top
-
-    // TODO: This isn't right, as it affects the reflection too, but the look is based upon this currently
-   // dst.rgb /= dst.a;
 
     dst.rgb = clamp(dst.rgb, vec3(0), vec3(1));
     dst.rgb = linearToSrgb(dst.rgb);
