@@ -478,7 +478,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         float depth = 128 * 2 * flatWaterTileDepth; // tile depth, *2 for round trip, * for number of tiles
         vec3 underwaterExtinction = vec3(0);
         underwaterExtinction.r = exp(-depth * 0.003090);
-        underwaterExtinction.g = exp(-depth * 0.001981);
+        underwaterExtinction.g = exp(-depth * 0.002096);
         underwaterExtinction.b = exp(-depth * 0.001548);
 
         vec3 underwaterLinear = vec3(lightStrength) * 0.1 * underwaterExtinction;
@@ -543,8 +543,40 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     dst = scattering * scattering.a + dst * (1 - scattering.a); // blend in scattering
     dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
-    dst.rgb /= (dst.a * 1.25); // TODO: Very wrong but holding up the jenga tower
     dst.rgb += (foam / dst.a); // add foam on top
+
+    {
+            float cosUp = -normals.y;
+
+            vec3 C_ss = vec3(0, .32, .32); // water scatter color
+            vec3 C_f = vec3(1); // air bubble color
+
+            float k_1 = 20;  // ~tall wave scatter
+            float k_2 = 0.01; // ~refraction scatter
+            float k_3 = 0.008; // ~ambient scatter
+            float k_4 = 0.1;  // ~air bubble scatter
+
+            float P_f = .01; // density of air bubbles
+
+            float H = (1 - pow(cosUp, 1.f)) * 50; // wave height
+    //        float H = height / 50;
+
+            vec3 omega_i = lightDir; // incoming = sun to frag
+            vec3 omega_o = viewDir; // outgoing = frag to camera
+            vec3 omega_h = normalize(omega_o - omega_i); // half-way between incoming and outgoing
+            vec3 omega_n = IN.normal.xzy; // macro scale normal
+            vec3 w_n = normals; // presumably wave normal?
+            omega_n = w_n;
+
+            vec3 L_sun = lightColor * lightStrength;
+            vec3 L_scatter = (
+                k_1*H*pow(max(0, dot(omega_i, -omega_o)), 4.f) * pow(.5 - .5*dot(omega_i, omega_n), 3.f)
+                + k_2*pow(max(0, dot(omega_o, omega_n)), 2.f)
+            ) * C_ss*L_sun;
+            L_scatter += k_3*max(0, dot(omega_i, w_n))*C_ss*L_sun + k_4*P_f*C_f*L_sun;
+
+            dst.rgb += L_scatter / dst.a;
+        }
 
     dst.rgb = clamp(dst.rgb, vec3(0), vec3(1));
     dst.rgb = linearToSrgb(dst.rgb);
