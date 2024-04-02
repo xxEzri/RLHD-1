@@ -63,112 +63,16 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     // 9 = ice flat
     // 10 = muddy water
     // 11 = scar sludge
-    // 12 = abyss bile
+    // 12 = abyss bile //todo fix color
     // 13 = plain flat water --- #2 is color-matched to model-water in caves etc, while this one isn't
     // 14 = flat blood - //todo NYI
 
     WaterType waterType = getWaterType(waterTypeIndex);
 
-//    vec2 baseUv = vUv[0].xy * IN.texBlend.x + vUv[1].xy * IN.texBlend.y + vUv[2].xy * IN.texBlend.z;
-//    vec2 uv3 = baseUv;
-//
-//    vec2 uv2 = worldUvs(3) + animationFrame(24 * waterType.duration);
-//    vec2 uv1 = worldUvs(3).yx - animationFrame(28 * waterType.duration);
-//
-//    vec2 flowMapUv = worldUvs(15) + animationFrame(50 * waterType.duration);
-//    float flowMapStrength = 0.025;
-//
-//    vec2 uvFlow = texture(textureArray, vec3(flowMapUv, waterType.flowMap)).xy;
-//    uv1 += uvFlow * flowMapStrength;
-//    uv2 += uvFlow * flowMapStrength;
-//    uv3 += uvFlow * flowMapStrength;
-//
-//    // get diffuse textures
-//    vec3 diffuse1 = texture(textureArray, vec3(uv1, waterType.normalMap)).xyz;
-//    vec3 diffuse2 = texture(textureArray, vec3(uv2, waterType.normalMap)).xyz;
-//    float foamMask = texture(textureArray, vec3(uv3, waterType.foamMap)).r;
-//
-//    // normals
-//    vec3 n1 = -vec3((diffuse1.x * 2 - 1) * waterType.normalStrength, diffuse1.z, (diffuse1.y * 2 - 1) * waterType.normalStrength);
-//    vec3 n2 = -vec3((diffuse2.x * 2 - 1) * waterType.normalStrength, diffuse2.z, (diffuse2.y * 2 - 1) * waterType.normalStrength);
-//    vec3 normals = normalize(n1 + n2);
-//
-//    float lightDotNormals = dot(normals, lightDir);
-//    float downDotNormals = -normals.y;
-//    float viewDotNormals = dot(viewDir, normals);
-//
-//    vec2 distortion = uvFlow * .00075;
-//    float shadow = sampleShadowMap(IN.position, waterTypeIndex, distortion, lightDotNormals);
-//    float inverseShadow = 1 - shadow;
-//
-//    vec3 vSpecularStrength = vec3(waterType.specularStrength);
-//    vec3 vSpecularGloss = vec3(waterType.specularGloss);
-//    float combinedSpecularStrength = waterType.specularStrength;
-//
-//    // calculate lighting
-//
-//    // ambient light
-//    vec3 ambientLightOut = ambientColor * ambientStrength;
-//
-//    // directional light
-//    vec3 dirLightColor = lightColor * lightStrength;
-//
-//    // apply shadows
-//    dirLightColor *= inverseShadow;
-//
-//    vec3 lightColor = dirLightColor;
-//    vec3 lightOut = max(lightDotNormals, 0.0) * lightColor;
-//
-//    // directional light specular
-//    vec3 lightReflectDir = reflect(-lightDir, normals);
-//    vec3 lightSpecularOut = lightColor * specular(viewDir, lightReflectDir, vSpecularGloss, vSpecularStrength);
-//
-//    // point lights
-//    vec3 pointLightsOut = vec3(0);
-//    vec3 pointLightsSpecularOut = vec3(0);
-//    for (int i = 0; i < pointLightsCount; i++) {
-//        vec4 pos = PointLightArray[i].position;
-//        vec3 lightToFrag = pos.xyz - IN.position;
-//        float distanceSquared = dot(lightToFrag, lightToFrag);
-//        float radiusSquared = pos.w;
-//        if (distanceSquared <= radiusSquared) {
-//            vec3 pointLightColor = PointLightArray[i].color;
-//            vec3 pointLightDir = normalize(lightToFrag);
-//
-//            float attenuation = 1 - min(distanceSquared / radiusSquared, 1);
-//            pointLightColor *= attenuation * attenuation;
-//
-//            float pointLightDotNormals = max(dot(normals, pointLightDir), 0);
-//            pointLightsOut += pointLightColor * pointLightDotNormals;
-//
-//            vec3 pointLightReflectDir = reflect(-pointLightDir, normals);
-//            pointLightsSpecularOut += pointLightColor * specular(viewDir, pointLightReflectDir, vSpecularGloss, vSpecularStrength);
-//        }
-//    }
-//
-//
-//    // sky light
-//    vec3 skyLightColor = fogColor.rgb;
-//    float skyLightStrength = 0;
-//    float skyDotNormals = downDotNormals;
-//    vec3 skyLightOut = max(skyDotNormals, 0.0) * skyLightColor * skyLightStrength;
-//
-//
-//    // lightning
-//    vec3 lightningColor = vec3(1.0, 1.0, 1.0);
-//    float lightningStrength = lightningBrightness;
-//    float lightningDotNormals = downDotNormals;
-//    vec3 lightningOut = max(lightningDotNormals, 0.0) * lightningColor * lightningStrength;
-//
-//
-//    // underglow
-//    vec3 underglowOut = underglowColor * max(normals.y, 0) * underglowStrength;
-
-
     float speed = .024;
     if(waterTypeIndex == 8 || waterTypeIndex == 9) // ice
     {
-        speed = 0.00000001; // 0 speed bugs out the normals code and prevents rendering, glacier speed is fine
+        speed = 0.00000001; // 0 speed bugs out the normals code, glacier speed is fine
     }
     else
     speed = 0.024;
@@ -191,17 +95,21 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     n1.xyz = n1.xzy;
     n2.xyz = n2.xzy;
     n1.y /= 0.225; // scale normals
+
     if(waterTypeIndex == 6 || waterTypeIndex == 8 || waterTypeIndex == 9 || waterTypeIndex == 12) // black tar, ice, ice flat, abyss bile
     {
         n1.y /= 0.3;
     }
+
     n1.y /= waveSizeConfig;
     n1 = normalize(n1);
     n2.y /= 0.8; // scale normals
+
     if(waterTypeIndex == 6 || waterTypeIndex == 8 || waterTypeIndex == 9 || waterTypeIndex == 12) // black tar, ice, ice flat, abyss bile
     {
         n2.y /= 0.3;
     }
+
     n2.y /= waveSizeConfig;
     n2 = normalize(n2);
     vec3 normals = normalize(n1+n2);
@@ -278,7 +186,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         }
         foamColor = srgbToLinear(foamColor) * foamMask * (ambientColor * ambientStrength + lightColor * lightStrength);
         foamAmount = clamp(pow(1.0 - ((1.0 - foamAmount) / foamDistance), 3), 0.0, 1.0) * waterType.hasFoam;
-        foamAmount *= 0.08;
+        foamAmount *= 0.04;
         foam.rgb = foamColor * foamAmount * (1 - foamAmount) * (waterFoamAmountConfig /100.f);
         alpha = foamAmount + alpha * (1 - foamAmount);
 
@@ -390,6 +298,44 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
             d.b = (scatterStrength * scatterExtinction.b * waveStrength);
         }
     #endif
+
+
+//    float specularGloss = waterType.specularGloss;
+//    float specularStrength = waterType.specularStrength;
+//    vec3 specular = pow(max(0, dot(R, lightDir)), specularGloss) * lightStrength * lightColor * specularStrength;
+//    //dst.rgb += lightColor * lightStrength * specular / dst.a;
+//
+//    // point lights
+//    vec3 pointLightsSpecular = vec3(0);
+//    for (int i = 0; i < pointLightsCount; i++) {
+//        vec4 pos = PointLightArray[i].position;
+//        vec3 lightToFrag = pos.xyz - IN.position;
+//        float distanceSquared = dot(lightToFrag, lightToFrag);
+//        float radiusSquared = pos.w;
+//        // TODO: decide whether we want to restrict this. It doesn't really make sense to
+//        // if (distanceSquared <= radiusSquared) {
+//            vec3 pointLightColor = PointLightArray[i].color;
+//            vec3 pointLightDir = normalize(lightToFrag);
+//
+//            float attenuation = 1 - min(distanceSquared / radiusSquared, 1);
+//            pointLightColor *= attenuation * attenuation;
+//
+//            vec3 pointLightReflectDir = reflect(-pointLightDir, normals);
+//            pointLightsSpecular += pointLightColor * pow(max(0, dot(pointLightReflectDir, viewDir)), specularGloss) * specularStrength;
+//        // }
+//    }
+//    //dst.rgb += pointLightsSpecular / dst.a;
+//
+//    // Adjust alpha to try to clip colors as little as possible
+//    // This should allow for additive blending without too much consideration of the alpha channel
+//    float maxChannel = max(max(dst.r, dst.g), dst.b);
+//    if (maxChannel > 1) {
+//        float alpha = dst.a * maxChannel;
+//        // Since it's already divided by dst.a, skip it here to avoid breaking things further
+//        // dst.rgb *= maxChannel / dst.a;
+//        dst.rgb *= maxChannel;
+//        dst.a = min(1, alpha);
+//    }
 
     vec4 reflection = vec4(c, fresnel);
     vec4 scattering = vec4(d.rgb, 0.5);
@@ -598,49 +544,10 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     dst = scattering * scattering.a + dst * (1 - scattering.a); // blend in scattering
     dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
-    foam.rgb *= 1.5; // foam otherwise looks disproportionately weak on transparent water due to reduced alpha
-
-    dst.rgb += foam; // add foam on top
+    dst.rgb += (foam / dst.a); // add foam on top
 
     // TODO: This isn't right, as it affects the reflection too, but the look is based upon this currently
-    dst.rgb /= dst.a;
-
-    float specularGloss = waterType.specularGloss;
-    float specularStrength = waterType.specularStrength;
-    vec3 specular = pow(max(0, dot(R, lightDir)), specularGloss) * lightStrength * lightColor * specularStrength;
-    dst.rgb += lightColor * lightStrength * specular / dst.a;
-
-    // point lights
-    vec3 pointLightsSpecular = vec3(0);
-    for (int i = 0; i < pointLightsCount; i++) {
-        vec4 pos = PointLightArray[i].position;
-        vec3 lightToFrag = pos.xyz - IN.position;
-        float distanceSquared = dot(lightToFrag, lightToFrag);
-        float radiusSquared = pos.w;
-        // TODO: decide whether we want to restrict this. It doesn't really make sense to
-        // if (distanceSquared <= radiusSquared) {
-            vec3 pointLightColor = PointLightArray[i].color;
-            vec3 pointLightDir = normalize(lightToFrag);
-
-            float attenuation = 1 - min(distanceSquared / radiusSquared, 1);
-            pointLightColor *= attenuation * attenuation;
-
-            vec3 pointLightReflectDir = reflect(-pointLightDir, normals);
-            pointLightsSpecular += pointLightColor * pow(max(0, dot(pointLightReflectDir, viewDir)), specularGloss) * specularStrength;
-        // }
-    }
-    dst.rgb += pointLightsSpecular / dst.a;
-
-    // Adjust alpha to try to clip colors as little as possible
-    // This should allow for additive blending without too much consideration of the alpha channel
-    float maxChannel = max(max(dst.r, dst.g), dst.b);
-    if (maxChannel > 1) {
-        float alpha = dst.a * maxChannel;
-        // Since it's already divided by dst.a, skip it here to avoid breaking things further
-        // dst.rgb *= maxChannel / dst.a;
-        dst.rgb *= maxChannel;
-        dst.a = min(1, alpha);
-    }
+   // dst.rgb /= dst.a;
 
     dst.rgb = clamp(dst.rgb, vec3(0), vec3(1));
     dst.rgb = linearToSrgb(dst.rgb);
