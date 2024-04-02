@@ -607,7 +607,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
 
     float specularGloss = waterType.specularGloss;
     float specularStrength = waterType.specularStrength;
-    vec3 specular = pow(dot(R, lightDir), specularGloss) * lightStrength * lightColor * specularStrength;
+    vec3 specular = pow(max(0, dot(R, lightDir)), specularGloss) * lightStrength * lightColor * specularStrength;
     dst.rgb += lightColor * lightStrength * specular / dst.a;
 
     // point lights
