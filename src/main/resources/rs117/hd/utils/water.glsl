@@ -238,7 +238,6 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
         vec3 foamColor = vec3(0.5);
         foamColor = srgbToLinear(foamColor) * foamMask * (ambientColor * ambientStrength + lightColor * lightStrength);
         foamAmount = clamp(pow(1.0 - ((1.0 - foamAmount) / foamDistance), 3), 0.0, 1.0) * waterType.hasFoam;
-        foamAmount *= 0.05;
         foamAmount *= waterFoamAmountConfig / 100.f;
         foam = vec4(foamColor, foamAmount);
 
@@ -498,14 +497,16 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
         dst.a = min(1, dst.a);
     }
 
-    dst.rgb += waterTypeColor; // Add color specific to each water type
+    // If the water should be opaque, premultiply alpha and set it to 1
+    if (isOpaque) {
+        dst.rgb *= dst.a;
+        dst.a = 1;
+    }
 
-    // If the water should be opaque, preserve the color brightness while adjusting alpha to 1
-    if (isOpaque)
-        dst /= dst.a;
-
-    // Blend in foam at the very end as an overlay, using regular alpha blending
-    //dst = mix(dst, vec4(foam.rgb, 1), foam.a);
+    // Blend in foam at the very end as an overlay
+    dst.rgb = foam.rgb * foam.a + dst.rgb * dst.a * (1 - foam.a);
+    dst.a = foam.a + dst.a * (1 - foam.a);
+    dst.rgb /= dst.a;
 
     // Finally, apply gamma correction
     dst.rgb = linearToSrgb(dst.rgb);
