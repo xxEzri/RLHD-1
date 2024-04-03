@@ -176,13 +176,11 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
         vec2 texelSize = 1 / screenSize;
         vec2 uv = gl_FragCoord.xy / screenSize;
 
-        vec3 flatRxz = normalize(flatR - vec3(0, flatR.y, 0));
-        vec3 uvY = normalize(flatR - flatRxz);
-        vec3 uvX = normalize(cross(flatR, uvY));
-
         float dist = length(IN.position - cameraPos);
         float distortionFactor = 1 - exp(-dist * .0004);
 
+        vec3 uvX = normalize(cross(flatR * vec3(1, 0, 1), flatR));
+        vec3 uvY = cross(uvX, flatR);
         float x = dot(R, uvX);
         float y = dot(R, uvY);
         int waterDepth = vTerrainData[0] >> 8 & 0x7FF;
