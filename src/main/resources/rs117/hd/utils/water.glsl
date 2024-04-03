@@ -34,7 +34,7 @@
 #include utils/hooder_water.glsl
 #else
 
-#define DEVELOPMENT_WATER_TYPE 1 // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEWATER
+//#define DEVELOPMENT_WATER_TYPE 7 // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEWATER
 // 1 = water
 // 2 = flat water
 // 3 = swamp water
@@ -388,6 +388,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
                 break;
             case 1: // water
             case 13: // plain water flat
+            case 14: // dark blue water
                 waterTypeColor += vec3(0);
                 break;
         }
