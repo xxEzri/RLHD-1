@@ -77,7 +77,6 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
 
     // VARIABLES
     vec3 fragToCam = viewDir;
-    vec3 c = srgbToLinear(fogColor);
     vec4 d = vec4(0);
     vec3 I = -viewDir; // incident
 
@@ -144,15 +143,8 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
 
     n2.y /= waveSizeConfig;
     n2 = normalize(n2);
-    vec3 normals = normalize(n1+n2);
-    normals = normalize(vec3(n1.xy + n2.xy, n1.z + n2.z));
-    vec3 normalScatter = normals;
-    vec3 N = normals; // normal
-    vec3 R = reflect(I, N);
-    float fresnel = calculateFresnel(normals, fragToCam, 1.333); // fresnel for fake sky reflection and real planar reflection
-
-
-
+    vec3 N = normalize(n1 + n2);
+    N = normalize(vec3(n1.xy + n2.xy, n1.z + n2.z));
 
 
 
@@ -169,6 +161,11 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
 
 
     // REFLECTIONS STUFF
+    vec3 R = reflect(I, N);
+
+    // Initialize the reflection with a fake sky reflection
+    vec4 reflection = vec4(srgbToLinear(fogColor), calculateFresnel(N, fragToCam, 1.333));
+
     if (waterReflectionEnabled && abs(IN.position.y - waterHeight) < 32) { //only render reflection on water within a quarter-tile height of correct for the reflection texture
         // for now, assume the water is level
         vec3 flatR = reflect(I, vec3(0, -1, 0));
@@ -198,12 +195,15 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
         uv = clamp(uv, texelSize, 1 - texelSize);
 
         // This will be linear or sRGB depending on the linear alpha blending setting
-        c = texture(waterReflectionMap, uv, -1).rgb;
+        vec3 c = texture(waterReflectionMap, uv, -1).rgb;
 //        c = textureBicubic(waterReflectionMap, uv).rgb;
         #if !LINEAR_ALPHA_BLENDING
         // When linear alpha blending is on, the texture is in sRGB, and OpenGL will automatically convert it to linear
         c = srgbToLinear(c);
         #endif
+
+        // Swap out the fake sky reflection for a real planar reflection
+        reflection.rgb = c;
     }
 
     // ALWAYS RETURN IN sRGB FROM THIS FUNCTION (been burned by this a couple times)
@@ -228,7 +228,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
 
     // FOAM STUFF
     #include WATER_FOAM
-    vec3 foam = vec3(0);
+    vec4 foam = vec4(0);
     #if WATER_FOAM
         vec2 flowMapUv = worldUvs(15) + animationFrame(50 * waterType.duration);
         float flowMapStrength = 0.025;
@@ -241,7 +241,8 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
         foamColor = srgbToLinear(foamColor) * foamMask * (ambientColor * ambientStrength + lightColor * lightStrength);
         foamAmount = clamp(pow(1.0 - ((1.0 - foamAmount) / foamDistance), 3), 0.0, 1.0) * waterType.hasFoam;
         foamAmount *= 0.05;
-        foam.rgb = foamColor * foamAmount * (1 - foamAmount) * (waterFoamAmountConfig /100.f);
+        foamAmount *= waterFoamAmountConfig / 100.f;
+        foam = vec4(foamColor, foamAmount);
 
         switch (waterTypeIndex) {
             case 3: // swamp water
@@ -298,7 +299,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
 
 
     // SCATTERING STUFF
-    float cosUp = -normals.y;
+    float cosUp = -N.y;
 
     vec3 C_ss = vec3(0, .32, .32); // water scatter color
     vec3 C_f = vec3(1); // air bubble color
@@ -317,7 +318,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     vec3 omega_o = viewDir; // outgoing = frag to camera
     vec3 omega_h = normalize(omega_o - omega_i); // half-way between incoming and outgoing
     vec3 omega_n = IN.normal.xzy; // macro scale normal
-    vec3 w_n = normals; // presumably wave normal?
+    vec3 w_n = N; // presumably wave normal?
     omega_n = w_n;
 
     vec3 L_sun = lightColor * lightStrength;
@@ -339,6 +340,32 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
 
 
 
+    // SPECULAR STUFF
+    float specularGloss = waterType.specularGloss;
+    float specularStrength = waterType.specularStrength;
+    vec3 sunSpecular = pow(max(0, dot(R, lightDir)), specularGloss) * lightStrength * lightColor * specularStrength;
+
+    // Point lights
+    vec3 pointLightsSpecular = vec3(0);
+    for (int i = 0; i < pointLightsCount; i++) {
+        vec4 pos = PointLightArray[i].position;
+        vec3 lightToFrag = pos.xyz - IN.position;
+        float distanceSquared = dot(lightToFrag, lightToFrag);
+        float radiusSquared = pos.w;
+        // TODO: decide whether we want to restrict this. It doesn't really make sense to, but might help with performance
+        // if (distanceSquared <= radiusSquared) {
+            vec3 pointLightColor = PointLightArray[i].color;
+            vec3 pointLightDir = normalize(lightToFrag);
+
+            float attenuation = 1 - min(distanceSquared / radiusSquared, 1);
+            pointLightColor *= attenuation * attenuation;
+
+            vec3 pointLightReflectDir = reflect(-pointLightDir, N);
+            pointLightsSpecular += pointLightColor * pow(max(0, dot(pointLightReflectDir, viewDir)), specularGloss) * specularStrength;
+        // }
+    }
+
+    vec3 specular = sunSpecular + pointLightsSpecular;
 
 
 
@@ -346,14 +373,15 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
 
 
 
-    vec4 reflection = vec4(c.rgb, fresnel);
+
+
+
+
+    bool isOpaque = waterTransparencyType == 1 || waterType.isFlat;
     vec3 waterTypeColor = vec3(0);
-    vec4 dst = vec4(0);
-
-    // Flat Waters
 
     // Opaque setting or flat water
-    if (waterTransparencyType == 1 || waterType.isFlat)
+    if (isOpaque)
     {
         switch (waterTypeIndex) {
             case 2: // Flat cave water
@@ -392,14 +420,44 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
                 waterTypeColor += vec3(0);
                 break;
         }
-
-        dst.rgb += waterTypeColor; // Add color specific to each water type
-        dst.rgb = mix(dst.rgb, reflection.rgb, fresnel); // Mix in reflection
-        dst.rgb += foam; // Add foam on top
-        dst.rgb = linearToSrgb(dst.rgb); // Gamma correct
-        return vec4(dst.rgb, 1); // Return for flat water only
+    }
+    else // Transparent water
+    {
+        switch (waterTypeIndex) {
+            case 3: // swamp water
+                reflection.rgb *= 0.3; // dim reflection
+                waterTypeColor += vec3(0.1, 0.1, 0.05); // inject color
+                break;
+            case 5: // toxic waste
+                reflection.rgb *= 0.3; // dim reflection
+                waterTypeColor += vec3(0.05, 0.05, 0.05); // inject color
+                break;
+             case 7: // blood
+                reflection.rgb *= 0.75; // dim reflection
+                waterTypeColor += vec3(0.16, 0, 0); // inject color
+                break;
+            case 8: // ice
+                reflection.rgb *= 0.8; // dim reflection
+                waterTypeColor += vec3(0.07, 0.07, 0.1); // inject color
+                break;
+            case 10: // muddy water
+                reflection.rgb *= 0.4; // dim reflection
+                waterTypeColor += vec3(0.13, 0.06, 0); // inject color
+                break;
+            case 11: // scar sludge
+                reflection.rgb *= 0.9;
+                waterTypeColor += vec3(0.3, 0.37, 0.3); // inject color
+                break;
+            case 12: // abyss bile
+                reflection.rgb *= 0.9;
+                waterTypeColor += vec3(0.42, 0.29, 0.075); // inject color
+                break;
+        }
     }
 
+    // Hack for special water types, artificially adding light
+    // For flat water, this could be improved by sampling underwater at a fixed vertical depth
+    L_scatter += waterTypeColor;
 
 
 
@@ -407,45 +465,53 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
 
 
 
+    // PUTTING IT ALL TOGETHER...
 
-    // Transparent Waters
-    switch (waterTypeIndex) {
-        case 3: // swamp water
-            reflection.rgb *= 0.3; // dim reflection
-            waterTypeColor += vec3(0.1, 0.1, 0.05); // inject color
-            break;
-        case 5: // toxic waste
-            reflection.rgb *= 0.3; // dim reflection
-            waterTypeColor += vec3(0.05, 0.05, 0.05); // inject color
-            break;
-         case 7: // blood
-            reflection.rgb *= 0.75; // dim reflection
-            waterTypeColor += vec3(0.16, 0, 0); // inject color
-            break;
-        case 8: // ice
-            reflection.rgb *= 0.8; // dim reflection
-            waterTypeColor += vec3(0.07, 0.07, 0.1); // inject color
-            break;
-        case 10: // muddy water
-            reflection.rgb *= 0.4; // dim reflection
-            waterTypeColor += vec3(0.13, 0.06, 0); // inject color
-            break;
-        case 11: // scar sludge
-            reflection.rgb *= 0.9;
-            waterTypeColor += vec3(0.3, 0.37, 0.3); // inject color
-            break;
-        case 12: // abyss bile
-            reflection.rgb *= 0.9;
-            waterTypeColor += vec3(0.42, 0.29, 0.075); // inject color
-            break;
+    // Begin with the reflection as a base
+    vec4 dst = reflection;
+
+    // Refraction makes up the remaining portion if we exclude specular highlights,
+    // but with transparent water, we still want the underwater geometry to be visible.
+    // Refraction + reflection = 1, so modulate scattering by 1 - reflection.a
+    vec3 refraction = L_scatter * (1 - reflection.a);
+
+    // Neither refraction nor specular make sense to blend in using alpha blending,
+    // so we need a special way to blend in light additively, without unnecessarily
+    // obscuring the underwater geometry.
+    vec3 additionalLight = refraction + specular;
+
+    // In theory, we could just add the light and be done with it, but since the color
+    // will be multiplied by alpha during alpha blending, we need to divide by alpha to
+    // end up with our target amount of additional light after alpha blending
+    dst.rgb += additionalLight / dst.a;
+
+    // The issue now is that or color may exceed 100% brightness, and get clipped.
+    // To work around this, we can adjust the alpha component to let more of the light through,
+    // and adjust our color accordingly. This necessarily causes the surface to become more opaque,
+    // but since we're adding lots of light, this should have minimal impact on the final picture.
+    float brightestColor = max(max(dst.r, dst.g), dst.b);
+    // If the color would get clipped
+    if (brightestColor > 1) {
+        // Bring the brightest color back down to 1
+        dst.rgb /= brightestColor;
+        // And bump up the alpha to increase brightness instead
+        dst.a *= brightestColor;
+        // While not strictly necessary, we might as well clamp the alpha component in case it exceeds 1
+        dst.a = min(1, dst.a);
     }
 
-    dst.rgb += waterTypeColor;
-    dst = reflection * reflection.a + dst * (1 - reflection.a); // blend in reflection
-    dst.rgb += (foam / dst.a); // add foam on top
-    dst.rgb = clamp(dst.rgb, vec3(0), vec3(1));
+    dst.rgb += waterTypeColor; // Add color specific to each water type
+
+    // If the water should be opaque, preserve the color brightness while adjusting alpha to 1
+    if (isOpaque)
+        dst /= dst.a;
+
+    // Blend in foam at the very end as an overlay, using regular alpha blending
+    dst = mix(dst, vec4(foam.rgb, 1), foam.a);
+
+    // Finally, apply gamma correction
     dst.rgb = linearToSrgb(dst.rgb);
-    return dst; // transparent water
+    return dst;
 }
 
 void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, float lightDotNormals) {
