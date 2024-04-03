@@ -34,6 +34,23 @@
 #include utils/hooder_water.glsl
 #else
 
+#define DEVELOPMENT_WATER_TYPE 1 // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEWATER
+// 1 = water
+// 2 = flat water
+// 3 = swamp water
+// 4 = swamp water flat
+// 5 = poison waste
+// 6 = black tar flat
+// 7 = blood water
+// 8 = ice
+// 9 = ice flat
+// 10 = muddy water
+// 11 = scar sludge
+// 12 = abyss bile
+// 13 = plain flat water --- #2 is color-matched to model-water in caves etc, while this one isn't
+// 14 = dark blue water
+// 15 = flat blood
+
 float calculateFresnel(const vec3 I, const vec3 N, const float ior) {
     float cosi = dot(I, N);
     float etai = ior, etat = 1;
@@ -52,21 +69,9 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
 
 vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
 {
-    waterTypeIndex = 1; // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEUNDERWATER //TODO look here for water
-    // 1 = water
-    // 2 = flat water
-    // 3 = swamp water
-    // 4 = swamp water flat
-    // 5 = poison waste
-    // 6 = black tar flat
-    // 7 = blood water
-    // 8 = ice
-    // 9 = ice flat
-    // 10 = muddy water
-    // 11 = scar sludge
-    // 12 = abyss bile //todo fix color
-    // 13 = plain flat water --- #2 is color-matched to model-water in caves etc, while this one isn't
-    // 14 = flat blood - //todo NYI
+    #ifdef DEVELOPMENT_WATER_TYPE
+    waterTypeIndex = DEVELOPMENT_WATER_TYPE;
+    #endif
 
     WaterType waterType = getWaterType(waterTypeIndex);
 
@@ -452,22 +457,9 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     float totalDistance = depth + distanceToSurface;
     int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
 
-    //TODO water types are here
-    waterTypeIndex = 1; // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEWATER
-    // 1 = water
-    // 2 = flat water
-    // 3 = swamp water
-    // 4 = swamp water flat
-    // 5 = poison waste
-    // 6 = black tar flat
-    // 7 = blood water
-    // 8 = ice
-    // 9 = ice flat
-    // 10 = muddy water
-    // 11 = scar sludge
-    // 12 = abyss bile
-    // 13 = plain flat water --- #2 is color-matched to model-water in caves etc, while this one isn't
-    // 14 = flat blood
+    #ifdef DEVELOPMENT_WATER_TYPE
+    waterTypeIndex = DEVELOPMENT_WATER_TYPE;
+    #endif
 
     float lightPenetration = 0.5 + (waterTransparencyConfig / 44.444); // Scale from a range of 0% = 0.5, 100% = 2.75, 130% = 3.425
 
