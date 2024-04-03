@@ -475,39 +475,32 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
     vec3 extinctionColors = vec3(0);
     vec3 waterTypeExtinction = vec3(0);
 
-    if(waterTypeIndex == 1 || waterTypeIndex == 2 || waterTypeIndex == 8 || waterTypeIndex == 13)
-    {
-        waterTypeExtinction = vec3(1);
-    }
-
-    if(waterTypeIndex == 3 || waterTypeIndex == 4)
-    {
-        waterTypeExtinction = vec3(2, 2, 2); // Light absorption for swamp water
-    }
-
-    if(waterTypeIndex == 5)
-    {
-        waterTypeExtinction = vec3(3, 3, 3); // Light absorption for toxic waste
-    }
-
-    if(waterTypeIndex == 7)
-    {
-        waterTypeExtinction = vec3(0.6, 30, 30); // Light absorption for blood
-    }
-
-    if(waterTypeIndex == 10)
-    {
-        waterTypeExtinction = vec3(1.5, 3, 6); // Light absorption for muddy water
-    }
-
-    if(waterTypeIndex == 11)
-    {
-        waterTypeExtinction = vec3(0.75, 1.125, 1.5); // Light absorption for scar sludge
-    }
-
-    if(waterTypeIndex == 12)
-    {
-        waterTypeExtinction = vec3(1, 1, 1); // Light absorption for abyss bile
+    switch (waterTypeIndex) {
+        case 1:
+        case 2:
+        case 8:
+        case 13:
+            waterTypeExtinction = vec3(1);
+            break;
+        case 3:
+        case 4:
+            waterTypeExtinction = vec3(2, 2, 2); // Light absorption for swamp water
+            break;
+        case 5:
+            waterTypeExtinction = vec3(3, 3, 3); // Light absorption for toxic waste
+            break;
+        case 7:
+            waterTypeExtinction = vec3(0.6, 30, 30); // Light absorption for blood
+            break;
+        case 10:
+            waterTypeExtinction = vec3(1.5, 3, 6); // Light absorption for muddy water
+            break;
+        case 11:
+            waterTypeExtinction = vec3(0.75, 1.125, 1.5); // Light absorption for scar sludge
+            break;
+        case 12:
+            waterTypeExtinction = vec3(1, 1, 1); // Light absorption for abyss bile
+            break;
     }
 
     extinctionColors.r = exp(-totalDistance * (0.003090 / lightPenetration) * waterTypeExtinction.r);
@@ -523,11 +516,11 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         vec2 flow2 = causticsUv * 1.5 + animationFrame(23) * -direction;
         vec3 caustics = sampleCaustics(flow1, flow2, .005);
         vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength;
-        if(waterTransparencyType ==1 && depth <=500) // reduce caustics brightness for shallow opaque water
+        if (waterTransparencyType == 1 && depth <= 500) // reduce caustics brightness for shallow opaque water
         {
             causticsColor *= 0.5;
         }
-        if(waterTypeIndex == 8 || waterTypeIndex == 9) // ice
+        if (waterTypeIndex == 8 || waterTypeIndex == 9) // ice
         {
             causticsColor *= 0;
         }
