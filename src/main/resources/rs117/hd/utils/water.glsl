@@ -456,7 +456,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     }
 
     // Hack for special water types, artificially adding light
-    // For flat water, this could be improved by sampling underwater at a fixed vertical depth
+    // For flat water, this could be improved by sampling underwater at a fixed vertical depth // how?
     L_scatter += waterTypeColor;
 
 
@@ -507,7 +507,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
         dst /= dst.a;
 
     // Blend in foam at the very end as an overlay, using regular alpha blending
-    dst = mix(dst, vec4(foam.rgb, 1), foam.a);
+    //dst = mix(dst, vec4(foam.rgb, 1), foam.a);
 
     // Finally, apply gamma correction
     dst.rgb = linearToSrgb(dst.rgb);
