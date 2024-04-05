@@ -27,7 +27,7 @@
 #include utils/misc.glsl
 #include utils/water_reflection.glsl
 
-#define HOODER_WATER
+//#define HOODER_WATER
 
 #if LEGACY_WATER
 #include utils/legacy_water.glsl
