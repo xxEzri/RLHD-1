@@ -1,7 +1,30 @@
-vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
-    WaterType waterType = getWaterType(waterTypeIndex);
-
-    vec2 baseUv = vUv[0].xy * IN.texBlend.x + vUv[1].xy * IN.texBlend.y + vUv[2].xy * IN.texBlend.z;
+/*
+ * Copyright (c) 2018, Adam <Adam@sigterm.info>
+ * Copyright (c) 2021, 117 <https://twitter.com/117scape>
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+vec4 sampleLegacyWater(WaterType waterType, vec3 viewDir) {
+    vec2 baseUv = IN.uv;
     vec2 uv3 = baseUv;
 
     vec2 uv2 = worldUvs(3) + animationFrame(24 * waterType.duration);
@@ -16,8 +39,8 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     uv3 += uvFlow * flowMapStrength;
 
     // get diffuse textures
-    vec3 n1 = texture(textureArray, vec3(uv1, MAT_LEGACY_WATER_NORMAL_MAP_1.colorMap)).xyz;
-    vec3 n2 = texture(textureArray, vec3(uv2, MAT_LEGACY_WATER_NORMAL_MAP_2.colorMap)).xyz;
+    vec3 n1 = linearToSrgb(texture(textureArray, vec3(uv1, MAT_LEGACY_WATER_NORMAL_MAP_1.colorMap)).xyz);
+    vec3 n2 = linearToSrgb(texture(textureArray, vec3(uv2, MAT_LEGACY_WATER_NORMAL_MAP_2.colorMap)).xyz);
     float foamMask = texture(textureArray, vec3(uv3, waterType.foamMap)).r;
 
     // normals
@@ -30,7 +53,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     float viewDotNormals = dot(viewDir, normals);
 
     vec2 distortion = uvFlow * .00075;
-    float shadow = sampleShadowMap(IN.position, waterTypeIndex, distortion, lightDotNormals);
+    float shadow = sampleShadowMap(IN.position, distortion, lightDotNormals);
     float inverseShadow = 1 - shadow;
 
     vec3 vSpecularStrength = vec3(waterType.specularStrength);
@@ -100,38 +123,27 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     // fresnel reflection
     float baseOpacity = 0.4;
     float fresnel = 1.0 - clamp(viewDotNormals, 0.0, 1.0);
+    float finalFresnel = clamp(mix(baseOpacity, 1.0, fresnel * 1.2), 0.0, 1.0);
     vec3 surfaceColor = vec3(0);
 
     // add sky gradient
-    if (fresnel < 0.5) {
-        surfaceColor = mix(waterColorDark, waterColorMid, fresnel * 2);
+    if (finalFresnel < 0.5) {
+        surfaceColor = mix(waterColorDark, waterColorMid, finalFresnel * 2);
     } else {
-        vec3 I = viewDir; // incident
-        vec3 N = normals.xyz; // normal
-
-        // TODO: use actual viewport size here
-        ivec2 screenSize = textureSize(waterReflectionMap, 0);
-        vec2 uv = gl_FragCoord.xy / vec2(screenSize);
-        vec3 norm1 = n1 * 2 - 1;
-        vec3 norm2 = n2 * 2 - 1;
-        vec3 distortion = normalize((norm1 - norm2) * waterType.normalStrength);
-        uv += distortion.xz / 1000;
-        uv = clamp(uv, 0, 1);
-
-        vec3 c = waterColorLight;
-
-        if (waterReflectionEnabled && distance(waterHeight, IN.position.y) < 16)
-            c = texture(waterReflectionMap, uv).rgb;
-            c.rgb = c.rgb *0.9; // Dim water reflections, should be done properly via fresnel
-
-        surfaceColor = mix(waterColorMid, c, (fresnel - 0.5) * 2);
-
-        shadow *= (1 - fresnel);
-        inverseShadow = (1 - shadow);  // this does nothing? the reference to this that used to be after is now gone :(
+        surfaceColor = mix(waterColorMid, waterColorLight, (finalFresnel - 0.5) * 2);
     }
 
     vec3 surfaceColorOut = surfaceColor * max(combinedSpecularStrength, 0.2);
 
+    // Initialize the reflection with a fake sky reflection
+    #if PLANAR_REFLECTIONS
+    vec3 I = -viewDir; // incident
+    // Assume the water is level
+    vec3 flatR = reflect(I, vec3(0, -1, 0));
+    vec3 R = reflect(I, normals);
+    vec3 reflection = linearToSrgb(sampleWaterReflection(flatR, mix(flatR, R, .5)));
+    surfaceColor = reflection * .9;
+    #endif
 
     // apply lighting
     vec3 compositeLight = ambientLightOut + lightOut + lightSpecularOut + skyLightOut + lightningOut +
@@ -140,7 +152,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     vec3 baseColor = waterType.surfaceColor * compositeLight;
     baseColor = mix(baseColor, surfaceColor, waterType.fresnelAmount);
     float shoreLineMask = 1 - dot(IN.texBlend, vec3(vColor[0].x, vColor[1].x, vColor[2].x));
-    float maxFoamAmount = 0.0;
+    float maxFoamAmount = 0.8;
     float foamAmount = min(shoreLineMask, maxFoamAmount);
     float foamDistance = 0.7;
     vec3 foamColor = waterType.foamColor;
@@ -150,30 +162,33 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     baseColor = mix(baseColor, foamColor, foamAmount);
     vec3 specularComposite = mix(lightSpecularOut, vec3(0.0), foamAmount);
     float flatFresnel = (1.0 - dot(viewDir, vec3(0, -1, 0))) * 1.0;
-    fresnel = max(fresnel, flatFresnel);
-    fresnel -= fresnel * shadow * 0.2;
+    finalFresnel = max(finalFresnel, flatFresnel);
+    finalFresnel -= finalFresnel * shadow * 0.2;
     baseColor += pointLightsSpecularOut + lightSpecularOut / 3;
 
-    float alpha = max(waterType.baseOpacity, max(foamAmount, max(fresnel, length(specularComposite / 3))));
+    float alpha = max(waterType.baseOpacity, max(foamAmount, max(finalFresnel, length(specularComposite / 3))));
 
     if (waterType.isFlat) {
         baseColor = mix(waterType.depthColor, baseColor, alpha);
         alpha = 1;
     }
 
+    baseColor = srgbToLinear(baseColor);
     return vec4(baseColor, alpha);
 }
 
-void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, float lightDotNormals) {
+void sampleLegacyUnderwater(inout vec3 outputColor, vec3 depthColor, float depth, float lightDotNormals) {
+    outputColor = linearToSrgb(outputColor);
+
     // underwater terrain
     float lowestColorLevel = 500;
     float midColorLevel = 150;
     float surfaceLevel = IN.position.y - depth; // e.g. -1600
 
     if (depth < midColorLevel) {
-        outputColor *= mix(vec3(1), waterType.depthColor, translateRange(0, midColorLevel, depth));
+        outputColor *= mix(vec3(1), depthColor, translateRange(0, midColorLevel, depth));
     } else if (depth < lowestColorLevel) {
-        outputColor *= mix(waterType.depthColor, vec3(0), translateRange(midColorLevel, lowestColorLevel, depth));
+        outputColor *= mix(depthColor, vec3(0), translateRange(midColorLevel, lowestColorLevel, depth));
     } else {
         outputColor = vec3(0);
     }
@@ -198,4 +213,6 @@ void sampleUnderwater(inout vec3 outputColor, WaterType waterType, float depth, 
         // This also got multiplied by (1 - fresnel) from sampleWater in Aeryn's old branch, but that isn't accessible here
         outputColor.rgb *= 1 + caustics * causticsColor * depthMultiplier * lightDotNormals * lightStrength;
     }
+
+    outputColor = srgbToLinear(outputColor);
 }

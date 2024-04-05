@@ -87,6 +87,7 @@ flat in vec3 B;
 
 in FragmentData {
     vec3 position;
+    vec2 uv;
     vec3 normal;
     vec3 flatNormal;
     vec3 texBlend;
@@ -137,40 +138,57 @@ void main() {
         waterDepth1 * IN.texBlend.x +
         waterDepth2 * IN.texBlend.y +
         waterDepth3 * IN.texBlend.z;
-    int waterTypeIndex = isTerrain ? vTerrainData[0] >> 3 & 0x1F : 0;
-    WaterType waterType = getWaterType(waterTypeIndex);
+    int waterTypeIndex = 0;
+    if (isTerrain) {
+        #ifdef DEVELOPMENT_WATER_TYPE
+        waterTypeIndex = DEVELOPMENT_WATER_TYPE;
+        #else
+        waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
+        #endif
+    }
 
-    bool isUnderwater = waterDepth != 0;
-    bool isWater = waterTypeIndex > 0 && !isUnderwater;
+    bool isWater = waterTypeIndex > 0;
+    bool isUnderwaterTile = waterDepth != 0;
+    bool isWaterSurface = isWater && !isUnderwaterTile;
+
+    WaterType waterType;
+    if (isWater)
+        waterType = getWaterType(waterTypeIndex);
 
     vec4 outputColor = vec4(1);
 
-    if (isWater) {
+    // Hide underwater tiles in the reflection
+    if (renderPass == RENDER_PASS_WATER_REFLECTION && isUnderwaterTile)
+        discard;
+
+    if (isWaterSurface) {
         // Hide flat water surface tiles in the reflection
         bool isFlat = dot(IN.flatNormal, vec3(0, 0, -1)) < .001;
+        // TODO: remove this hard-coded value and see how it works
         isFlat = true;
+        // TODO: hide these in vert or geom instead
         if (renderPass == RENDER_PASS_WATER_REFLECTION && isFlat)
             discard;
-        outputColor = sampleWater(waterTypeIndex, viewDir);
-    } else {
-        // Hide underwater tiles in the reflection
-        if (renderPass == RENDER_PASS_WATER_REFLECTION && isUnderwater)
-            discard;
 
-        vec2 uv1 = vUv[0].xy;
-        vec2 uv2 = vUv[1].xy;
-        vec2 uv3 = vUv[2].xy;
-        vec2 blendedUv = uv1 * IN.texBlend.x + uv2 * IN.texBlend.y + uv3 * IN.texBlend.z;
+        #if LEGACY_WATER
+        outputColor = sampleLegacyWater(waterType, viewDir);
+        #else
+        outputColor = sampleWater(waterTypeIndex, viewDir);
+        #endif
+    } else {
+        vec2 uv = IN.uv;
 
         float mipBias = 0;
         // Vanilla tree textures rely on UVs being clamped horizontally,
         // which HD doesn't do, so we instead opt to hide these fragments
         if ((vMaterialData[0] >> MATERIAL_FLAG_VANILLA_UVS & 1) == 1)
-            blendedUv.x = clamp(blendedUv.x, 0, .984375f);
+            uv.x = clamp(uv.x, 0, .984375f);
 
-        uv1 = uv2 = uv3 = blendedUv;
+        vec2 uv1 = uv;
+        vec2 uv2 = uv;
+        vec2 uv3 = uv;
 
-        // Scroll UVsf
+        // Scroll UVs
         uv1 += material1.scrollDuration * elapsedTime;
         uv2 += material2.scrollDuration * elapsedTime;
         uv3 += material3.scrollDuration * elapsedTime;
@@ -181,19 +199,15 @@ void main() {
         uv3 = (uv3 - .5) * material3.textureScale.xy + .5;
 
         // get flowMap map
-        vec2 flowMapUv = uv1 - animationFrame(material1.flowMapDuration);
-        float flowMapStrength = material1.flowMapStrength;
-        if (isUnderwater)
-        {
-            // Distort underwater textures
-            flowMapUv = worldUvs(1.5) + animationFrame(10 * waterType.duration) * vec2(1, -1);
-            flowMapStrength = 0.075;
-        }
+        if (flowMap != -1) {
+            vec2 flowMapUv = uv1 - animationFrame(material1.flowMapDuration);
+            float flowMapStrength = material1.flowMapStrength;
 
-        vec2 uvFlow = texture(textureArray, vec3(flowMapUv, flowMap)).xy;
-        uv1 += uvFlow * flowMapStrength;
-        uv2 += uvFlow * flowMapStrength;
-        uv3 += uvFlow * flowMapStrength;
+            vec2 uvFlow = texture(textureArray, vec3(flowMapUv, flowMap)).xy;
+            uv1 += uvFlow * flowMapStrength;
+            uv2 += uvFlow * flowMapStrength;
+            uv3 += uvFlow * flowMapStrength;
+        }
 
         // Set up tangent-space transformation matrix
         vec3 N = normalize(IN.normal);
@@ -304,7 +318,7 @@ void main() {
             // in a style similar to 2008+ HD
 
             // fragment UV
-            vec2 fragUv = blendedUv;
+            vec2 fragUv = uv;
             // standalone UV
             // e.g. if there are 2 overlays and 1 underlay, the underlay is the standalone
             vec2 sUv[3];
@@ -376,13 +390,13 @@ void main() {
         float downDotNormals = dot(downDir, normals);
         float viewDotNormals = dot(viewDir, normals);
 
-        #if (DISABLE_DIRECTIONAL_SHADING)
+        #if DISABLE_DIRECTIONAL_SHADING
         lightDotNormals = .7;
         #endif
 
         float shadow = 0;
         if ((vMaterialData[0] >> MATERIAL_FLAG_DISABLE_SHADOW_RECEIVING & 1) == 0)
-            shadow = sampleShadowMap(fragPos, waterTypeIndex, vec2(0), lightDotNormals);
+            shadow = sampleShadowMap(fragPos, vec2(0), lightDotNormals);
         shadow = max(shadow, selfShadowing);
         float inverseShadow = 1 - shadow * baseColor1.a;
 
@@ -529,19 +543,18 @@ void main() {
             getMaterialIsUnlit(material3)
         ));
         outputColor.rgb *= mix(compositeLight, vec3(1), unlit);
-        outputColor.rgb = linearToSrgb(outputColor.rgb);
 
-        if (isUnderwater) {
-            #ifdef HOODER_WATER
-            sampleUnderwater(outputColor.rgb, waterType, waterDepth, shadow);
+        if (isUnderwaterTile) {
+            #if LEGACY_WATER
+            sampleLegacyUnderwater(outputColor.rgb, waterType.depthColor, waterDepth, lightDotNormals);
             #else
-            sampleUnderwater(outputColor.rgb, waterType, waterDepth, lightDotNormals);
+            sampleUnderwater(outputColor.rgb, waterTypeIndex, waterDepth);
             #endif
         }
     }
 
-
     outputColor.rgb = clamp(outputColor.rgb, 0, 1);
+    outputColor.rgb = linearToSrgb(outputColor.rgb);
 
     // Skip unnecessary color conversion if possible
     if (saturation != 1 || contrast != 1) {
@@ -567,7 +580,7 @@ void main() {
     #endif
 
     // apply fog
-    if (!isUnderwater) {
+    if (!isUnderwaterTile) {
         // ground fog
         float distance = distance(IN.position, cameraPos);
         float closeFadeDistance = 1500;
@@ -578,7 +591,8 @@ void main() {
         // multiply the visibility of each fog
         float combinedFog = 1 - (1 - IN.fogAmount) * (1 - groundFog);
 
-        if (isWater) {
+        if (isWaterSurface) {
+            // TODO: this isn't right with linear blending, I think
             outputColor.a = combinedFog + outputColor.a * (1 - combinedFog);
         }
 

@@ -23,7 +23,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 #version 330
 
 #include utils/constants.glsl
@@ -62,6 +61,7 @@ flat out vec3 B;
 
 out FragmentData {
     vec3 position;
+    vec2 uv;
     vec3 normal;
     vec3 flatNormal;
     vec3 texBlend;
@@ -72,31 +72,11 @@ void displaceUnderwaterPosition(inout vec3 position, int waterDepth) {
     if (waterDepth <= 1)
         return;
 
-    // incidence vector and water surface normal
+    // TODO: replace this & retune underwater depths
+    // This was all wrong. I've boiled it down to what it actually does to show how wrong.
     vec3 I = normalize(position - cameraPos);
-    vec3 N = vec3(0, -1, 0);
-
-    float IdotN = clamp(-1, 1, dot(I, N));
-    float etai = 1;
-    float etat = 1.3;
-
-    if (IdotN < 0) {
-        IdotN *= -1;
-    } else {
-        float temp = etai;
-        etai = etat;
-        etat = temp;
-        N *= -1;
-    }
-
-    float eta = etai / etat;
-    float k = 1 - eta * eta * (1 - IdotN * IdotN);
-    if (k >= 0) {
-        vec3 refracted = eta * I + (eta * IdotN - sqrt(k)) * N;
-        vec3 surfacePos = position + I / IdotN * waterDepth;
-        vec3 refractedPos = surfacePos - refracted / dot(refracted, N) * waterDepth;
-        position = refractedPos;
-    }
+    vec3 refracted = 1.3 * I + vec3(0, .3, 0);
+    position += (I - refracted / refracted.y) * waterDepth;
 }
 
 void main() {
@@ -132,7 +112,13 @@ void main() {
         // Flat normals must be applied separately per vertex
         vec3 normal = gNormal[i];
         vec3 position = gPosition[i];
+
+        // TODO: this was implemented wrong, and we would need a way to apply it only when the water surface is flat
+        int waterDepth = gTerrainData[i] >> 8 & 0x7FF;
+        displaceUnderwaterPosition(position, waterDepth);
+
         OUT.position = position;
+        OUT.uv = vUv[i].xy;
         OUT.flatNormal = N;
         #if FLAT_SHADING
         OUT.normal = N;
@@ -142,9 +128,6 @@ void main() {
         OUT.texBlend = vec3(0);
         OUT.texBlend[i] = 1;
         OUT.fogAmount = gFogAmount[i];
-
-        int waterDepth = gTerrainData[i] >> 8 & 0x7FF;
-        displaceUnderwaterPosition(position, waterDepth);
         gl_Position = projectionMatrix * vec4(position, 1);
         EmitVertex();
     }

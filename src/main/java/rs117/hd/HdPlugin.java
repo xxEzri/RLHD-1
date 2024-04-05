@@ -2770,6 +2770,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 							case KEY_UI_SCALING_MODE:
 							case KEY_VANILLA_COLOR_BANDING:
 							case KEY_COLOR_FILTER:
+							case KEY_PLANAR_REFLECTIONS:
 							case KEY_PLANAR_REFLECTION_RESOLUTION:
 							case KEY_WATER_FOAM:
 							case KEY_WATER_LIGHT_SCATTERING:
@@ -3150,8 +3151,11 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				int[] localPos = HDUtils.cameraSpaceToLocalPoint(client, x, z);
 				int[] worldPos = HDUtils.localToWorld(sceneContext.scene, localPos[0], localPos[1], plane);
 				ModelOverride modelOverride = modelOverrideManager.getOverride(uuid, worldPos);
-				if (modelOverride.hide)
+				if (modelOverride.hide) {
+					if (enableDetailedTimers)
+						frameTimer.end(Timer.MODEL_PUSHING);
 					return;
+				}
 
 				int vertexOffset = dynamicOffsetVertices + sceneContext.getVertexOffset();
 				int uvOffset = dynamicOffsetUvs + sceneContext.getUvOffset();

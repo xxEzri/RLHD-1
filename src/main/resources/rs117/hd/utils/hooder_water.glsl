@@ -1,4 +1,4 @@
-#define IOR_WATER 1.333
+#include utils/texture_tiling.glsl
 
 float calculateFresnel(const vec3 I, const vec3 N, const float ior) {
     float cosi = dot(I, N);
