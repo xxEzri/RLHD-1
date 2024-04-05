@@ -2662,7 +2662,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		configUseFasterModelHashing = config.fasterModelHashing();
 		configUndoVanillaShading = config.shadingMode() != ShadingMode.VANILLA;
 		configPreserveVanillaNormals = config.preserveVanillaNormals();
-		configLinearAlphaBlending = config.linearAlphaBlending();
+		configLinearAlphaBlending = !config.legacyWater();
 		configSeasonalTheme = config.seasonalTheme();
 
 		if (configSeasonalTheme == SeasonalTheme.AUTOMATIC) {
@@ -2738,7 +2738,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 							case KEY_PARALLAX_OCCLUSION_MAPPING:
 							case KEY_UI_SCALING_MODE:
 							case KEY_VANILLA_COLOR_BANDING:
-							case KEY_LINEAR_ALPHA_BLENDING:
 							case KEY_PLANAR_REFLECTION_RESOLUTION:
 							case KEY_WATER_FOAM:
 							case KEY_WATER_LIGHT_SCATTERING:

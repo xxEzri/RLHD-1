@@ -1043,17 +1043,6 @@ public interface HdPluginConfig extends Config
 		return false;
 	}
 
-	String KEY_LINEAR_ALPHA_BLENDING = "experimentalLinearAlphaBlending";
-	@ConfigItem(
-		keyName = KEY_LINEAR_ALPHA_BLENDING,
-		name = "Linear alpha blending",
-		description = "Use explicit sRGB buffers, allowing for linear alpha blending.",
-		section = experimentalSettings
-	)
-	default boolean linearAlphaBlending() {
-		return true;
-	}
-
 
 	/*====== Internal settings ======*/
 
