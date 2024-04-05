@@ -830,6 +830,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			.define("VANILLA_COLOR_BANDING", config.vanillaColorBanding())
 			.define("UNDO_VANILLA_SHADING", configUndoVanillaShading)
 			.define("LEGACY_GREY_COLORS", configLegacyGreyColors)
+			.define("LEGACY_WATER", config.legacyWater())
 			.define("DISABLE_DIRECTIONAL_SHADING", config.shadingMode() != ShadingMode.DEFAULT)
 			.define("FLAT_SHADING", config.flatShading())
 			.define("SHADOW_MAP_OVERLAY", enableShadowMapOverlay)
@@ -2741,6 +2742,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 							case KEY_PLANAR_REFLECTION_RESOLUTION:
 							case KEY_WATER_FOAM:
 							case KEY_WATER_LIGHT_SCATTERING:
+							case KEY_LEGACY_WATER:
 								recompilePrograms = true;
 								break;
 							case KEY_SHADOW_MODE:

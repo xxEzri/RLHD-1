@@ -911,6 +911,18 @@ public interface HdPluginConfig extends Config
 		return false;
 	}
 
+	String KEY_LEGACY_WATER = "legacyWater";
+	@ConfigItem(
+		keyName = KEY_LEGACY_WATER,
+		name = "Legacy Water",
+		description = "Use the water which the plugin was originally released with. This option may get removed in the future.",
+		position = 5,
+		section = miscellaneousSettings
+	)
+	default boolean legacyWater() {
+		return false;
+	}
+
 	String KEY_VANILLA_COLOR_BANDING = "vanillaColorBanding";
 	@ConfigItem(
 		keyName = KEY_VANILLA_COLOR_BANDING,
@@ -918,7 +930,7 @@ public interface HdPluginConfig extends Config
 		description =
 			"Blend between colors similarly to how it works in vanilla, with clearly defined bands of color.<br>" +
 			"This isn't really noticeable on textured surfaces, and is intended to be used without ground textures.",
-		position = 5,
+		position = 6,
 		section = miscellaneousSettings
 	)
 	default boolean vanillaColorBanding() {
@@ -933,7 +945,7 @@ public interface HdPluginConfig extends Config
 		warning =
 			"<html>This <b>will not</b> result in better performance. It is recommended only if you are unable to install<br>" +
 			"the 64-bit version of RuneLite, or if your computer has a very low amount of memory available.</html>",
-		position = 6,
+		position = 7,
 		section = miscellaneousSettings
 	)
 	default boolean lowMemoryMode() {
@@ -945,7 +957,7 @@ public interface HdPluginConfig extends Config
 		keyName = KEY_REPLACE_FISHING_SPOTS,
 		name = "Replace Fishing Spots",
 		description = "Replace certain fishing spots with more appropriate models that are easier to see.",
-		position = 7,
+		position = 8,
 		section = miscellaneousSettings
 	)
 	default boolean replaceFishingSpots() {
@@ -1036,7 +1048,6 @@ public interface HdPluginConfig extends Config
 		keyName = KEY_LINEAR_ALPHA_BLENDING,
 		name = "Linear alpha blending",
 		description = "Use explicit sRGB buffers, allowing for linear alpha blending.",
-		position = 405,
 		section = experimentalSettings
 	)
 	default boolean linearAlphaBlending() {

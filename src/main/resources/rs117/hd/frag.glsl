@@ -460,12 +460,7 @@ void main() {
         }
 
         // apply shadows
-        #ifdef OLD_WATER
         dirLightColor *= inverseShadow;
-        #else
-        if (!isUnderwater)
-            dirLightColor *= inverseShadow;
-        #endif
 
         vec3 lightColor = dirLightColor;
         vec3 lightOut = max(lightDotNormals, 0.0) * lightColor;

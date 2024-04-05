@@ -25,10 +25,9 @@
 #include utils/misc.glsl
 #include utils/texture_tiling.glsl
 
-//#define OLD_WATER
 //#define HOODER_WATER
 
-#ifdef OLD_WATER
+#ifdef LEGACY_WATER
 #include utils/legacy_water.glsl
 #elif defined HOODER_WATER
 #include utils/hooder_water.glsl
