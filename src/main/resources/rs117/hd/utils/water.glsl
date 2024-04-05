@@ -27,7 +27,7 @@
 #include utils/misc.glsl
 #include utils/water_reflection.glsl
 
-//#define HOODER_WATER
+#define HOODER_WATER
 
 #if LEGACY_WATER
 #include utils/legacy_water.glsl
@@ -67,7 +67,7 @@ float calculateFresnel(const vec3 I, const vec3 N, const float ior) {
     return R0 + (1 - R0) * pow(1 - cosi, 5);
 }
 
-vec3 sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth) {
+void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth) {
     vec2 uv = IN.uv;
 
     vec3 camToFrag = normalize(IN.position - cameraPos);
@@ -143,7 +143,6 @@ vec3 sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth) {
     }
 
     outputColor = mix(vec3(0), outputColor, extinctionColors);
-    return outputColor;
 }
 
 vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
@@ -199,7 +198,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     // Initialize the reflection with a fake sky reflection
     vec4 reflection = vec4(
         sampleWaterReflection(flatR, R),
-        calculateFresnel(N, fragToCam, IOR_WATER)
+        calculateFresnel(fragToCam, N, IOR_WATER)
     );
 
 

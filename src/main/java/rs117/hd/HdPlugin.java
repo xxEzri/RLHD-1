@@ -2181,7 +2181,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniform1i(uniWaterFoamAmountConfig, config.waterFoamAmountConfig());
 
 			// Extract the 3rd column from the light view matrix (the float array is column-major)
-			// This produces the light's forward direction vector in world space
+			// This produces the view matrix's forward direction vector in world space,
+			// which in our case is the negative of the light's direction
 			glUniform3f(uniLightDir, lightViewMatrix[2], lightViewMatrix[6], lightViewMatrix[10]);
 
 			// use a curve to calculate max bias value based on the density of the shadow map
