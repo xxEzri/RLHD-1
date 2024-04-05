@@ -381,9 +381,6 @@ public enum Material {
 	GRUNGE_2_SHINY(GRUNGE_2, p -> p
 		.setSpecular(0.7f, 300)
 	),
-	GRUNGE_2_EADGARS_CAVE_FIX(GRUNGE_2, p -> p.setBrightness(0.65f)),
-	GRUNGE_2_TROLLHEIM_WALL_FIX_1(GRUNGE_2, p -> p.setBrightness(1.8f)),
-	GRUNGE_2_TROLLHEIM_WALL_FIX_2(GRUNGE_2, p -> p.setBrightness(1.2f)),
 	SUBMERGED_GRUNGE_2(GRUNGE_2, p -> p
 		.setFlowMap(UNDERWATER_FLOW_MAP)
 		.setFlowMapStrength(0.075f)
@@ -418,6 +415,9 @@ public enum Material {
 	ROCK_3_ORE(ROCK_3, p -> p
 		.setSpecular(1, 20)
 	),
+	EADGARS_CAVE_FIX(ROCK_3, p -> p.setBrightness(0.65f)),
+	TROLLHEIM_WALL_FIX_1(ROCK_3, p -> p.setBrightness(1.8f)),
+	TROLLHEIM_WALL_FIX_2(ROCK_3, p -> p.setBrightness(1.2f)),
 
 	ROCK_4_D,
 	ROCK_4_N,
@@ -460,10 +460,7 @@ public enum Material {
 		.setNormalMap(JAGGED_STONE_TILE_N)
 		.setSpecular(0.5f, 30)
 	),
-	POTTERY_OVEN_STONE(
-		JAGGED_STONE_TILE,
-		p -> p.setOverrideBaseColor(JAGGED_STONE_TILE.overrideBaseColor).setBrightness(0.3f)
-	),
+	POTTERY_OVEN_STONE(JAGGED_STONE_TILE, p -> p.setBrightness(0.3f)),
 
 	TILE_SMALL_1(p -> p
 		.setSpecular(0.8f, 70)),
@@ -559,6 +556,7 @@ public enum Material {
 		.setNormalMap(WOOD_GRAIN_3_N)
 		.setSpecular(0.3f, 25)
 	),
+	WOOD_GRAIN_3_LIGHT(WOOD_GRAIN_3, p -> p.setBrightness(1.6f)),
 	DOCK_FENCE,
 	DOCK_FENCE_DARK(DOCK_FENCE, p -> p.setBrightness(0.6f)),
 

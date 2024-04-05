@@ -499,7 +499,7 @@
     "fogDepth": 40
   },
   {
-    "area": "MISTHALIN_MYSTERY_MANOR",
+    "area": "MISTHALIN_MYSTERY_MANOR_REGION",
     "lightningEffects": true,
     "ambientColor": "#615c57",
     "ambientStrength": 1.5,
@@ -1529,13 +1529,6 @@
       102
     ],
     "fogDepth": 30
-  },
-  {
-    "area": "HUNTER_GUILD",
-    "description": "Disable shadows due to major performance issue with shadow transparency.",
-    "directionalStrength": 0,
-    "ambientStrength": 1.25,
-    "force": true
   },
   {
     "key": "OVERWORLD",
