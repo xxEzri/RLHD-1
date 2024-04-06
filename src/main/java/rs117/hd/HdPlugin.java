@@ -2172,12 +2172,12 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniform1f(uniElapsedTime, elapsedTime);
 
 			glUniform1i(uniWaterTransparency, configWaterTransparency ? 1 : 0);
-			glUniform1f(uniWaterTransparencyAmount, configWaterTransparencyAmount / 100f);
-			glUniform1f(uniWaterCausticsStrength, config.waterCausticsStrength() / 100f);
-			glUniform1f(uniWaterWaveSize, config.waterWaveSize() / 100f);
-			glUniform1f(uniWaterWaveSpeed, config.waterWaveSpeed() / 100f);
-			glUniform1f(uniWaterFoamAmount, config.waterFoamAmount() / 100f);
-			glUniform1f(uniWaterDistortionAmount, config.waterDistortion() ? config.waterDistortionAmount() / 100f : 0);
+			glUniform1f(uniWaterTransparencyAmount, clamp(configWaterTransparencyAmount, 0, 130) / 100f);
+			glUniform1f(uniWaterCausticsStrength, clamp(config.waterCausticsStrength(), 0, 200) / 100f);
+			glUniform1f(uniWaterWaveSize, clamp(config.waterWaveSize(), 25, 200) / 100f);
+			glUniform1f(uniWaterWaveSpeed, clamp(config.waterWaveSpeed(), 50, 200) / 100f);
+			glUniform1f(uniWaterDistortionAmount, config.waterDistortion() ? clamp(config.waterDistortionAmount(), 0, 300) / 100f : 0);
+			glUniform1f(uniWaterFoamAmount, clamp(config.waterFoamAmount(), 0, 300) / 100f);
 
 			// Extract the 3rd column from the light view matrix (the float array is column-major)
 			// This produces the view matrix's forward direction vector in world space,
@@ -2670,7 +2670,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		configSeasonalTheme = config.seasonalTheme();
 		configLinearAlphaBlending = config.waterStyle() != WaterStyle.LEGACY;
 		configWaterTransparency = config.waterTransparency();
-		configWaterTransparencyAmount = config.lightPenetrationPercentage();
+		configWaterTransparencyAmount = config.waterTransparencyAmount();
 
 		var newColorFilter = config.colorFilter();
 		if (newColorFilter != configColorFilter) {

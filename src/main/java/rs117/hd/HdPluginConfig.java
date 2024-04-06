@@ -676,7 +676,7 @@ public interface HdPluginConfig extends Config
 	)
 	@Units(Units.PERCENT)
 	@Range(min = 0, max = 130)
-	default int lightPenetrationPercentage() {
+	default int waterTransparencyAmount() {
 		return 100;
 	}
 
