@@ -24,6 +24,7 @@
  */
 package rs117.hd.scene;
 
+import com.google.common.base.Stopwatch;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
@@ -178,6 +179,8 @@ public class TextureManager {
 	private void ensureMaterialsAreLoaded() {
 		if (textureArray != 0)
 			return;
+
+		Stopwatch stopwatch = Stopwatch.createStarted();
 
 		assert vanillaTexturesAvailable();
 		var textureProvider = client.getTextureProvider();
@@ -342,6 +345,8 @@ public class TextureManager {
 		vanillaTextureIndexToTextureLayer = null;
 		textureProvider.setBrightness(vanillaBrightness);
 		glActiveTexture(TEXTURE_UNIT_UI);
+
+		log.debug("Texture load time: {}", stopwatch);
 	}
 
 	private BufferedImage loadTextureImage(Material material) {
