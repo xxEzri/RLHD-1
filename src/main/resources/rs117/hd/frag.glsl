@@ -71,6 +71,7 @@ uniform int waterCausticsStrengthConfig;
 uniform int waterWaveSizeConfig;
 uniform int waterWaveSpeedConfig;
 uniform int waterFoamAmountConfig;
+uniform int waterDistortionAmountConfig;
 
 // general HD settings
 uniform float saturation;
@@ -544,15 +545,19 @@ void main() {
         ));
 
         #if LEGACY_WATER
-        outputColor.rgb *= mix(compositeLight, vec3(1), unlit);
-        if (isUnderwaterTile)
-            sampleLegacyUnderwater(outputColor.rgb, waterType.depthColor, waterDepth, lightDotNormals);
-        #else
-        if (isUnderwaterTile) {
-            sampleUnderwater(outputColor.rgb, waterTypeIndex, waterDepth);
-        } else {
             outputColor.rgb *= mix(compositeLight, vec3(1), unlit);
-        }
+            if (isUnderwaterTile)
+                sampleLegacyUnderwater(outputColor.rgb, waterType.depthColor, waterDepth, lightDotNormals);
+        #elif defined HOODER_WATER
+            if (isUnderwaterTile) {
+                sampleUnderwater(outputColor.rgb, waterTypeIndex, waterDepth);
+            } else {
+                outputColor.rgb *= mix(compositeLight, vec3(1), unlit);
+            }
+        #else
+            outputColor.rgb *= mix(compositeLight, vec3(1), unlit);
+            if (isUnderwaterTile)
+                sampleUnderwater(outputColor.rgb, waterTypeIndex, waterDepth, lightDotNormals);
         #endif
     }
 

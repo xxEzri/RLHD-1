@@ -760,12 +760,38 @@ public interface HdPluginConfig extends Config
 		return 100;
 	}
 
+	String KEY_WATER_DISTORTION_CONFIG = "waterDistortionConfig";
+	@ConfigItem(
+		keyName = KEY_WATER_DISTORTION_CONFIG,
+		name = "Water Distortion",
+		description = "Water Distortion Toggle",
+		position = 10,
+		section = waterSettings
+	)
+	default boolean waterDistortionConfig() {
+		return true;
+	}
+
+	String KEY_WATER_DISTORTION_AMOUNT_CONFIG = "waterDistortionAmountConfig";
+	@ConfigItem(
+		keyName = KEY_WATER_DISTORTION_AMOUNT_CONFIG,
+		name = "Distortion Amount",
+		description = "The amount of water distortion.",
+		position = 11,
+		section = waterSettings
+	)
+	@Units(Units.PERCENT)
+	@Range(min = 1, max = 300)
+	default int waterDistortionAmountConfig() {
+		return 100;
+	}
+
 	String KEY_WATER_LIGHT_SCATTERING = "waterLightScattering";
 	@ConfigItem(
 		keyName = KEY_WATER_LIGHT_SCATTERING,
 		name = "Light Scattering",
 		description = "Approximate light scattering on water surface/waves.",
-		position = 10,
+		position = 12,
 		section = waterSettings
 	)
 	default boolean waterLightScattering() {
@@ -777,7 +803,7 @@ public interface HdPluginConfig extends Config
 		keyName = KEY_WATER_FOAM,
 		name = "Foam",
 		description = "Render foam around the edges of water bodies.",
-		position = 11,
+		position = 13,
 		section = waterSettings
 	)
 	default boolean enableWaterFoam() {
@@ -789,7 +815,7 @@ public interface HdPluginConfig extends Config
 		keyName = KEY_WATER_FOAM_AMOUNT_CONFIG,
 		name = "Foam Amount",
 		description = "The amount of foam around shorelines.",
-		position = 12,
+		position = 14,
 		section = waterSettings
 	)
 	@Units(Units.PERCENT)

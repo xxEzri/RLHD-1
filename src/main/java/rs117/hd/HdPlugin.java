@@ -395,6 +395,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int uniWaterWaveSizeConfig;
 	private int uniWaterWaveSpeedConfig;
 	private int uniWaterFoamAmountConfig;
+	private int uniWaterDistortionAmountConfig;
 
 	// Shadow program uniforms
 	private int uniShadowLightProjectionMatrix;
@@ -844,6 +845,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			.define("PLANAR_REFLECTION_RESOLUTION", config.reflectionResolution() / 100f)
 			.define("WATER_FOAM", config.enableWaterFoam())
 			.define("WATER_LIGHT_SCATTERING", config.waterLightScattering())
+			.define("WATER_DISTORTION_CONFIG", config.waterDistortionConfig())
 			.addIncludePath(SHADER_PATH);
 
 		glSceneProgram = PROGRAM.compile(template);
@@ -944,6 +946,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		uniWaterWaveSizeConfig = glGetUniformLocation(glSceneProgram, "waterWaveSizeConfig");
 		uniWaterWaveSpeedConfig = glGetUniformLocation(glSceneProgram, "waterWaveSpeedConfig");
 		uniWaterFoamAmountConfig = glGetUniformLocation(glSceneProgram, "waterFoamAmountConfig");
+		uniWaterDistortionAmountConfig = glGetUniformLocation(glSceneProgram, "waterDistortionAmountConfig");
 		uniCameraPos = glGetUniformLocation(glSceneProgram, "cameraPos");
 		uniTextureArray = glGetUniformLocation(glSceneProgram, "textureArray");
 		uniElapsedTime = glGetUniformLocation(glSceneProgram, "elapsedTime");
@@ -2172,6 +2175,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniform1i(uniWaterWaveSizeConfig, config.waterWaveSizeConfig());
 			glUniform1i(uniWaterWaveSpeedConfig, config.waterWaveSpeedConfig());
 			glUniform1i(uniWaterFoamAmountConfig, config.waterFoamAmountConfig());
+			glUniform1i(uniWaterDistortionAmountConfig, config.waterDistortionAmountConfig());
 
 			// Extract the 3rd column from the light view matrix (the float array is column-major)
 			// This produces the view matrix's forward direction vector in world space,
@@ -2771,6 +2775,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 							case KEY_WATER_FOAM:
 							case KEY_WATER_LIGHT_SCATTERING:
 							case KEY_LEGACY_WATER:
+							case KEY_WATER_DISTORTION_CONFIG:
 								recompilePrograms = true;
 								break;
 							case KEY_SHADOW_MODE:
