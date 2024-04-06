@@ -1462,6 +1462,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 	private void initWaterReflectionFbo(int width, int height)
 	{
+		int[] dimensions = applyDpiScaling(width, height);
+
 		// Create and bind the FBO
 		fboWaterReflection = glGenFramebuffers();
 		glBindFramebuffer(GL_FRAMEBUFFER, fboWaterReflection);
@@ -1471,7 +1473,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		// Create texture
 		texWaterReflection = glGenTextures();
 		glBindTexture(GL_TEXTURE_2D, texWaterReflection);
-		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+		glTexImage2D(GL_TEXTURE_2D, 0, format, dimensions[0], dimensions[1], 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -1484,7 +1486,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		// Create texture
 		texWaterReflectionDepthMap = glGenTextures();
 		glBindTexture(GL_TEXTURE_2D, texWaterReflectionDepthMap);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, 0);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, dimensions[0], dimensions[1], 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, 0);
 
 		// Bind texture
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texWaterReflectionDepthMap, 0);
