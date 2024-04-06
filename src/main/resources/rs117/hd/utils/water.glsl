@@ -463,7 +463,7 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth, f
     outputColor.r *= 0.7; // dirt texture looks unnaturally dry/bright/red in shallow water, remove some before further blending
 
     vec3 camToFrag = normalize(IN.position - cameraPos);
-    float distanceToSurface = depth / camToFrag.y;
+    float distanceToSurface = abs(depth / camToFrag.y); // abs = hack for viewing underwater geometry from below in waterfalls
     float totalDistance = depth + distanceToSurface;
 
     // Scale from a range of 0% = 0.5, 100% = 2.75, 130% = 3.425

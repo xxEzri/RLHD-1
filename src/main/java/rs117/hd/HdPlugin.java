@@ -368,8 +368,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int uniWaterColorLight;
 	private int uniWaterColorMid;
 	private int uniWaterColorDark;
-	private int uniWaterTransparency;
-	private int uniWaterTransparencyAmount;
 	private int uniAmbientStrength;
 	private int uniAmbientColor;
 	private int uniLightStrength;
@@ -390,12 +388,14 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int uniUnderwaterEnvironment;
 	private int uniUnderwaterCausticsColor;
 	private int uniUnderwaterCausticsStrength;
-	private int uniWaterHeight;
-	private int uniWaterReflectionEnabled;
 	private int uniCameraPos;
 	private int uniColorFilter;
 	private int uniColorFilterPrevious;
 	private int uniColorFilterFade;
+	private int uniWaterHeight;
+	private int uniWaterReflectionEnabled;
+	private int uniWaterTransparency;
+	private int uniWaterTransparencyAmount;
 	private int uniWaterCausticsStrength;
 	private int uniWaterWaveSize;
 	private int uniWaterWaveSpeed;
@@ -846,9 +846,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			.define("SHADOW_MAP_OVERLAY", enableShadowMapOverlay)
 			.define("LINEAR_ALPHA_BLENDING", configLinearAlphaBlending)
 			.define("WATER_STYLE", config.waterStyle())
-			.define("PLANAR_REFLECTIONS", config.enablePlanarReflections())
-			.define("PLANAR_REFLECTION_RESOLUTION", config.reflectionResolution() / 100f)
 			.define("WATER_FOAM", config.enableWaterFoam())
+			.define("PLANAR_REFLECTIONS", config.enablePlanarReflections())
 			.addIncludePath(SHADER_PATH);
 
 		glSceneProgram = PROGRAM.compile(template);
@@ -921,8 +920,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		uniWaterColorMid = glGetUniformLocation(glSceneProgram, "waterColorMid");
 		uniWaterColorDark = glGetUniformLocation(glSceneProgram, "waterColorDark");
 		uniDrawDistance = glGetUniformLocation(glSceneProgram, "drawDistance");
-		uniWaterTransparency = glGetUniformLocation(glSceneProgram, "waterTransparency");
-		uniWaterTransparencyAmount = glGetUniformLocation(glSceneProgram, "waterTransparencyAmount");
 		uniExpandedMapLoadingChunks = glGetUniformLocation(glSceneProgram, "expandedMapLoadingChunks");
 		uniAmbientStrength = glGetUniformLocation(glSceneProgram, "ambientStrength");
 		uniAmbientColor = glGetUniformLocation(glSceneProgram, "ambientColor");
@@ -940,13 +937,15 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		uniShadowMaxBias = glGetUniformLocation(glSceneProgram, "shadowMaxBias");
 		uniShadowsEnabled = glGetUniformLocation(glSceneProgram, "shadowsEnabled");
 		uniShorelineCaustics = glGetUniformLocation(glSceneProgram, "shorelineCaustics");
+		uniWaterCausticsStrength = glGetUniformLocation(glSceneProgram, "waterCausticsStrength");
 		uniUnderwaterCaustics = glGetUniformLocation(glSceneProgram, "underwaterCaustics");
 		uniUnderwaterEnvironment = glGetUniformLocation(glSceneProgram, "underwaterEnvironment");
 		uniUnderwaterCausticsColor = glGetUniformLocation(glSceneProgram, "underwaterCausticsColor");
 		uniUnderwaterCausticsStrength = glGetUniformLocation(glSceneProgram, "underwaterCausticsStrength");
 		uniWaterHeight = glGetUniformLocation(glSceneProgram, "waterHeight");
 		uniWaterReflectionEnabled = glGetUniformLocation(glSceneProgram, "waterReflectionEnabled");
-		uniWaterCausticsStrength = glGetUniformLocation(glSceneProgram, "waterCausticsStrength");
+		uniWaterTransparency = glGetUniformLocation(glSceneProgram, "waterTransparency");
+		uniWaterTransparencyAmount = glGetUniformLocation(glSceneProgram, "waterTransparencyAmount");
 		uniWaterWaveSize = glGetUniformLocation(glSceneProgram, "waterWaveSize");
 		uniWaterWaveSpeed = glGetUniformLocation(glSceneProgram, "waterWaveSpeed");
 		uniWaterFoamAmount = glGetUniformLocation(glSceneProgram, "waterFoamAmount");
@@ -2754,7 +2753,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 							case KEY_VANILLA_COLOR_BANDING:
 							case KEY_COLOR_FILTER:
 							case KEY_PLANAR_REFLECTIONS:
-							case KEY_PLANAR_REFLECTION_RESOLUTION:
 							case KEY_WATER_STYLE:
 							case KEY_WATER_FOAM:
 								recompilePrograms = true;

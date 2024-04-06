@@ -34,6 +34,7 @@ uniform int renderPass;
 uniform mat4 projectionMatrix;
 uniform float elapsedTime;
 uniform vec3 cameraPos;
+uniform int waterHeight;
 
 #define USE_VANILLA_UV_PROJECTION
 #include utils/uvs.glsl
@@ -64,13 +65,17 @@ out FragmentData {
 } OUT;
 
 void displaceUnderwaterPosition(inout vec3 position, int waterDepth) {
-    if (waterDepth <= 1)
+    if (waterDepth <= 1 || position.y < waterHeight)
+        return;
+
+    // Only displace underwater surfaces viewed from above
+    vec3 I = normalize(position - cameraPos);
+    if (I.y < .15)
         return;
 
     // This is quite arbitrary, but a correct solution is non-trivial
     // See https://en.wikipedia.org/wiki/Fermat%27s_principle#/media/File:Fermat_Snellius.svg
     // which boils down to a quartic equation when solving for x given A, B and b
-    vec3 I = normalize(position - cameraPos);
     vec3 refracted = 1.3 * I + vec3(0, .3, 0);
     position += (I - refracted / refracted.y) * waterDepth;
 }
@@ -104,6 +109,29 @@ void main() {
     B = TB[1];
     vec3 N = normalize(cross(triToWorld[0], triToWorld[1]));
 
+    // Water data
+    bool isTerrain = (vTerrainData[0] & 1) != 0; // 1 = 0b1
+    int waterDepth = vTerrainData[0] >> 8 & 0x7FF;
+    int waterTypeIndex = 0;
+    if (isTerrain) {
+        #ifdef DEVELOPMENT_WATER_TYPE
+        waterTypeIndex = DEVELOPMENT_WATER_TYPE;
+        #else
+        waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
+        #endif
+    }
+
+    bool isWater = waterTypeIndex > 0;
+    bool isUnderwaterTile = waterDepth != 0;
+    bool isWaterSurface = isWater && !isUnderwaterTile;
+
+    if (renderPass == RENDER_PASS_WATER_REFLECTION) {
+        // Hide flat water surface tiles in the reflection
+        bool isFlat = -N.y > .7;
+        if (isWaterSurface && isFlat)
+            return;
+    }
+
     for (int i = 0; i < 3; i++) {
         // Flat normals must be applied separately per vertex
         vec3 normal = gNormal[i];
@@ -123,6 +151,11 @@ void main() {
         // Apply some arbitrary displacement to mimic refraction
         int waterDepth = gTerrainData[i] >> 8 & 0x7FF;
         displaceUnderwaterPosition(position, waterDepth);
+
+        if (renderPass == RENDER_PASS_WATER_REFLECTION && isWaterSurface) {
+            // Hide some Z-fighting issues with waterfalls
+            position += 16 * N * vec3(1, 0, 1);
+        }
 
         gl_Position = projectionMatrix * vec4(position, 1);
         EmitVertex();

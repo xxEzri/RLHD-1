@@ -118,7 +118,8 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth) {
 
     vec3 camToFrag = normalize(fragPos - cameraPos);
     // We ignore refraction effects on the way back up to the surface
-    float fragToSurfaceDist = depth / camToFrag.y;
+    // TODO: support viewing underwater geometry from below in waterfalls properly
+    float fragToSurfaceDist = abs(depth / camToFrag.y);
 
     // Attenuate directional and ambient light by their distances travelled on the way down
     vec3 directionalAttenuation = exp(-extinctionCoefficients * sunToFragDist);

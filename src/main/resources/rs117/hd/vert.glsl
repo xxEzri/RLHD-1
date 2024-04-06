@@ -60,8 +60,8 @@ void main() {
     // Hide vertices with barely any opacity, since Jagex often includes hitboxes as part of the model.
     // This prevents them from showing up in planar reflections due to depth testing.
     if (alpha < .004) {
-        alpha = 0;
         position = vec3(0);
+        alpha = -256;
     } else if (alpha < 1) {
         #if LINEAR_ALPHA_BLENDING
         // Blending in linear color space makes transparent glass overly opaque.

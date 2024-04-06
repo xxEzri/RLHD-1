@@ -165,14 +165,6 @@ void main() {
         discard;
 
     if (isWaterSurface) {
-        // Hide flat water surface tiles in the reflection
-        bool isFlat = dot(IN.flatNormal, vec3(0, 0, -1)) < .001;
-        // TODO: remove this hard-coded value and see how it works
-        isFlat = true;
-        // TODO: hide these in vert or geom instead
-        if (renderPass == RENDER_PASS_WATER_REFLECTION && isFlat)
-            discard;
-
         #if WATER_STYLE == WATER_STYLE_LEGACY
         outputColor = sampleLegacyWater(waterType, viewDir);
         #else
@@ -456,6 +448,7 @@ void main() {
 
             vec3 caustics = sampleCaustics(flow1, flow2) * 2;
 
+            // TODO: maybe cleanup
             // make a local copy which we can modify
             vec3 underwaterCausticsColor = underwaterCausticsColor;
             float underwaterCausticsStrength = underwaterCausticsStrength;

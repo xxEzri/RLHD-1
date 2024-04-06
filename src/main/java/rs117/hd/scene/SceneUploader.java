@@ -87,7 +87,7 @@ class SceneUploader {
 
 	// Array for mapping the heights of water tiles in the scene to inform the reflection texture position.
 	// If multiple async scene reloads happen simultaneously, this might break, but it should never be a big problem.
-	int[] waterHeightCounters = new int[20000];
+	int[] waterHeightCounters = new int[10000];
 
 	public void upload(SceneContext sceneContext) {
 		Stopwatch stopwatch = Stopwatch.createStarted();
