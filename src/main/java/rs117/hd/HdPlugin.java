@@ -2217,6 +2217,9 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 			glClearColor(fogColor[0], fogColor[1], fogColor[2], 1f);
 
+			glEnable(GL_BLEND);
+			glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
+
 			// Calculate projection matrix
 			if (waterReflectionEnabled) {
 				// Calculate water reflection projection matrix
@@ -2257,6 +2260,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 				glEnable(GL_DEPTH_TEST);
 				glDepthFunc(GL_LEQUAL);
+
 				glUniform1i(uniRenderPass, 1);
 				glDrawArrays(GL_TRIANGLES, 0, renderBufferOffset);
 
@@ -2300,10 +2304,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			// to have logic to disregard culled faces in the priority depth testing.
 			glEnable(GL_CULL_FACE);
 			glCullFace(GL_BACK);
-
-			// Enable blending for alpha
-			glEnable(GL_BLEND);
-			glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
 
 			float[] projectionMatrix = Mat4.scale(client.getScale(), client.getScale(), 1);
 			Mat4.mul(projectionMatrix, Mat4.projection(viewportWidth, viewportHeight, NEAR_PLANE));
