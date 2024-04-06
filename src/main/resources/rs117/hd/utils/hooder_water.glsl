@@ -345,9 +345,13 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     if (waterType.isFlat) {
         // Computed from packedHslToSrgb(6676)
         const vec3 underwaterColor = vec3(0.04856183, 0.025971446, 0.005794384);
-        const int depth = 5000;
-        sampleUnderwater(underwaterColor, waterTypeIndex, depth);
-        dst.rgb *= dst.a;
+        const int depth = 600;
+
+        vec4 src = dst;
+        dst.rgb = underwaterColor;
+        sampleUnderwater(dst.rgb, waterTypeIndex, depth);
+
+        dst.rgb = mix(dst.rgb, src.rgb, src.a);
         dst.a = 1;
     }
 
