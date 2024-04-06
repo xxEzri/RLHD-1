@@ -27,11 +27,9 @@
 #include utils/misc.glsl
 #include utils/water_reflection.glsl
 
-//#define HOODER_WATER
-
-#if LEGACY_WATER
+#if WATER_STYLE == WATER_STYLE_LEGACY
 #include utils/legacy_water.glsl
-#elif defined HOODER_WATER
+#elif WATER_STYLE == WATER_STYLE_HOODER
 #include utils/hooder_water.glsl
 #else
 
@@ -157,10 +155,11 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     // Assume the water is level
     vec3 flatR = reflect(I, vec3(0, -1, 0));
     vec3 R = reflect(I, N);
+    float distortionFactor = 50;
 
     // Initialize the reflection with a fake sky reflection
     vec4 reflection = vec4(
-        sampleWaterReflection(flatR, R),
+        sampleWaterReflection(flatR, R, distortionFactor),
         calculateFresnel(fragToCam, N, IOR_WATER)
     );
 
@@ -325,7 +324,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
 
 
 
-    bool isOpaque = waterTransparencyType == 1 || waterType.isFlat;
+    bool isOpaque = !waterTransparency || waterType.isFlat;
     vec3 waterTypeColor = vec3(0);
 
     // Opaque setting or flat water
@@ -469,7 +468,7 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth, f
     float distanceToSurface = depth / camToFrag.y;
     float totalDistance = depth + distanceToSurface;
 
-    float lightPenetration = 0.5 + (waterTransparencyConfig / 44.444); // Scale from a range of 0% = 0.5, 100% = 2.75, 130% = 3.425
+    float lightPenetration = 0.5 + (waterTransparencyAmount / 44.444); // Scale from a range of 0% = 0.5, 100% = 2.75, 130% = 3.425
 
     // Exponential falloff of light intensity when penetrating water, different for each color
     vec3 extinctionColors = vec3(0);
@@ -507,7 +506,7 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth, f
     extinctionColors.g = exp(-totalDistance * (0.001981 / lightPenetration) * waterTypeExtinction.g);
     extinctionColors.b = exp(-totalDistance * (0.001548 / lightPenetration) * waterTypeExtinction.b);
 
-    if (shorelineCaustics && (waterTransparencyType ==0 || depth <=500)) {
+    if (shorelineCaustics && (!waterTransparency || depth <= 500)) {
         const float scale = 2.5;
         vec2 causticsUv = worldUvs(scale);
         causticsUv *= 0.75;
@@ -516,7 +515,7 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth, f
         vec2 flow2 = causticsUv * 1.5 + animationFrame(23) * -direction;
         vec3 caustics = sampleCaustics(flow1, flow2, .005);
         vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength;
-        if (waterTransparencyType == 1 && depth <= 500) // reduce caustics brightness for shallow opaque water
+        if (waterTransparency && depth <= 500) // reduce caustics brightness for shallow opaque water
         {
             causticsColor *= 0.5;
         }

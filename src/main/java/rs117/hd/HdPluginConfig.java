@@ -47,7 +47,7 @@ import rs117.hd.config.ShadowResolution;
 import rs117.hd.config.TextureResolution;
 import rs117.hd.config.UIScalingMode;
 import rs117.hd.config.VanillaShadowMode;
-import rs117.hd.config.WaterTransparencyType;
+import rs117.hd.config.WaterStyle;
 
 import static rs117.hd.HdPlugin.MAX_DISTANCE;
 import static rs117.hd.HdPlugin.MAX_FOG_DEPTH;
@@ -641,19 +641,28 @@ public interface HdPluginConfig extends Config
 	)
 	String waterSettings = "waterSettings";
 
+	String KEY_WATER_STYLE = "wipWaterStyle";
 	@ConfigItem(
-		keyName = "waterTransparencyType",
-		name = "Water Type",
-		description =
-			"Choose between a default of transparent or opaque water<br>" +
-			"'Transparent' shows underwater terrain and effects, while<br>" +
-			"'Static' does not.",
+		keyName = KEY_WATER_STYLE,
+		name = "Water Style",
+		description = "Choose between the old and new water style.",
+		position = 0,
+		section = waterSettings
+	)
+	default WaterStyle waterStyle()
+	{
+		return WaterStyle.DEFAULT;
+	}
+
+	@ConfigItem(
+		keyName = "waterTransparency",
+		name = "Water Transparency",
+		description = "Choose whether the water should be transparent or opaque.",
 		position = 1,
 		section = waterSettings
 	)
-	default WaterTransparencyType waterTransparencyType()
-	{
-		return WaterTransparencyType.TRANSPARENT;
+	default boolean waterTransparency() {
+		return true;
 	}
 
 	String KEY_LIGHT_PENETRATION = "lightPenetrationPercentage";
@@ -760,15 +769,15 @@ public interface HdPluginConfig extends Config
 		return 100;
 	}
 
-	String KEY_WATER_DISTORTION_CONFIG = "waterDistortionConfig";
+	String KEY_WATER_DISTORTION = "waterDistortionConfig";
 	@ConfigItem(
-		keyName = KEY_WATER_DISTORTION_CONFIG,
+		keyName = KEY_WATER_DISTORTION,
 		name = "Water Distortion",
 		description = "Water Distortion Toggle",
 		position = 10,
 		section = waterSettings
 	)
-	default boolean waterDistortionConfig() {
+	default boolean waterDistortion() {
 		return true;
 	}
 
@@ -926,18 +935,6 @@ public interface HdPluginConfig extends Config
 		return false;
 	}
 
-	String KEY_LEGACY_WATER = "legacyWater";
-	@ConfigItem(
-		keyName = KEY_LEGACY_WATER,
-		name = "Legacy Water",
-		description = "Use the water which the plugin was originally released with. This option may get removed in the future.",
-		position = 5,
-		section = miscellaneousSettings
-	)
-	default boolean legacyWater() {
-		return false;
-	}
-
 	String KEY_VANILLA_COLOR_BANDING = "vanillaColorBanding";
 	@ConfigItem(
 		keyName = KEY_VANILLA_COLOR_BANDING,
@@ -945,7 +942,7 @@ public interface HdPluginConfig extends Config
 		description =
 			"Blend between colors similarly to how it works in vanilla, with clearly defined bands of color.<br>" +
 			"This isn't really noticeable on textured surfaces, and is intended to be used without ground textures.",
-		position = 6,
+		position = 5,
 		section = miscellaneousSettings
 	)
 	default boolean vanillaColorBanding() {
@@ -960,7 +957,7 @@ public interface HdPluginConfig extends Config
 		warning =
 			"<html>This <b>will not</b> result in better performance. It is recommended only if you are unable to install<br>" +
 			"the 64-bit version of RuneLite, or if your computer has a very low amount of memory available.</html>",
-		position = 7,
+		position = 6,
 		section = miscellaneousSettings
 	)
 	default boolean lowMemoryMode() {
@@ -972,7 +969,7 @@ public interface HdPluginConfig extends Config
 		keyName = KEY_REPLACE_FISHING_SPOTS,
 		name = "Replace Fishing Spots",
 		description = "Replace certain fishing spots with more appropriate models that are easier to see.",
-		position = 8,
+		position = 7,
 		section = miscellaneousSettings
 	)
 	default boolean replaceFishingSpots() {

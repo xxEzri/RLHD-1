@@ -24,7 +24,7 @@
  */
 #include utils/constants.glsl
 
-vec3 sampleWaterReflection(vec3 flatR, vec3 R) {
+vec3 sampleWaterReflection(vec3 flatR, vec3 R, float distortionFactor) {
     // Only use the reflection map when enabled and the height difference is negligible
     if (!waterReflectionEnabled || abs(IN.position.y - waterHeight) > 32)
         return srgbToLinear(fogColor);
@@ -35,11 +35,10 @@ vec3 sampleWaterReflection(vec3 flatR, vec3 R) {
     vec2 uv = gl_FragCoord.xy / screenSize;
 
     float dist = length(IN.position - cameraPos);
-    float distortionFactor = 1 - exp(-dist * .0004);
-    distortionFactor *= 50;
+    distortionFactor *= 1 - exp(-dist * .0004);
 
     float distortionAmount = 0;
-    #if WATER_DISTORTION_CONFIG
+    #if WATER_DISTORTION
     distortionAmount = waterDistortionAmountConfig / 100.f;
     #endif
 

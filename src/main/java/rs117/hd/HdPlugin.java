@@ -84,7 +84,7 @@ import rs117.hd.config.ShadingMode;
 import rs117.hd.config.ShadowMode;
 import rs117.hd.config.UIScalingMode;
 import rs117.hd.config.VanillaShadowMode;
-import rs117.hd.config.WaterTransparencyType;
+import rs117.hd.config.WaterStyle;
 import rs117.hd.data.WaterType;
 import rs117.hd.data.environments.Area;
 import rs117.hd.data.materials.Material;
@@ -363,8 +363,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int uniWaterColorLight;
 	private int uniWaterColorMid;
 	private int uniWaterColorDark;
-	private int uniWaterTransparencyType;
-	private int uniWaterTransparencyConfig;
+	private int uniWaterTransparency;
+	private int uniWaterTransparencyAmount;
 	private int uniAmbientStrength;
 	private int uniAmbientColor;
 	private int uniLightStrength;
@@ -427,8 +427,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	public boolean configTzhaarHD;
 	public boolean configProjectileLights;
 	public boolean configNpcLights;
-	public WaterTransparencyType waterTransparencyType;
-	public int waterTransparencyConfig;
 	public boolean configHideFakeShadows;
 	public boolean configLegacyGreyColors;
 	public boolean configModelBatching;
@@ -439,6 +437,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	public boolean configUndoVanillaShading;
 	public boolean configPreserveVanillaNormals;
 	public boolean configLinearAlphaBlending;
+	public boolean configWaterTransparency;
+	public int configWaterTransparencyAmount;
 	public int configMaxDynamicLights;
 	public ShadowMode configShadowMode;
 	public SeasonalTheme configSeasonalTheme;
@@ -836,15 +836,15 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			.define("VANILLA_COLOR_BANDING", config.vanillaColorBanding())
 			.define("UNDO_VANILLA_SHADING", configUndoVanillaShading)
 			.define("LEGACY_GREY_COLORS", configLegacyGreyColors)
-			.define("LEGACY_WATER", config.legacyWater())
 			.define("DISABLE_DIRECTIONAL_SHADING", config.shadingMode() != ShadingMode.DEFAULT)
 			.define("FLAT_SHADING", config.flatShading())
 			.define("SHADOW_MAP_OVERLAY", enableShadowMapOverlay)
 			.define("LINEAR_ALPHA_BLENDING", configLinearAlphaBlending)
+			.define("WATER_STYLE", config.waterStyle())
 			.define("PLANAR_REFLECTIONS", config.enablePlanarReflections())
 			.define("PLANAR_REFLECTION_RESOLUTION", config.reflectionResolution() / 100f)
 			.define("WATER_FOAM", config.enableWaterFoam())
-			.define("WATER_DISTORTION_CONFIG", config.waterDistortionConfig())
+			.define("WATER_DISTORTION", config.waterDistortion())
 			.addIncludePath(SHADER_PATH);
 
 		glSceneProgram = PROGRAM.compile(template);
@@ -916,8 +916,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		uniWaterColorMid = glGetUniformLocation(glSceneProgram, "waterColorMid");
 		uniWaterColorDark = glGetUniformLocation(glSceneProgram, "waterColorDark");
 		uniDrawDistance = glGetUniformLocation(glSceneProgram, "drawDistance");
-		uniWaterTransparencyConfig = glGetUniformLocation(glSceneProgram, "waterTransparencyConfig");
-		uniWaterTransparencyType = glGetUniformLocation(glSceneProgram, "waterTransparencyType");
+		uniWaterTransparency = glGetUniformLocation(glSceneProgram, "waterTransparency");
+		uniWaterTransparencyAmount = glGetUniformLocation(glSceneProgram, "waterTransparencyAmount");
 		uniExpandedMapLoadingChunks = glGetUniformLocation(glSceneProgram, "expandedMapLoadingChunks");
 		uniAmbientStrength = glGetUniformLocation(glSceneProgram, "ambientStrength");
 		uniAmbientColor = glGetUniformLocation(glSceneProgram, "ambientColor");
@@ -2142,8 +2142,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniform3fv(uniWaterColorLight, waterColorLight);
 			glUniform3fv(uniWaterColorMid, waterColorMid);
 			glUniform3fv(uniWaterColorDark, waterColorDark);
-			glUniform1f(uniWaterTransparencyType, waterTransparencyType.ordinal());
-			glUniform1f(uniWaterTransparencyConfig, waterTransparencyConfig);
+			glUniform1i(uniWaterTransparency, configWaterTransparency ? 1 : 0);
+			glUniform1i(uniWaterTransparencyAmount, configWaterTransparencyAmount); // TODO: convert to float here
 			float brightness = config.brightness() / 20f;
 			glUniform1f(uniAmbientStrength, environmentManager.currentAmbientStrength * brightness);
 			glUniform3fv(uniAmbientColor, environmentManager.currentAmbientColor);
@@ -2673,8 +2673,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		configTzhaarHD = config.hdTzHaarReskin();
 		configProjectileLights = config.projectileLights();
 		configNpcLights = config.npcLights();
-		waterTransparencyType = config.waterTransparencyType();
-		waterTransparencyConfig = config.lightPenetrationPercentage();
+		configWaterTransparency = config.waterTransparency();
+		configWaterTransparencyAmount = config.lightPenetrationPercentage();
 		configVanillaShadowMode = config.vanillaShadowMode();
 		configHideFakeShadows = configVanillaShadowMode != VanillaShadowMode.SHOW;
 		configLegacyGreyColors = config.legacyGreyColors();
@@ -2685,7 +2685,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		configUseFasterModelHashing = config.fasterModelHashing();
 		configUndoVanillaShading = config.shadingMode() != ShadingMode.VANILLA;
 		configPreserveVanillaNormals = config.preserveVanillaNormals();
-		configLinearAlphaBlending = !config.legacyWater();
+		configLinearAlphaBlending = config.waterStyle() != WaterStyle.LEGACY;
 		configSeasonalTheme = config.seasonalTheme();
 
 		var newColorFilter = config.colorFilter();
@@ -2771,9 +2771,9 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 							case KEY_COLOR_FILTER:
 							case KEY_PLANAR_REFLECTIONS:
 							case KEY_PLANAR_REFLECTION_RESOLUTION:
+							case KEY_WATER_STYLE:
 							case KEY_WATER_FOAM:
-							case KEY_LEGACY_WATER:
-							case KEY_WATER_DISTORTION_CONFIG:
+							case KEY_WATER_DISTORTION:
 								recompilePrograms = true;
 								break;
 							case KEY_SHADOW_MODE:

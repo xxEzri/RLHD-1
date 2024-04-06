@@ -141,7 +141,8 @@ vec4 sampleLegacyWater(WaterType waterType, vec3 viewDir) {
     // Assume the water is level
     vec3 flatR = reflect(I, vec3(0, -1, 0));
     vec3 R = reflect(I, normals);
-    vec3 reflection = linearToSrgb(sampleWaterReflection(flatR, mix(flatR, R, .5)));
+    float distortionFactor = 50;
+    vec3 reflection = linearToSrgb(sampleWaterReflection(flatR, mix(flatR, R, .5), distortionFactor));
     surfaceColor = reflection * .9;
     #endif
 

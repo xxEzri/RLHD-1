@@ -45,8 +45,8 @@ uniform float fogDepth;
 uniform vec3 waterColorLight;
 uniform vec3 waterColorMid;
 uniform vec3 waterColorDark;
-uniform float waterTransparencyType;
-uniform float waterTransparencyConfig;
+uniform bool waterTransparency;
+uniform int waterTransparencyAmount;
 uniform vec3 ambientColor;
 uniform float ambientStrength;
 uniform vec3 lightColor;
@@ -171,7 +171,7 @@ void main() {
         if (renderPass == RENDER_PASS_WATER_REFLECTION && isFlat)
             discard;
 
-        #if LEGACY_WATER
+        #if WATER_STYLE == WATER_STYLE_LEGACY
         outputColor = sampleLegacyWater(waterType, viewDir);
         #else
         outputColor = sampleWater(waterTypeIndex, viewDir);
@@ -544,20 +544,20 @@ void main() {
             getMaterialIsUnlit(material3)
         ));
 
-        #if LEGACY_WATER
+        #if WATER_STYLE == WATER_STYLE_LEGACY
             outputColor.rgb *= mix(compositeLight, vec3(1), unlit);
             if (isUnderwaterTile)
                 sampleLegacyUnderwater(outputColor.rgb, waterType.depthColor, waterDepth, lightDotNormals);
-        #elif defined HOODER_WATER
+        #elif WATER_STYLE == WATER_STYLE_DEFAULT
+            outputColor.rgb *= mix(compositeLight, vec3(1), unlit);
+            if (isUnderwaterTile)
+                sampleUnderwater(outputColor.rgb, waterTypeIndex, waterDepth, lightDotNormals);
+        #else
             if (isUnderwaterTile) {
                 sampleUnderwater(outputColor.rgb, waterTypeIndex, waterDepth);
             } else {
                 outputColor.rgb *= mix(compositeLight, vec3(1), unlit);
             }
-        #else
-            outputColor.rgb *= mix(compositeLight, vec3(1), unlit);
-            if (isUnderwaterTile)
-                sampleUnderwater(outputColor.rgb, waterTypeIndex, waterDepth, lightDotNormals);
         #endif
     }
 

@@ -104,7 +104,7 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth) {
     ));
     mat3 xyzToBands = inverse(bandsToXyz);
 
-    float absorptionAdjustment = exp(5 * (1 - waterTransparencyConfig / 100.f));
+    float absorptionAdjustment = exp(5 * (1 - waterTransparencyAmount / 100.f));
     extinctionCoefficients *= absorptionAdjustment;
 
     // Refraction is not precalculated for the underwater position
@@ -156,19 +156,22 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth) {
         directionalLight += caustics;
     }
 
-    // For shadows, we can take refraction into account, since sunlight is parallel
-    vec3 surfaceSunPos = fragPos - refractedSunDir * sunToFragDist;
-    surfaceSunPos += refractedSunDir * 32; // Push the position a short distance below the surface
-    vec2 distortion = vec2(0);
-    {
-        vec2 flowMapUv = worldUvs(15) + animationFrame(50 * waterType.duration);
-        float flowMapStrength = 0.025;
-        vec2 uvFlow = textureBicubic(textureArray, vec3(flowMapUv, waterType.flowMap)).xy;
-        distortion = uvFlow * .0015 * (1 - exp(-depth));
+    // Disable shadows for flat water, as it needs more work
+    if (waterTransparency && !waterType.isFlat) {
+        // For shadows, we can take refraction into account, since sunlight is parallel
+        vec3 surfaceSunPos = fragPos - refractedSunDir * sunToFragDist;
+        surfaceSunPos += refractedSunDir * 32; // Push the position a short distance below the surface
+        vec2 distortion = vec2(0);
+        {
+            vec2 flowMapUv = worldUvs(15) + animationFrame(50 * waterType.duration);
+            float flowMapStrength = 0.025;
+            vec2 uvFlow = textureBicubic(textureArray, vec3(flowMapUv, waterType.flowMap)).xy;
+            distortion = uvFlow * .0015 * (1 - exp(-depth));
+        }
+        float shadow = sampleShadowMap(surfaceSunPos, distortion, dot(-sunDir, underwaterNormal));
+        // Attenuate directional by shadowing
+        directionalLight *= 1 - shadow;
     }
-    float shadow = sampleShadowMap(surfaceSunPos, distortion, dot(-sunDir, underwaterNormal));
-    // Attenuate directional by shadowing
-    directionalLight *= 1 - shadow;
 
     // Attenuate directional light by fresnel refraction
     directionalLight *= 1 - calculateFresnel(max(0, dot(-sunDir, surfaceNormal)), IOR_WATER);
@@ -253,10 +256,11 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     // Assume the water is level
     vec3 flatR = reflect(I, vec3(0, -1, 0));
     vec3 R = reflect(I, N);
+    float distortionFactor = 20;
 
     // Initialize the reflection with a fake sky reflection
     vec4 reflection = vec4(
-        sampleWaterReflection(flatR, R),
+        sampleWaterReflection(flatR, R, distortionFactor),
         calculateFresnel(dot(fragToCam, N), IOR_WATER)
     );
 
@@ -342,7 +346,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     }
 
     // If the water is opaque, blend in a fake underwater surface
-    if (waterType.isFlat) {
+    if (waterType.isFlat || !waterTransparency) {
         // Computed from packedHslToSrgb(6676)
         const vec3 underwaterColor = vec3(0.04856183, 0.025971446, 0.005794384);
         const int depth = 600;
