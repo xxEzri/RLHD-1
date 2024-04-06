@@ -446,13 +446,6 @@ void main() {
 
             vec3 caustics = sampleCaustics(flow1, flow2) * 2;
 
-            // TODO: maybe cleanup
-            // make a local copy which we can modify
-            vec3 underwaterCausticsColor = underwaterCausticsColor;
-            float underwaterCausticsStrength = underwaterCausticsStrength;
-
-            underwaterCausticsStrength *= 10;
-
             vec3 absorptionColor = vec3(.003090, .001981, .001548);
 
             // hard-coded depth
@@ -461,11 +454,9 @@ void main() {
             // Exponential falloff of light intensity when penetrating water, different for each color
             vec3 extinctionColors = exp(-depth * absorptionColor);
 
-            underwaterCausticsColor *= extinctionColors;
-
 //            FragColor = vec4(vec3(extinction), 1); return;
 
-            vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength;
+            vec3 causticsColor = underwaterCausticsColor * extinctionColors * underwaterCausticsStrength * 10;
             dirLightColor += caustics * causticsColor * lightDotNormals * pow(lightStrength, 1.5);
         }
 
