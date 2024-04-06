@@ -50,7 +50,7 @@
 // 14 = dark blue water
 // 15 = flat blood
 
-#include utils/texture_tiling.glsl
+#include utils/texture_bicubic.glsl
 
 float calculateFresnel(const vec3 I, const vec3 N, const float ior) {
     float cosi = dot(I, N);

@@ -25,7 +25,7 @@
 #include utils/constants.glsl
 #include utils/color_utils.glsl
 #include utils/shadows.glsl
-#include utils/texture_tiling.glsl
+#include utils/texture_bicubic.glsl
 
 // Index of refraction and the cosine of the angle between the normal vector and a vector towards the camera
 float calculateFresnel(const float cosi, const float iorFrom, const float iorTo) {
