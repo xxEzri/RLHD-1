@@ -786,24 +786,12 @@ public interface HdPluginConfig extends Config
 		return 100;
 	}
 
-	String KEY_WATER_LIGHT_SCATTERING = "waterLightScattering";
-	@ConfigItem(
-		keyName = KEY_WATER_LIGHT_SCATTERING,
-		name = "Light Scattering",
-		description = "Approximate light scattering on water surface/waves.",
-		position = 12,
-		section = waterSettings
-	)
-	default boolean waterLightScattering() {
-		return true;
-	}
-
 	String KEY_WATER_FOAM = "waterFoam";
 	@ConfigItem(
 		keyName = KEY_WATER_FOAM,
 		name = "Foam",
 		description = "Render foam around the edges of water bodies.",
-		position = 13,
+		position = 12,
 		section = waterSettings
 	)
 	default boolean enableWaterFoam() {
@@ -815,7 +803,7 @@ public interface HdPluginConfig extends Config
 		keyName = KEY_WATER_FOAM_AMOUNT_CONFIG,
 		name = "Foam Amount",
 		description = "The amount of foam around shorelines.",
-		position = 14,
+		position = 13,
 		section = waterSettings
 	)
 	@Units(Units.PERCENT)
