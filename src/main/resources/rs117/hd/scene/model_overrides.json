@@ -1081,6 +1081,11 @@
     ]
   },
   {
+    "description": "Hide objects causing issues with water reflections, such as grapple shortcuts",
+    "objectIds": [ 17079 ],
+    "hide": true
+  },
+  {
     "description": "TREES",
     "baseMaterial": "BARK",
     "objectIds": [
