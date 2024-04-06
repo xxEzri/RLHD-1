@@ -2261,7 +2261,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				glDisable(GL_CULL_FACE);
 
 				glEnable(GL_DEPTH_TEST);
-				glDepthFunc(GL_LEQUAL);
+				// With LEQUAL, the insides of paper thin walls are visible from the outside
+				glDepthFunc(GL_LESS);
 
 				glUniform1i(uniRenderPass, 1);
 				glDrawArrays(GL_TRIANGLES, 0, renderBufferOffset);
