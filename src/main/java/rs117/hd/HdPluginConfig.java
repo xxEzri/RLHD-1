@@ -594,7 +594,7 @@ public interface HdPluginConfig extends Config
 		return true;
 	}
 
-	String KEY_TEXTURE_RESOLUTION = "textureResolution";
+	String KEY_TEXTURE_RESOLUTION = "textureResolutionBig";
 	@ConfigItem(
 		keyName = KEY_TEXTURE_RESOLUTION,
 		name = "Texture Resolution",
@@ -604,7 +604,7 @@ public interface HdPluginConfig extends Config
 	)
 	default TextureResolution textureResolution()
 	{
-		return TextureResolution.RES_256;
+		return TextureResolution.RES_512;
 	}
 
 	String KEY_GROUND_BLENDING = "groundBlending";
