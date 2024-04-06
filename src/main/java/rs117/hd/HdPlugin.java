@@ -2059,8 +2059,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 					final int samples = forcedAASamples != 0 ? forcedAASamples :
 						Math.min(antiAliasingMode.getSamples(), maxSamples);
 
-					log.debug("AA samples: {}, max samples: {}, forced samples: {}", samples, maxSamples, forcedAASamples);
-
 					initAAFbo(stretchedCanvasWidth, stretchedCanvasHeight, samples);
 				}
 
@@ -2665,8 +2663,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		configTzhaarHD = config.hdTzHaarReskin();
 		configProjectileLights = config.projectileLights();
 		configNpcLights = config.npcLights();
-		configWaterTransparency = config.waterTransparency();
-		configWaterTransparencyAmount = config.lightPenetrationPercentage();
 		configVanillaShadowMode = config.vanillaShadowMode();
 		configHideFakeShadows = configVanillaShadowMode != VanillaShadowMode.SHOW;
 		configLegacyGreyColors = config.legacyGreyColors();
@@ -2677,8 +2673,10 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		configUseFasterModelHashing = config.fasterModelHashing();
 		configUndoVanillaShading = config.shadingMode() != ShadingMode.VANILLA;
 		configPreserveVanillaNormals = config.preserveVanillaNormals();
-		configLinearAlphaBlending = config.waterStyle() != WaterStyle.LEGACY;
 		configSeasonalTheme = config.seasonalTheme();
+		configLinearAlphaBlending = config.waterStyle() != WaterStyle.LEGACY;
+		configWaterTransparency = config.waterTransparency();
+		configWaterTransparencyAmount = config.lightPenetrationPercentage();
 
 		var newColorFilter = config.colorFilter();
 		if (newColorFilter != configColorFilter) {
