@@ -357,6 +357,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 	// Uniforms
 	private int uniRenderPass;
+	private int uniViewportDimensions;
 	private int uniColorBlindnessIntensity;
 	private int uniUiColorBlindnessIntensity;
 	private int uniUseFog;
@@ -906,6 +907,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 	private void initUniforms() {
 		uniRenderPass = glGetUniformLocation(glSceneProgram, "renderPass");
+		uniViewportDimensions = glGetUniformLocation(glSceneProgram, "viewportDimensions");
 		uniProjectionMatrix = glGetUniformLocation(glSceneProgram, "projectionMatrix");
 		uniLightProjectionMatrix = glGetUniformLocation(glSceneProgram, "lightProjectionMatrix");
 		uniShadowMap = glGetUniformLocation(glSceneProgram, "shadowMap");
@@ -1473,11 +1475,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
-		float[] colorBorder = { 0, 0, 0, 1 };
-		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, colorBorder);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 		// Bind texture
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texWaterReflection, 0);
@@ -1909,8 +1908,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		lastFrameTimeMillis = System.currentTimeMillis();
 		lastFrameClientTime = elapsedClientTime;
 
-		final int canvasHeight = client.getCanvasHeight();
 		final int canvasWidth = client.getCanvasWidth();
+		final int canvasHeight = client.getCanvasHeight();
 
 		try {
 			prepareInterfaceTexture(canvasWidth, canvasHeight);
@@ -1961,6 +1960,13 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				renderHeightOff      = (int) Math.floor(scaleFactorY * (renderHeightOff)) - padding;
 				renderWidthOff       = (int) Math.floor(scaleFactorX * (renderWidthOff )) - padding;
 			}
+
+			int[] dpiViewport = applyDpiScaling(
+				renderWidthOff,
+				renderCanvasHeight - renderViewportHeight - renderHeightOff,
+				renderViewportWidth,
+				renderViewportHeight
+			);
 
 			// Before reading the SSBOs written to from postDrawScene() we must insert a barrier
 			if (computeMode == ComputeMode.OPENCL) {
@@ -2094,6 +2100,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			lastPlanarReflectionEnabled = waterReflectionEnabled;
 			lastPlanarReflectionResolution = reflectionResolution;
 			lastLinearAlphaBlending = configLinearAlphaBlending;
+
+			glUniform2i(uniViewportDimensions, dpiViewport[2], dpiViewport[3]);
 
 			float[] fogColor = ColorUtils.linearToSrgb(environmentManager.currentFogColor);
 			float fogDepth = 0;
@@ -2278,12 +2286,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 			glUniform3fv(uniCameraPos, cameraPosition);
 
-			glDpiAwareViewport(
-				renderWidthOff,
-				renderCanvasHeight - renderViewportHeight - renderHeightOff,
-				renderViewportWidth,
-				renderViewportHeight
-			);
+			glViewport(dpiViewport[0], dpiViewport[1], dpiViewport[2], dpiViewport[3]);
 
 			frameTimer.begin(Timer.CLEAR_SCENE);
 
@@ -2328,22 +2331,13 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUseProgram(0);
 
 			if (aaEnabled) {
-				int width = lastStretchedCanvasWidth;
-				int height = lastStretchedCanvasHeight;
-
-				if (OSType.getOSType() != OSType.MacOS) {
-					final GraphicsConfiguration graphicsConfiguration = clientUI.getGraphicsConfiguration();
-					final AffineTransform transform = graphicsConfiguration.getDefaultTransform();
-
-					width = getScaledValue(transform.getScaleX(), width);
-					height = getScaledValue(transform.getScaleY(), height);
-				}
+				int[] dimensions = applyDpiScaling(stretchedCanvasWidth, stretchedCanvasHeight);
 
 				glBindFramebuffer(GL_READ_FRAMEBUFFER, fboSceneHandle);
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, awtContext.getFramebuffer(false));
 				glBlitFramebuffer(
-					0, 0, width, height,
-					0, 0, width, height,
+					0, 0, dimensions[0], dimensions[1],
+					0, 0, dimensions[0], dimensions[1],
 					GL_COLOR_BUFFER_BIT, GL_NEAREST
 				);
 
@@ -3218,25 +3212,26 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		return (int) (value * scale + .5);
 	}
 
-	private void glDpiAwareViewport(final int x, final int y, final int width, final int height)
-	{
+	// Assumes alternating x/y
+	private int[] applyDpiScaling(int... coordinates) {
+		// macOS handles DPI scaling for us already
 		if (OSType.getOSType() == OSType.MacOS)
-		{
-			// macos handles DPI scaling for us already
-			glViewport(x, y, width, height);
-		}
-		else
-		{
-			final GraphicsConfiguration graphicsConfiguration = clientUI.getGraphicsConfiguration();
-			if (graphicsConfiguration == null) return;
-			final AffineTransform t = graphicsConfiguration.getDefaultTransform();
-			glViewport(
-				getScaledValue(t.getScaleX(), x),
-				getScaledValue(t.getScaleY(), y),
-				getScaledValue(t.getScaleX(), width),
-				getScaledValue(t.getScaleY(), height)
-			);
-		}
+			return coordinates;
+
+		final GraphicsConfiguration graphicsConfiguration = clientUI.getGraphicsConfiguration();
+		if (graphicsConfiguration == null)
+			return coordinates;
+
+		final AffineTransform t = graphicsConfiguration.getDefaultTransform();
+		for (int i = 0; i < coordinates.length; i++)
+			coordinates[i] = getScaledValue(i % 2 == 0 ? t.getScaleX() : t.getScaleY(), coordinates[i]);
+		return coordinates;
+	}
+
+	private void glDpiAwareViewport(int... xywh)
+	{
+		applyDpiScaling(xywh);
+		glViewport(xywh[0], xywh[1], xywh[2], xywh[3]);
 	}
 
 	public int getDrawDistance() {

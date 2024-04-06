@@ -36,6 +36,7 @@ uniform sampler2D shadowMap;
 uniform sampler2D waterReflectionMap;
 
 uniform int renderPass;
+uniform ivec2 viewportDimensions;
 uniform vec3 cameraPos;
 uniform mat4 lightProjectionMatrix;
 uniform float elapsedTime;

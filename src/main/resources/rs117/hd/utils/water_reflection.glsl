@@ -29,11 +29,6 @@ vec3 sampleWaterReflection(vec3 flatR, vec3 R, float distortionFactor) {
     if (!waterReflectionEnabled || abs(IN.position.y - waterHeight) > 32)
         return srgbToLinear(fogColor);
 
-    // TODO: use actual viewport size here
-    vec2 screenSize = vec2(textureSize(waterReflectionMap, 0)) / PLANAR_REFLECTION_RESOLUTION;
-    vec2 texelSize = 1 / screenSize;
-    vec2 uv = gl_FragCoord.xy / screenSize;
-
     float dist = length(IN.position - cameraPos);
     distortionFactor *= 1 - exp(-dist * .0004);
 
@@ -46,8 +41,11 @@ vec3 sampleWaterReflection(vec3 flatR, vec3 R, float distortionFactor) {
     float x = dot(R, uvX);
     float y = dot(R, uvY);
     vec2 distortion = vec2(x, y) * distortionFactor;
-    uv += texelSize * distortion;
-    uv = clamp(uv, texelSize, 1 - texelSize);
+
+    vec2 viewTexelSize = 1.f / viewportDimensions;
+    vec2 uv = gl_FragCoord.xy;
+    uv += distortion;
+    uv *= viewTexelSize;
 
     // This will be linear or sRGB depending on the linear alpha blending setting
     vec3 c = texture(waterReflectionMap, uv, -1).rgb;
