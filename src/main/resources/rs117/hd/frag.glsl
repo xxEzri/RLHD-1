@@ -584,11 +584,8 @@ void main() {
         // multiply the visibility of each fog
         float combinedFog = 1 - (1 - IN.fogAmount) * (1 - groundFog);
 
-        if (isWaterSurface) {
-            // TODO: this isn't right with linear blending, I think
+        if (isWaterSurface)
             outputColor.a = combinedFog + outputColor.a * (1 - combinedFog);
-        }
-
         outputColor.rgb = mix(outputColor.rgb, fogColor, combinedFog);
     }
 

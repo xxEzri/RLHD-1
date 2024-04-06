@@ -23,6 +23,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include utils/constants.glsl
+//#include utils/texture_bicubic.glsl
 
 vec3 sampleWaterReflection(vec3 flatR, vec3 R, float distortionFactor) {
     // Only use the reflection map when enabled, the height difference is negligible & the surface is roughly flat
@@ -49,7 +50,7 @@ vec3 sampleWaterReflection(vec3 flatR, vec3 R, float distortionFactor) {
 
     // This will be linear or sRGB depending on the linear alpha blending setting
     vec3 c = texture(waterReflectionMap, uv, -1).rgb;
-//    c = textureBicubic(waterReflectionMap, uv).rgb;
+//    vec3 c = textureBicubic(waterReflectionMap, uv).rgb;
 
     #if !LINEAR_ALPHA_BLENDING
     // When linear alpha blending is on, the texture is in sRGB, and OpenGL will automatically convert it to linear
