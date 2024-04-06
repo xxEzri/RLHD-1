@@ -637,7 +637,7 @@ public interface HdPluginConfig extends Config
 
 	@ConfigSection(
 		name = "Water",
-		description = "Water settings",
+		description = "Various options which decide the look of water.",
 		position = 3
 	)
 	String waterSettings = "waterSettings";
@@ -746,7 +746,7 @@ public interface HdPluginConfig extends Config
 	@ConfigItem(
 		keyName = KEY_WATER_WAVE_SIZE,
 		name = "Wave Size",
-		description = "The size of waves.",
+		description = "Approximately how sharp or strong waves should appear, relative to our default.",
 		position = 8,
 		section = waterSettings
 	)

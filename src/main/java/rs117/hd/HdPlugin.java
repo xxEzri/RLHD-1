@@ -2075,7 +2075,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 			// Setup planar reflection FBO
 			final boolean waterReflectionEnabled = config.enablePlanarReflections();
-			final float reflectionResolution = config.reflectionResolution() / 100f;
+			// Clamp this to our target range since RuneLite allows manually typing numbers outside the range
+			final float reflectionResolution = clamp(config.reflectionResolution() / 100f, 0, 1);
 			final int reflectionWidth = Math.max(1, Math.round(stretchedCanvasWidth * reflectionResolution));
 			final int reflectionHeight = Math.max(1, Math.round(stretchedCanvasHeight * reflectionResolution));
 			if (waterReflectionEnabled) {

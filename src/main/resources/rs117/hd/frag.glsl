@@ -141,18 +141,16 @@ void main() {
         waterDepth1 * IN.texBlend.x +
         waterDepth2 * IN.texBlend.y +
         waterDepth3 * IN.texBlend.z;
-    int waterTypeIndex = 0;
-    if (isTerrain) {
-        #ifdef DEVELOPMENT_WATER_TYPE
-        waterTypeIndex = DEVELOPMENT_WATER_TYPE;
-        #else
-        waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
-        #endif
-    }
+    int waterTypeIndex = vTerrainData[0] >> 3 & 0x1F;
 
     bool isWater = waterTypeIndex > 0;
     bool isUnderwaterTile = waterDepth != 0;
     bool isWaterSurface = isWater && !isUnderwaterTile;
+
+    #ifdef DEVELOPMENT_WATER_TYPE
+    if (isWater)
+        waterTypeIndex = DEVELOPMENT_WATER_TYPE;
+    #endif
 
     WaterType waterType;
     if (isWater)
