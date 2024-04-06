@@ -36,12 +36,13 @@ vec3 sampleWaterReflection(vec3 flatR, vec3 R) {
 
     float dist = length(IN.position - cameraPos);
     float distortionFactor = 1 - exp(-dist * .0004);
+    distortionFactor *= 20;
 
     vec3 uvX = normalize(cross(flatR * vec3(1, 0, 1), flatR));
     vec3 uvY = cross(uvX, flatR);
     float x = dot(R, uvX);
     float y = dot(R, uvY);
-    vec2 distortion = vec2(x, y) * 50 * distortionFactor;
+    vec2 distortion = vec2(x, y) * distortionFactor;
     // TODO: Don't distort too close to the shore
     float shoreLineMask = 1.0 - dot(IN.texBlend, vec3(vColor[0].x, vColor[1].x, vColor[2].x));
     distortion *= 1.4 - (shoreLineMask *1.54); // safety factor to remove artifacts

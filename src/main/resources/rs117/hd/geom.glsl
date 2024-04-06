@@ -28,12 +28,7 @@
 #include utils/constants.glsl
 
 layout(triangles) in;
-
-//#if PLANAR_REFLECTIONS
-//layout(triangle_strip, max_vertices = 6) out;
-//#else
 layout(triangle_strip, max_vertices = 3) out;
-//#endif
 
 uniform int renderPass;
 uniform mat4 projectionMatrix;
@@ -72,8 +67,9 @@ void displaceUnderwaterPosition(inout vec3 position, int waterDepth) {
     if (waterDepth <= 1)
         return;
 
-    // TODO: replace this & retune underwater depths
-    // This was all wrong. I've boiled it down to what it actually does to show how wrong.
+    // This is quite arbitrary, but a correct solution is non-trivial
+    // See https://en.wikipedia.org/wiki/Fermat%27s_principle#/media/File:Fermat_Snellius.svg
+    // which boils down to a quartic equation when solving for x given A, B and b
     vec3 I = normalize(position - cameraPos);
     vec3 refracted = 1.3 * I + vec3(0, .3, 0);
     position += (I - refracted / refracted.y) * waterDepth;
@@ -112,11 +108,6 @@ void main() {
         // Flat normals must be applied separately per vertex
         vec3 normal = gNormal[i];
         vec3 position = gPosition[i];
-
-        // TODO: this was implemented wrong, and we would need a way to apply it only when the water surface is flat
-        int waterDepth = gTerrainData[i] >> 8 & 0x7FF;
-        displaceUnderwaterPosition(position, waterDepth);
-
         OUT.position = position;
         OUT.uv = vUv[i].xy;
         OUT.flatNormal = N;
@@ -128,36 +119,14 @@ void main() {
         OUT.texBlend = vec3(0);
         OUT.texBlend[i] = 1;
         OUT.fogAmount = gFogAmount[i];
+
+        // Apply some arbitrary displacement to mimic refraction
+        int waterDepth = gTerrainData[i] >> 8 & 0x7FF;
+        displaceUnderwaterPosition(position, waterDepth);
+
         gl_Position = projectionMatrix * vec4(position, 1);
         EmitVertex();
     }
 
     EndPrimitive();
-
-    // Works, but is costly
-//    if (renderPass == RENDER_PASS_WATER_REFLECTION) {
-//        bool isTerrain = (vTerrainData[0] & 1) != 0;
-//        if (isTerrain) {
-//            for (int i = 0; i < 3; i++) {
-//                // Flat normals must be applied separately per vertex
-//                vec3 normal = gNormal[i];
-//                vec3 position = gPosition[i];
-//                position.y = .1; // TODO: set to water height
-//                OUT.position = vec3(0);
-//                OUT.flatNormal = N;
-//                #if FLAT_SHADING
-//                OUT.normal = N;
-//                #else
-//                OUT.normal = length(normal) == 0 ? N : normalize(normal);
-//                #endif
-//                OUT.texBlend = vec3(0);
-//                OUT.texBlend[i] = 1;
-//                OUT.fogAmount = gFogAmount[i];
-//                gl_Position = projectionMatrix * vec4(position, 1);
-//                EmitVertex();
-//            }
-//
-//            EndPrimitive();
-//        }
-//    }
 }

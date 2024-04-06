@@ -1,14 +1,45 @@
+/*
+ * Copyright (c) 2024, Hooder <ahooder@protonmail.com>
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+#include utils/constants.glsl
 #include utils/color_utils.glsl
 #include utils/shadows.glsl
 #include utils/texture_tiling.glsl
 
 // Index of refraction and the cosine of the angle between the normal vector and a vector towards the camera
-float calculateFresnel(const float cosi, const float ior) {
-    float R0 = (ior - 1) / (ior + 1);
+float calculateFresnel(const float cosi, const float iorFrom, const float iorTo) {
+    float R0 = (iorFrom - iorTo) / (iorFrom + iorTo);
     R0 *= R0;
     return R0 + (1 - R0) * pow(1 - cosi, 5);
 }
 
+// Air to medium by default
+float calculateFresnel(const float cosi, const float ior) {
+    return calculateFresnel(cosi, IOR_AIR, ior);
+}
+
+// Air to medium by default
 float calculateFresnel(const vec3 I, const vec3 N, const float ior) {
     return calculateFresnel(dot(I, N), ior);
 }
@@ -31,6 +62,8 @@ float calculateFresnelTIR(const vec3 I, const vec3 N, const float ior) {
 }
 
 void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth) {
+    WaterType waterType = getWaterType(waterTypeIndex);
+
     // Make the color appear like wet sand to start off with
     outputColor *= vec3(2.5, 3.5, 3.5);
 
@@ -42,9 +75,9 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth) {
     // Pure water based on https://en.wikipedia.org/wiki/Electromagnetic_absorption_by_water#/media/File:Absorption_coefficient_of_water.svg
     // Exponential extinction coefficient per meter
     vec3 extinctionCoefficients = vec3(
-        0.00922, // 450 nm
-        0.0565,  // 550 nm
-        0.2224   // 600 nm
+        0.2224, // ~red   600 nm
+        0.0565, // ~green 550 nm
+        0.00922 // ~blue  450 nm
     );
     // Approximate some kind of ocean water with phytoplankton absorption based on https://www.oceanopticsbook.info/view/absorption/absorption-by-oceanic-constituents
 //    extinctionCoefficients += vec3(
@@ -52,36 +85,46 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth) {
 //        0.0175,
 //        0.005
 //    );
+
+    // Attempt #1 at picking some numbers which look nice
+    extinctionCoefficients = vec3(
+        .1,
+        .1,
+        .00922
+    );
+
     // Convert extinction coefficients to in-game units
     extinctionCoefficients /= 128.f;
 
     // Convert to XYZ at the end https://en.wikipedia.org/wiki/CIE_1931_color_space#Color_matching_functions
     mat3 bandsToXyz = transpose(mat3(
-        0.336200000000, 0.038000000000, 1.772110000000, // 450 nm
+        1.062200000000, 0.631000000000, 0.000800000000, // 600 nm
         0.433449900000, 0.994950100000, 0.008749999000, // 550 nm
-        1.062200000000, 0.631000000000, 0.000800000000  // 600 nm
+        0.336200000000, 0.038000000000, 1.772110000000  // 450 nm
     ));
     mat3 xyzToBands = inverse(bandsToXyz);
 
-    // Make extinction adjustable similar to Aeryn's
-    float lightPenetration = exp(5 * (1 - waterTransparencyConfig / 100.f)); // Scale from a range of 0% = 0.5, 100% = 2.75, 130% = 3.425
-    extinctionCoefficients *= lightPenetration;
+    float absorptionAdjustment = exp(5 * (1 - waterTransparencyConfig / 100.f));
+    extinctionCoefficients *= absorptionAdjustment;
 
-    // Assume refraction is precalculated in the geometry shader, i.e. straight lines match actual light paths
-    vec3 camToFrag = normalize(IN.position - cameraPos);
-    float fragToCamDistance = depth / camToFrag.y;
+    // Refraction is not precalculated for the underwater position
+    vec3 fragPos = IN.position;
+    vec3 underwaterNormal = normalize(IN.normal);
+    const vec3 surfaceNormal = vec3(0, -1, 0); // Assume a flat surface
 
-    // sunDir is the light's direction from the sun
-    const vec3 surfaceNormal = vec3(0, -1, 0);
-    vec3 sunDir = -lightDir;
-    vec3 refractedSunDir = refract(sunDir, surfaceNormal, IOR_WATER); // Assume a flat surface
-    float sunToFragDistance = depth / refractedSunDir.y;
+    vec3 sunDir = -lightDir; // the light's direction from the sun towards any fragment
+    vec3 refractedSunDir = refract(sunDir, surfaceNormal, IOR_AIR_TO_WATER);
+    float sunToFragDist = depth / refractedSunDir.y;
+
+    vec3 camToFrag = normalize(fragPos - cameraPos);
+    // We ignore refraction effects on the way back up to the surface
+    float fragToSurfaceDist = depth / camToFrag.y;
 
     // Attenuate directional and ambient light by their distances travelled on the way down
-    vec3 directionalAttenuation = exp(-extinctionCoefficients * sunToFragDistance);
+    vec3 directionalAttenuation = exp(-extinctionCoefficients * sunToFragDist);
     vec3 ambientAttenuation = exp(-extinctionCoefficients * depth);
     // Attenuate the light on the way back up to the surface
-    vec3 upwardAttenuation = exp(-extinctionCoefficients * fragToCamDistance);
+    vec3 upwardAttenuation = exp(-extinctionCoefficients * fragToSurfaceDist);
 
     // Initialize with linear RGB colors
     vec3 directionalLight = lightColor * lightStrength;
@@ -102,20 +145,28 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth) {
         caustics *= underwaterCausticsColor * underwaterCausticsStrength;
 
         // Fade caustics out too close to the shoreline
-        caustics *= min(1, depth / 128);
+        caustics *= min(1, smoothstep(0, 1, depth / 32));
 
         // Fade caustics out with depth, since they should decay sharply due to focus
-        caustics *= max(0, 1 - depth / 512);
+        caustics *= max(0, 1 - smoothstep(0, 1, depth / 768));
 
+        // Artificially boost strength
         caustics *= 15;
 
         directionalLight += caustics;
     }
 
-    // TODO: if refraction is built into the fragment position, we technically need to reverse it
-    vec3 underwaterWorldPos = IN.position; // for now, assume this is the actual world position
-    vec3 sunSurfacePos = underwaterWorldPos - refractedSunDir * sunToFragDistance;
-    float shadow = sampleShadowMap(sunSurfacePos, vec2(0), dot(-sunDir, surfaceNormal));
+    // For shadows, we can take refraction into account, since sunlight is parallel
+    vec3 surfaceSunPos = fragPos - refractedSunDir * sunToFragDist;
+    surfaceSunPos += refractedSunDir * 32; // Push the position a short distance below the surface
+    vec2 distortion = vec2(0);
+    {
+        vec2 flowMapUv = worldUvs(15) + animationFrame(50 * waterType.duration);
+        float flowMapStrength = 0.025;
+        vec2 uvFlow = textureBicubic(textureArray, vec3(flowMapUv, waterType.flowMap)).xy;
+        distortion = uvFlow * .0015 * (1 - exp(-depth));
+    }
+    float shadow = sampleShadowMap(surfaceSunPos, distortion, dot(-sunDir, underwaterNormal));
     // Attenuate directional by shadowing
     directionalLight *= 1 - shadow;
 
@@ -125,9 +176,8 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth) {
     ambientLight *= 1 - calculateFresnel(1, IOR_WATER);
 
     // Attenuate based on the direction light hits the underwater surface
-    vec3 underwaterNormal = normalize(IN.normal);
     directionalLight *= max(0, dot(-refractedSunDir, underwaterNormal));
-    // This is a tiny bit questionable, since ambient comes from all directions, but here I assume it goes only down
+    // This is a bit questionable, since ambient comes from all directions, but here we assume it goes down
     ambientLight *= -underwaterNormal.y;
 
     // Scale colors to safe ranges for conversion to XYZ
@@ -158,11 +208,9 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth) {
     // Bring the intensity back
     light *= intensityFactor;
 
-    // TODO: Attenuate light on the way back out of the water, accounting for total internal reflection
-    float fresnelWaterToAir = calculateFresnelTIR(-camToFrag, -surfaceNormal, 1 / IOR_WATER);
-    fresnelWaterToAir = clamp(fresnelWaterToAir, 0, 1);
-    // Attenuate light by refraction on the way out of the water
-//    light *= 1 - fresnelWaterToAir;
+    // Light doesn't need to be attenuated on the way back up through the surface, since the surface
+    // already handles this with alpha blending. The only remaining issue might be accounting for
+    // total internal reflection, which can maybe also be done by the surface, where normals are known
 
     // Apply the calculated light to the fragment's color
     outputColor *= light;
@@ -172,16 +220,20 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     WaterType waterType = getWaterType(waterTypeIndex);
 
     const float scale = 1;
-    const float waveHeight = 1;
-    const float speed = .1 / sqrt(scale);
+    float waveHeight = 1;
+    float speed = .1 / sqrt(scale);
+
+    waveHeight *= waterWaveSizeConfig / 100.f;
+    speed *= waterWaveSpeedConfig / 100.f;
+
     vec2 uv1 = worldUvs(26 * scale) + animationFrame(sqrt(26. * scale) / speed * waterType.duration);
     vec2 uv2 = worldUvs(6 * scale) + animationFrame(sqrt(6. * scale) / speed * waterType.duration) * vec2(-2, 3);
 
     // get diffuse textures
 //    vec3 n1 = linearToSrgb(texture(textureArray, vec3(uv1, MAT_WATER_NORMAL_MAP_1.colorMap)).xyz);
-//    vec3 n2 = linearToSrgb(texture(textureArray, vec3(uv2, MAT_WATER_NORMAL_MAP_2.colorMap)).xyz);
+    vec3 n2 = linearToSrgb(texture(textureArray, vec3(uv2, MAT_WATER_NORMAL_MAP_2.colorMap)).xyz);
     vec3 n1 = linearToSrgb(textureBicubic(textureArray, vec3(uv1, MAT_WATER_NORMAL_MAP_1.colorMap)).xyz);
-    vec3 n2 = linearToSrgb(textureBicubic(textureArray, vec3(uv2, MAT_WATER_NORMAL_MAP_2.colorMap)).xyz);
+//    vec3 n2 = linearToSrgb(textureBicubic(textureArray, vec3(uv2, MAT_WATER_NORMAL_MAP_2.colorMap)).xyz);
 
     // Normalize
     n1.xy = (n1.xy * 2 - 1);
@@ -208,55 +260,36 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
         calculateFresnel(dot(fragToCam, N), IOR_WATER)
     );
 
-    // Begin constructing final output color
-    vec4 dst = reflection;
-
     vec3 additionalLight = vec3(0);
 
-    if (waterTypeIndex == 7) {
-        if (dot(reflection.rgb, reflection.rgb) == 0) {
-            dst.rgb = srgbToLinear(vec3(100, 0, 0) / 255.f) * 2.5;
-        }
-    } else {
-        float cosUp = -N.y;
+    // Scattering approximation
+//    const float k_1 = 0; // This doesn't work for our normal map-based waves unfortunately
+    const float k_2 = .01;
+    const float k_3 = .02;
+    const float k_4 = 0;
+    const vec3 C_ss = vec3(0, .32, .32); // water scatter color
+    const vec3 C_f = vec3(1); // air bubble color
+    const float P_f = .01; // density of air bubbles
 
-        float H = (1 - pow(cosUp, 1.f)) * 50; // wave height
-        float k_1 = 1;
-        float k_2 = .01;
-        float k_3 = .02;
-        float k_4 = 0;
-        vec3 C_ss = vec3(0, .32, .32); // water scatter color
-        vec3 C_f = vec3(1); // air bubble color
-        float P_f = .01; // density of air bubbles
+//    float H = (1 + N.y) * 50; // wave height
+    vec3 omega_i = lightDir; // incoming = sun to frag
+    vec3 omega_o = viewDir; // outgoing = frag to camera
+    vec3 omega_h = normalize(omega_o - omega_i); // half-way between incoming and outgoing
+    vec3 omega_n = IN.normal.xzy; // macro scale normal
+    vec3 w_n = N; // presumably wave normal?
 
-        vec3 omega_i = lightDir; // incoming = sun to frag
-        vec3 omega_o = viewDir; // outgoing = frag to camera
-        vec3 omega_h = normalize(omega_o - omega_i); // half-way between incoming and outgoing
-        vec3 omega_n = IN.normal.xzy; // macro scale normal
-        vec3 w_n = N; // presumably wave normal?
-        omega_n = w_n;
-
-        vec3 L_sun = lightColor * lightStrength;
-        vec3 L_scatter = (
-            k_1*H*pow(max(0, dot(omega_i, -omega_o)), 4.f) * pow(.5 - .5*dot(omega_i, omega_n), 3.f)
-            + k_2*pow(max(0, dot(omega_o, omega_n)), 2.f)
-        ) * C_ss*L_sun;
-        L_scatter += k_3*max(0, dot(omega_i, w_n))*C_ss*L_sun + k_4*P_f*C_f*L_sun;
-//        return vec4(linearToSrgb(L_scatter), 1);
-
-//        dst.rgb += L_scatter / dst.a;
-
-        float roughnessSquared = .05;
-        omega_h = normalize(omega_o + omega_i); // half-way between incoming and outgoing
-        float p_22 = 1 / (PI * roughnessSquared) * exp((-omega_h.x*omega_h.x - omega_h.z*omega_h.z) / roughnessSquared);
-//        vec3 L_specular = L_sun * calculateFresnel(omega_h, -omega_i, IOR_WATER) * p_22 / (4 * dot(omega_n, omega_o));
-//        return vec4(linearToSrgb(L_specular), 1);
-//        dst.rgb += L_specular / 5;
-    }
+    vec3 L_sun = lightColor * lightStrength;
+    vec3 L_scatter = (
+//        k_1*H*pow(max(0, dot(omega_i, -omega_o)), 4.f) * pow(.5 - .5*dot(omega_i, omega_n), 3.f)
+        + k_2*pow(max(0, dot(omega_o, omega_n)), 2.f)
+    ) * C_ss*L_sun;
+    L_scatter += k_3*max(0, dot(omega_i, w_n))*C_ss*L_sun + k_4*P_f*C_f*L_sun;
+    additionalLight += L_scatter;
 
     float specularGloss = waterType.specularGloss;
     float specularStrength = waterType.specularStrength;
     vec3 sunSpecular = pow(max(0, dot(R, lightDir)), specularGloss) * lightStrength * lightColor * specularStrength;
+    additionalLight += sunSpecular;
 
     // Point lights
     vec3 pointLightsSpecular = vec3(0);
@@ -277,10 +310,10 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
             pointLightsSpecular += pointLightColor * pow(max(0, dot(pointLightReflectDir, viewDir)), specularGloss) * specularStrength;
         // }
     }
+    additionalLight += pointLightsSpecular;
 
-    vec3 specular = sunSpecular + pointLightsSpecular;
-
-    additionalLight += specular;
+    // Begin constructing final output color
+    vec4 dst = reflection;
 
     // In theory, we could just add the light and be done with it, but since the color
     // will be multiplied by alpha during alpha blending, we need to divide by alpha to
@@ -291,22 +324,29 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     // To work around this, we can adjust the alpha component to let more of the light through,
     // and adjust our color accordingly. This necessarily causes the surface to become more opaque,
     // but since we're adding lots of light, this should have minimal impact on the final picture.
-    float brightestColor = max(max(dst.r, dst.g), dst.b);
-    // If the color would get clipped
-    if (brightestColor > 1) {
+    float maxIntensity = max(max(dst.r, dst.g), dst.b);
+    // Check if the color would get clipped
+    if (maxIntensity > 1) {
         // Bring the brightest color back down to 1
-        dst.rgb /= brightestColor;
+        dst.rgb /= maxIntensity;
         // And bump up the alpha to increase brightness instead
-        dst.a *= brightestColor;
+        dst.a *= maxIntensity;
         // While not strictly necessary, we might as well clamp the alpha component in case it exceeds 1
         dst.a = min(1, dst.a);
     }
 
+    if (waterTypeIndex == 7) {
+        if (dot(reflection.rgb, reflection.rgb) == 0) {
+            dst.rgb = srgbToLinear(vec3(100, 0, 0) / 255.f) * 2.5;
+        }
+    }
+
     // If the water is opaque, blend in a fake underwater surface
     if (waterType.isFlat) {
-        vec3 underwaterSrgb = packedHslToSrgb(6676);
-        int depth = 5000;
-        sampleUnderwater(underwaterSrgb, waterTypeIndex, depth);
+        // Computed from packedHslToSrgb(6676)
+        const vec3 underwaterColor = vec3(0.04856183, 0.025971446, 0.005794384);
+        const int depth = 5000;
+        sampleUnderwater(underwaterColor, waterTypeIndex, depth);
         dst.rgb *= dst.a;
         dst.a = 1;
     }

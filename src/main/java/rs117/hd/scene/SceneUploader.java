@@ -42,7 +42,6 @@ import rs117.hd.model.ModelPusher;
 import rs117.hd.scene.model_overrides.ModelOverride;
 import rs117.hd.scene.model_overrides.ObjectType;
 import rs117.hd.scene.tile_overrides.TileOverride;
-import rs117.hd.utils.ColorUtils;
 import rs117.hd.utils.HDUtils;
 import rs117.hd.utils.ModelHash;
 
@@ -65,7 +64,7 @@ class SceneUploader {
 	public static final int SCENE_OFFSET = (Constants.EXTENDED_SCENE_SIZE - Constants.SCENE_SIZE) / 2; // offset for sxy -> msxy
 
 	private static final float[] UP_NORMAL = { 0, -1, 0 };
-	private static int UNDERWATER_HSL = 7720;
+	private static final int UNDERWATER_HSL = 6676;
 
 	@Inject
 	private Client client;
@@ -92,8 +91,6 @@ class SceneUploader {
 	public int waterHeight;
 
 	public void upload(SceneContext sceneContext) {
-		UNDERWATER_HSL = ColorUtils.packRawHsl(7, 4, 40);
-		UNDERWATER_HSL = 6676;
 		Stopwatch stopwatch = Stopwatch.createStarted();
 
 		// Reset water height counters
