@@ -42,11 +42,6 @@ uniform float elapsedTime;
 uniform float colorBlindnessIntensity;
 uniform vec3 fogColor;
 uniform float fogDepth;
-uniform vec3 waterColorLight;
-uniform vec3 waterColorMid;
-uniform vec3 waterColorDark;
-uniform bool waterTransparency;
-uniform int waterTransparencyAmount;
 uniform vec3 ambientColor;
 uniform float ambientStrength;
 uniform vec3 lightColor;
@@ -67,11 +62,17 @@ uniform bool underwaterCaustics;
 uniform bool underwaterEnvironment;
 uniform vec3 underwaterCausticsColor;
 uniform float underwaterCausticsStrength;
-uniform int waterCausticsStrengthConfig;
-uniform int waterWaveSizeConfig;
-uniform int waterWaveSpeedConfig;
-uniform int waterFoamAmountConfig;
-uniform int waterDistortionAmountConfig;
+uniform bool waterTransparency;
+uniform float waterTransparencyAmount;
+uniform float waterCausticsStrength;
+uniform float waterWaveSize;
+uniform float waterWaveSpeed;
+uniform float waterFoamAmount;
+uniform float waterDistortionAmount;
+// Legacy water uniforms
+uniform vec3 waterColorLight;
+uniform vec3 waterColorMid;
+uniform vec3 waterColorDark;
 
 // general HD settings
 uniform float saturation;
@@ -400,6 +401,7 @@ void main() {
             shadow = sampleShadowMap(fragPos, vec2(0), lightDotNormals);
         shadow = max(shadow, selfShadowing);
         float inverseShadow = 1 - shadow * baseColor1.a;
+        // TODO: fix shadows for upward-facing faces during the reflection map render pass
 
 
 

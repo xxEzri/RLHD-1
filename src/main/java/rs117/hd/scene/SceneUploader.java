@@ -85,12 +85,9 @@ class SceneUploader {
 	@Inject
 	private ModelPusher modelPusher;
 
-	// TODO: fix for async scene loading
-	// Array for mapping the heights of water tiles in the scene to inform the reflection texture position
+	// Array for mapping the heights of water tiles in the scene to inform the reflection texture position.
+	// If multiple async scene reloads happen simultaneously, this might break, but it should never be a big problem.
 	int[] waterHeightCounters = new int[20000];
-
-	// Final int for water reflection texture height
-	public int waterHeight;
 
 	public void upload(SceneContext sceneContext) {
 		Stopwatch stopwatch = Stopwatch.createStarted();
@@ -113,7 +110,7 @@ class SceneUploader {
 		for (int i = 0; i < waterHeightCounters.length; i++)
 			if (waterHeightCounters[i] > waterHeightCounters[largestIndex])
 				largestIndex = i;
-		waterHeight = -largestIndex;
+		sceneContext.waterHeight = -largestIndex;
 
 		stopwatch.stop();
 		log.debug(

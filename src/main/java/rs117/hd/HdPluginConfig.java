@@ -632,6 +632,7 @@ public interface HdPluginConfig extends Config
 		return true;
 	}
 
+
 	/*====== Water settings ======*/
 
 	@ConfigSection(
@@ -727,9 +728,9 @@ public interface HdPluginConfig extends Config
 		return true;
 	}
 
-	String KEY_WATER_CAUSTICS_STRENGTH_CONFIG = "waterCausticsStrengthConfig";
+	String KEY_WATER_CAUSTICS_STRENGTH = "waterCausticsStrength";
 	@ConfigItem(
-		keyName = KEY_WATER_CAUSTICS_STRENGTH_CONFIG,
+		keyName = KEY_WATER_CAUSTICS_STRENGTH,
 		name = "Caustics Strength",
 		description = "Light strength for caustics.",
 		position = 7,
@@ -737,13 +738,13 @@ public interface HdPluginConfig extends Config
 	)
 	@Units(Units.PERCENT)
 	@Range(min = 1, max = 200)
-	default int waterCausticsStrengthConfig() {
+	default int waterCausticsStrength() {
 		return 100;
 	}
 
-	String KEY_WATER_WAVE_SIZE_CONFIG = "waterWaveSizeConfig";
+	String KEY_WATER_WAVE_SIZE = "waterWaveSize";
 	@ConfigItem(
-		keyName = KEY_WATER_WAVE_SIZE_CONFIG,
+		keyName = KEY_WATER_WAVE_SIZE,
 		name = "Wave Size",
 		description = "The size of waves.",
 		position = 8,
@@ -751,13 +752,13 @@ public interface HdPluginConfig extends Config
 	)
 	@Units(Units.PERCENT)
 	@Range(min = 25, max = 200)
-	default int waterWaveSizeConfig() {
+	default int waterWaveSize() {
 		return 100;
 	}
 
-	String KEY_WATER_WAVE_SPEED_CONFIG = "waterWaveSpeedConfig";
+	String KEY_WATER_WAVE_SPEED = "waterWaveSpeed";
 	@ConfigItem(
-		keyName = KEY_WATER_WAVE_SPEED_CONFIG,
+		keyName = KEY_WATER_WAVE_SPEED,
 		name = "Wave Speed",
 		description = "The speed of waves.",
 		position = 9,
@@ -765,7 +766,7 @@ public interface HdPluginConfig extends Config
 	)
 	@Units(Units.PERCENT)
 	@Range(min = 50, max = 200)
-	default int waterWaveSpeedConfig() {
+	default int waterWaveSpeed() {
 		return 100;
 	}
 
@@ -781,9 +782,9 @@ public interface HdPluginConfig extends Config
 		return true;
 	}
 
-	String KEY_WATER_DISTORTION_AMOUNT_CONFIG = "waterDistortionAmountConfig";
+	String KEY_WATER_DISTORTION_AMOUNT = "waterDistortionAmount";
 	@ConfigItem(
-		keyName = KEY_WATER_DISTORTION_AMOUNT_CONFIG,
+		keyName = KEY_WATER_DISTORTION_AMOUNT,
 		name = "Distortion Amount",
 		description = "The amount of water distortion.",
 		position = 11,
@@ -791,7 +792,7 @@ public interface HdPluginConfig extends Config
 	)
 	@Units(Units.PERCENT)
 	@Range(min = 1, max = 300)
-	default int waterDistortionAmountConfig() {
+	default int waterDistortionAmount() {
 		return 100;
 	}
 
@@ -807,9 +808,9 @@ public interface HdPluginConfig extends Config
 		return true;
 	}
 
-	String KEY_WATER_FOAM_AMOUNT_CONFIG = "waterFoamAmountConfig";
+	String KEY_WATER_FOAM_AMOUNT = "waterFoamAmount";
 	@ConfigItem(
-		keyName = KEY_WATER_FOAM_AMOUNT_CONFIG,
+		keyName = KEY_WATER_FOAM_AMOUNT,
 		name = "Foam Amount",
 		description = "The amount of foam around shorelines.",
 		position = 13,
@@ -817,7 +818,7 @@ public interface HdPluginConfig extends Config
 	)
 	@Units(Units.PERCENT)
 	@Range(min = 1, max = 300)
-	default int waterFoamAmountConfig() {
+	default int waterFoamAmount() {
 		return 100;
 	}
 

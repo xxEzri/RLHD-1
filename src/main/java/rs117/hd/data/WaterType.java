@@ -147,7 +147,6 @@ public enum WaterType
 		.depthColor(rgb("#000000"))
 		.causticsStrength(0)
 		.flat(true)),
-	BLOOD_FLAT(BLOOD, true),
 	;
 
 	public final boolean flat;

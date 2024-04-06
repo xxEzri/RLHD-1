@@ -104,7 +104,7 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth) {
     ));
     mat3 xyzToBands = inverse(bandsToXyz);
 
-    float absorptionAdjustment = exp(5 * (1 - waterTransparencyAmount / 100.f));
+    float absorptionAdjustment = exp(5 * (1 - waterTransparencyAmount));
     extinctionCoefficients *= absorptionAdjustment;
 
     // Refraction is not precalculated for the underwater position
@@ -226,8 +226,8 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir) {
     float waveHeight = 1;
     float speed = .1 / sqrt(scale);
 
-    waveHeight *= waterWaveSizeConfig / 100.f;
-    speed *= waterWaveSpeedConfig / 100.f;
+    waveHeight *= waterWaveSize;
+    speed *= waterWaveSpeed;
 
     vec2 uv1 = worldUvs(26 * scale) + animationFrame(sqrt(26. * scale) / speed * waterType.duration);
     vec2 uv2 = worldUvs(6 * scale) + animationFrame(sqrt(6. * scale) / speed * waterType.duration) * vec2(-2, 3);

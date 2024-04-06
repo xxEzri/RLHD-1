@@ -100,9 +100,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     float speed = .024;
     if(waterTypeIndex == 8 || waterTypeIndex == 9) // ice
         speed = 0.00000001; // 0 speed bugs out the normals code, glacier speed is fine
-    float waveSizeConfig = waterWaveSizeConfig / 100.f;
-    float waveSpeedConfig = waterWaveSpeedConfig / 100.f;
-    speed *= waveSpeedConfig;
+    speed *= waterWaveSpeed;
     vec2 uv1 = worldUvs(26) - animationFrame(sqrt(11.) / speed * waterType.duration / vec2(-1, 4));
     vec2 uv2 = worldUvs(6) - animationFrame(sqrt(3.) / speed * waterType.duration * 1.5 /vec2(2, -1));
 
@@ -124,7 +122,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     if(waterTypeIndex == 6 || waterTypeIndex == 8 || waterTypeIndex == 9 || waterTypeIndex == 12)
         n1.y /= 0.3;
 
-    n1.y /= waveSizeConfig;
+    n1.y /= waterWaveSize;
     n1 = normalize(n1);
     n2.y /= 0.8; // scale normals
 
@@ -132,7 +130,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     if(waterTypeIndex == 6 || waterTypeIndex == 8 || waterTypeIndex == 9 || waterTypeIndex == 12)
         n2.y /= 0.3;
 
-    n2.y /= waveSizeConfig;
+    n2.y /= waterWaveSize;
     n2 = normalize(n2);
     vec3 N = normalize(n1 + n2);
     N = normalize(vec3(n1.xy + n2.xy, n1.z + n2.z));
@@ -187,7 +185,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
         vec3 foamColor = vec3(0.5);
         foamColor = srgbToLinear(foamColor) * foamMask * (ambientColor * ambientStrength + lightColor * lightStrength);
         foamAmount = clamp(pow(1.0 - ((1.0 - foamAmount) / foamDistance), 3), 0.0, 1.0) * waterType.hasFoam;
-        foamAmount *= waterFoamAmountConfig / 100.f;
+        foamAmount *= waterFoamAmount;
         foamAmount *= 0.15; // rescale foam so that 100% is a good default amount
         foam = vec4(foamColor, foamAmount);
 
@@ -468,7 +466,8 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth, f
     float distanceToSurface = depth / camToFrag.y;
     float totalDistance = depth + distanceToSurface;
 
-    float lightPenetration = 0.5 + (waterTransparencyAmount / 44.444); // Scale from a range of 0% = 0.5, 100% = 2.75, 130% = 3.425
+    // Scale from a range of 0% = 0.5, 100% = 2.75, 130% = 3.425
+    float lightPenetration = 0.5 + 2.25 * waterTransparencyAmount;
 
     // Exponential falloff of light intensity when penetrating water, different for each color
     vec3 extinctionColors = vec3(0);
@@ -523,7 +522,7 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth, f
         {
             causticsColor *= 0;
         }
-        outputColor *= 1 + caustics * causticsColor * extinctionColors * lightDotNormals * lightStrength * (waterCausticsStrengthConfig / 100.f);
+        outputColor *= 1 + caustics * causticsColor * extinctionColors * lightDotNormals * lightStrength * waterCausticsStrength;
     }
 
     outputColor = mix(vec3(0), outputColor, extinctionColors);

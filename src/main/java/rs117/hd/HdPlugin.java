@@ -160,7 +160,11 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	public static final int UNIFORM_BLOCK_WATER_TYPES = 2;
 	public static final int UNIFORM_BLOCK_LIGHTS = 3;
 
-	public static final float NEAR_PLANE = 1;
+	public static final float APPROX_MAX_HEIGHT = 5000;
+	public static final float FAR_PLANE = (float) Math.sqrt(
+		Math.pow(EXTENDED_SCENE_SIZE * LOCAL_TILE_SIZE, 2) * 2 + Math.pow(APPROX_MAX_HEIGHT, 2)
+	);
+	public static final float NEAR_PLANE = 32;
 	public static final int MAX_FACE_COUNT = 6144;
 	public static final int MAX_DISTANCE = EXTENDED_SCENE_SIZE;
 	public static final int GROUND_MIN_Y = 350; // how far below the ground models extend
@@ -391,11 +395,11 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int uniColorFilter;
 	private int uniColorFilterPrevious;
 	private int uniColorFilterFade;
-	private int uniWaterCausticsStrengthConfig;
-	private int uniWaterWaveSizeConfig;
-	private int uniWaterWaveSpeedConfig;
-	private int uniWaterFoamAmountConfig;
-	private int uniWaterDistortionAmountConfig;
+	private int uniWaterCausticsStrength;
+	private int uniWaterWaveSize;
+	private int uniWaterWaveSpeed;
+	private int uniWaterFoamAmount;
+	private int uniWaterDistortionAmount;
 
 	// Shadow program uniforms
 	private int uniShadowLightProjectionMatrix;
@@ -844,7 +848,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			.define("PLANAR_REFLECTIONS", config.enablePlanarReflections())
 			.define("PLANAR_REFLECTION_RESOLUTION", config.reflectionResolution() / 100f)
 			.define("WATER_FOAM", config.enableWaterFoam())
-			.define("WATER_DISTORTION", config.waterDistortion())
 			.addIncludePath(SHADER_PATH);
 
 		glSceneProgram = PROGRAM.compile(template);
@@ -941,11 +944,11 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		uniUnderwaterCausticsStrength = glGetUniformLocation(glSceneProgram, "underwaterCausticsStrength");
 		uniWaterHeight = glGetUniformLocation(glSceneProgram, "waterHeight");
 		uniWaterReflectionEnabled = glGetUniformLocation(glSceneProgram, "waterReflectionEnabled");
-		uniWaterCausticsStrengthConfig = glGetUniformLocation(glSceneProgram, "waterCausticsStrengthConfig");
-		uniWaterWaveSizeConfig = glGetUniformLocation(glSceneProgram, "waterWaveSizeConfig");
-		uniWaterWaveSpeedConfig = glGetUniformLocation(glSceneProgram, "waterWaveSpeedConfig");
-		uniWaterFoamAmountConfig = glGetUniformLocation(glSceneProgram, "waterFoamAmountConfig");
-		uniWaterDistortionAmountConfig = glGetUniformLocation(glSceneProgram, "waterDistortionAmountConfig");
+		uniWaterCausticsStrength = glGetUniformLocation(glSceneProgram, "waterCausticsStrength");
+		uniWaterWaveSize = glGetUniformLocation(glSceneProgram, "waterWaveSize");
+		uniWaterWaveSpeed = glGetUniformLocation(glSceneProgram, "waterWaveSpeed");
+		uniWaterFoamAmount = glGetUniformLocation(glSceneProgram, "waterFoamAmount");
+		uniWaterDistortionAmount = glGetUniformLocation(glSceneProgram, "waterDistortionAmount");
 		uniCameraPos = glGetUniformLocation(glSceneProgram, "cameraPos");
 		uniTextureArray = glGetUniformLocation(glSceneProgram, "textureArray");
 		uniElapsedTime = glGetUniformLocation(glSceneProgram, "elapsedTime");
@@ -1473,7 +1476,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
-		float[] colorBorder = {0, 0, 0, 1};
+		float[] colorBorder = { 0, 0, 0, 1 };
 		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, colorBorder);
 
 		// Bind texture
@@ -1496,22 +1499,16 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 	private void destroyWaterReflectionFbo() {
 		if (texWaterReflection != -1)
-		{
 			glDeleteTextures(texWaterReflection);
-			texWaterReflection = -1;
-		}
+		texWaterReflection = -1;
 
 		if (texWaterReflectionDepthMap != -1)
-		{
 			glDeleteTextures(texWaterReflectionDepthMap);
-			texWaterReflectionDepthMap = -1;
-		}
+		texWaterReflectionDepthMap = -1;
 
 		if (fboWaterReflection != -1)
-		{
 			glDeleteFramebuffers(fboWaterReflection);
-			fboWaterReflection = -1;
-		}
+		fboWaterReflection = -1;
 	}
 
 	@Override
@@ -2038,7 +2035,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUseProgram(glSceneProgram);
 
 			final Dimension stretchedDimensions = client.getStretchedDimensions();
-
 			final int stretchedCanvasWidth = client.isStretchedEnabled() ? stretchedDimensions.width : canvasWidth;
 			final int stretchedCanvasHeight = client.isStretchedEnabled() ? stretchedDimensions.height : canvasHeight;
 
@@ -2142,8 +2138,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniform3fv(uniWaterColorLight, waterColorLight);
 			glUniform3fv(uniWaterColorMid, waterColorMid);
 			glUniform3fv(uniWaterColorDark, waterColorDark);
-			glUniform1i(uniWaterTransparency, configWaterTransparency ? 1 : 0);
-			glUniform1i(uniWaterTransparencyAmount, configWaterTransparencyAmount); // TODO: convert to float here
+
 			float brightness = config.brightness() / 20f;
 			glUniform1f(uniAmbientStrength, environmentManager.currentAmbientStrength * brightness);
 			glUniform3fv(uniAmbientColor, environmentManager.currentAmbientColor);
@@ -2170,11 +2165,13 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniform1f(uniUnderwaterCausticsStrength, environmentManager.currentUnderwaterCausticsStrength);
 			glUniform1f(uniElapsedTime, elapsedTime);
 
-			glUniform1i(uniWaterCausticsStrengthConfig, config.waterCausticsStrengthConfig());
-			glUniform1i(uniWaterWaveSizeConfig, config.waterWaveSizeConfig());
-			glUniform1i(uniWaterWaveSpeedConfig, config.waterWaveSpeedConfig());
-			glUniform1i(uniWaterFoamAmountConfig, config.waterFoamAmountConfig());
-			glUniform1i(uniWaterDistortionAmountConfig, config.waterDistortionAmountConfig());
+			glUniform1i(uniWaterTransparency, configWaterTransparency ? 1 : 0);
+			glUniform1f(uniWaterTransparencyAmount, configWaterTransparencyAmount / 100f);
+			glUniform1f(uniWaterCausticsStrength, config.waterCausticsStrength() / 100f);
+			glUniform1f(uniWaterWaveSize, config.waterWaveSize() / 100f);
+			glUniform1f(uniWaterWaveSpeed, config.waterWaveSpeed() / 100f);
+			glUniform1f(uniWaterFoamAmount, config.waterFoamAmount() / 100f);
+			glUniform1f(uniWaterDistortionAmount, config.waterDistortion() ? config.waterDistortionAmount() / 100f : 0);
 
 			// Extract the 3rd column from the light view matrix (the float array is column-major)
 			// This produces the view matrix's forward direction vector in world space,
@@ -2217,18 +2214,15 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			// Calculate projection matrix
 			if (waterReflectionEnabled) {
 				// Calculate water reflection projection matrix
-				int waterHeight = sceneUploader.waterHeight;
-				glUniform1i(uniWaterHeight, waterHeight);
+				glUniform1i(uniWaterHeight, sceneContext.waterHeight);
 
-				float[] projectionMatrix = Mat4.scale(1, -1, 1);
-				Mat4.mul(projectionMatrix, Mat4.scale(client.getScale(), client.getScale(), 1));
-//				Mat4.mul(projectionMatrix, Mat4.projection(viewportWidth, viewportHeight, NEAR_PLANE));
-				Mat4.mul(projectionMatrix, Mat4.osrsPerspective(viewportWidth, viewportHeight, 50, 35000)); // TODO
+				float[] projectionMatrix = Mat4.scale(client.getScale(), -client.getScale(), 1);
+				Mat4.mul(projectionMatrix, Mat4.osrsPerspective(viewportWidth, viewportHeight, NEAR_PLANE, FAR_PLANE));
 				Mat4.mul(projectionMatrix, Mat4.rotateX(-cameraOrientation[1] - (float) Math.PI));
 				Mat4.mul(projectionMatrix, Mat4.rotateY(cameraOrientation[0]));
 				Mat4.mul(projectionMatrix, Mat4.translate(
 					-cameraPosition[0],
-					-(cameraPosition[1] + (waterHeight - cameraPosition[1]) * 2),
+					-(cameraPosition[1] + (sceneContext.waterHeight - cameraPosition[1]) * 2),
 					-cameraPosition[2]
 				));
 				glUniformMatrix4fv(uniProjectionMatrix, false, projectionMatrix);
@@ -2236,7 +2230,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				glUniform3f(
 					uniCameraPos,
 					cameraPosition[0],
-					(cameraPosition[1] + (waterHeight - cameraPosition[1]) * 2),
+					(cameraPosition[1] + (sceneContext.waterHeight - cameraPosition[1]) * 2),
 					cameraPosition[2]
 				);
 
@@ -2321,8 +2315,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			));
 			glUniformMatrix4fv(uniProjectionMatrix, false, projectionMatrix);
 
-			// TODO: this assumes AA is always enabled
-			// TODO: does it still?
 			glUniform1i(uniRenderPass, 0);
 			glUniform1i(uniWaterReflectionEnabled, waterReflectionEnabled ? 1 : 0);
 			glDrawArrays(GL_TRIANGLES, 0, renderBufferOffset);
@@ -2773,7 +2765,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 							case KEY_PLANAR_REFLECTION_RESOLUTION:
 							case KEY_WATER_STYLE:
 							case KEY_WATER_FOAM:
-							case KEY_WATER_DISTORTION:
 								recompilePrograms = true;
 								break;
 							case KEY_SHADOW_MODE:
