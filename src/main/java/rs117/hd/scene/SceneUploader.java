@@ -63,8 +63,9 @@ class SceneUploader {
 	public static final int EXCLUDED_FROM_SCENE_BUFFER = 0xFFFFFFFF;
 	public static final int SCENE_OFFSET = (Constants.EXTENDED_SCENE_SIZE - Constants.SCENE_SIZE) / 2; // offset for sxy -> msxy
 
-	private static final float[] UP_NORMAL = { 0, -1, 0 };
+	private static final int INVISIBLE_HSL = 12345678;
 	private static final int UNDERWATER_HSL = 6676;
+	private static final float[] UP_NORMAL = { 0, -1, 0 };
 
 	@Inject
 	private Client client;
@@ -84,6 +85,7 @@ class SceneUploader {
 	@Inject
 	private ModelPusher modelPusher;
 
+	// TODO: fix for async scene loading
 	// Array for mapping the heights of water tiles in the scene to inform the reflection texture position
 	int[] waterHeightCounters = new int[20000];
 
@@ -149,14 +151,14 @@ class SceneUploader {
 						model = tile.getSceneTileModel();
 
 						if (model == null) {
-							boolean hasTilePaint = paint != null && paint.getNeColor() != 12345678;
+							boolean hasTilePaint = paint != null && paint.getNeColor() != INVISIBLE_HSL;
 							if (!hasTilePaint) {
 								tile = tile.getBridge();
 								if (tile != null) {
 									renderLevel = tile.getRenderLevel();
 									paint = tile.getSceneTilePaint();
 									model = tile.getSceneTileModel();
-									hasTilePaint = paint != null && paint.getNeColor() != 12345678;
+									hasTilePaint = paint != null && paint.getNeColor() != INVISIBLE_HSL;
 								}
 							}
 
@@ -280,7 +282,7 @@ class SceneUploader {
 			// draw order artifacts resulting from skipped geometry updates for our extension to unlocked FPS.
 			final int[][][] tileHeights = sceneContext.scene.getTileHeights();
 			if (hasUnderwaterTerrain == 1 &&
-				sceneTilePaint.getNeColor() == 12345678 &&
+				sceneTilePaint.getNeColor() == INVISIBLE_HSL &&
 				tileHeights[tile.getRenderLevel()][tileExX][tileExY] >= -16
 			) {
 				int tileX = tileExX - SCENE_OFFSET;
@@ -476,7 +478,7 @@ class SceneUploader {
 
 		// Ignore certain tiles that aren't supposed to be visible,
 		// but which we can still make a height-adjusted version of for underwater
-		if (paint.getNeColor() != 12345678)
+		if (paint.getNeColor() != INVISIBLE_HSL)
 		{
 			int swColor = paint.getSwColor();
 			int seColor = paint.getSeColor();
@@ -693,11 +695,6 @@ class SceneUploader {
 
 			underwaterTerrain = 1;
 
-			int swColor = UNDERWATER_HSL;
-			int seColor = UNDERWATER_HSL;
-			int neColor = UNDERWATER_HSL;
-			int nwColor = UNDERWATER_HSL;
-
 			int swDepth = sceneContext.vertexUnderwaterDepth.getOrDefault(swVertexKey, 0);
 			int seDepth = sceneContext.vertexUnderwaterDepth.getOrDefault(seVertexKey, 0);
 			int nwDepth = sceneContext.vertexUnderwaterDepth.getOrDefault(nwVertexKey, 0);
@@ -737,14 +734,16 @@ class SceneUploader {
 			sceneContext.stagingBufferNormals.put(seNormals[0], seNormals[2], seNormals[1], seTerrainData);
 			sceneContext.stagingBufferNormals.put(nwNormals[0], nwNormals[2], nwNormals[1], nwTerrainData);
 
-			sceneContext.stagingBufferVertices.ensureCapacity(24);
-			sceneContext.stagingBufferVertices.put(localNeVertexX, neHeight + neDepth, localNeVertexY, neColor);
-			sceneContext.stagingBufferVertices.put(localNwVertexX, nwHeight + nwDepth, localNwVertexY, nwColor);
-			sceneContext.stagingBufferVertices.put(localSeVertexX, seHeight + seDepth, localSeVertexY, seColor);
+			int color = UNDERWATER_HSL;
 
-			sceneContext.stagingBufferVertices.put(localSwVertexX, swHeight + swDepth, localSwVertexY, swColor);
-			sceneContext.stagingBufferVertices.put(localSeVertexX, seHeight + seDepth, localSeVertexY, seColor);
-			sceneContext.stagingBufferVertices.put(localNwVertexX, nwHeight + nwDepth, localNwVertexY, nwColor);
+			sceneContext.stagingBufferVertices.ensureCapacity(24);
+			sceneContext.stagingBufferVertices.put(localNeVertexX, neHeight + neDepth, localNeVertexY, color);
+			sceneContext.stagingBufferVertices.put(localNwVertexX, nwHeight + nwDepth, localNwVertexY, color);
+			sceneContext.stagingBufferVertices.put(localSeVertexX, seHeight + seDepth, localSeVertexY, color);
+
+			sceneContext.stagingBufferVertices.put(localSwVertexX, swHeight + swDepth, localSwVertexY, color);
+			sceneContext.stagingBufferVertices.put(localSeVertexX, seHeight + seDepth, localSeVertexY, color);
+			sceneContext.stagingBufferVertices.put(localNwVertexX, nwHeight + nwDepth, localNwVertexY, color);
 
 			bufferLength += 6;
 
@@ -854,7 +853,7 @@ class SceneUploader {
 
 			WaterType waterType = WaterType.NONE;
 
-			boolean isHidden = colorA == 12345678;
+			boolean isHidden = colorA == INVISIBLE_HSL;
 			if (fillGaps) {
 				if (!isHidden)
 					continue;
@@ -1036,7 +1035,7 @@ class SceneUploader {
 				int colorB = UNDERWATER_HSL;
 				int colorC = UNDERWATER_HSL;
 
-				if (faceColorA[face] == 12345678)
+				if (faceColorA[face] == INVISIBLE_HSL)
 					continue;
 
 				int[][] localVertices = ProceduralGenerator.faceLocalVertices(tile, face);

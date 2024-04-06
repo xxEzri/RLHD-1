@@ -125,7 +125,8 @@ public class Mat4
 	 * @return 4x4 column-major matrix
 	 */
 	public static float[] osrsPerspective(float w, float h, float n, float f) {
-		// Same projection as vanilla, except with slightly more depth precision, and a usable far plane for clipping calculations
+		// Same projection as vanilla, except with slightly more depth precision,
+		// and a usable far plane for clipping calculations
 		w = 2 / w;
 		h = 2 / h;
 		float a = (1 + n / f) / (n / f - 1);

@@ -276,7 +276,6 @@ public class TileInfoOverlay extends Overlay implements MouseListener, MouseWhee
 
 		lines.add("Scene point: " + tileX + ", " + tileY + ", " + tileZ);
 		lines.add("World point: " + Arrays.toString(worldPos));
-		lines.add("Height: " + scene.getTileHeights()[tileZ][tileExX][tileExY]);
 		lines.add(String.format(
 			"Region ID: %d (%d, %d)",
 			HDUtils.worldToRegionID(worldPos),

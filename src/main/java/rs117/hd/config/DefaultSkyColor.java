@@ -33,7 +33,6 @@ import rs117.hd.utils.ColorUtils;
 @RequiredArgsConstructor
 public enum DefaultSkyColor
 {
-	//DEFAULT("117 HD Blue", 185, 214, 255), // launch 117 HD Blue
 	DEFAULT("117 HD Blue", 167, 193, 230),
 	RUNELITE("RuneLite Skybox", -1, -1, -1),
 	OSRS("Old School Black", 0, 0, 0),

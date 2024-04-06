@@ -301,7 +301,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int texWaterReflection = -1;
 	private int texWaterReflectionDepthMap = -1;
 
-	private boolean enableWaterFoam;
 	private int texTileHeightMap;
 
 	private final GLBuffer hStagingBufferVertices = new GLBuffer(); // temporary scene vertex buffer
@@ -345,14 +344,9 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int lastStretchedCanvasWidth;
 	private int lastStretchedCanvasHeight;
 	private AntiAliasingMode lastAntiAliasingMode;
+	private boolean lastLinearAlphaBlending;
 	private boolean lastPlanarReflectionEnabled;
 	private float lastPlanarReflectionResolution;
-	private boolean lastLinearAlphaBlending;
-
-	private int waterCausticsStrengthConfig;
-	private int waterWaveSizeConfig;
-	private int waterWaveSpeedConfig;
-	private int waterFoamAmountConfig;
 
 	private int viewportOffsetX;
 	private int viewportOffsetY;
@@ -2041,7 +2035,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 			glUseProgram(glSceneProgram);
 
-
 			final Dimension stretchedDimensions = client.getStretchedDimensions();
 
 			final int stretchedCanvasWidth = client.isStretchedEnabled() ? stretchedDimensions.width : canvasWidth;
@@ -2227,7 +2220,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				float[] projectionMatrix = Mat4.scale(1, -1, 1);
 				Mat4.mul(projectionMatrix, Mat4.scale(client.getScale(), client.getScale(), 1));
 //				Mat4.mul(projectionMatrix, Mat4.projection(viewportWidth, viewportHeight, NEAR_PLANE));
-				Mat4.mul(projectionMatrix, Mat4.osrsPerspective(viewportWidth, viewportHeight, 50, 35000));
+				Mat4.mul(projectionMatrix, Mat4.osrsPerspective(viewportWidth, viewportHeight, 50, 35000)); // TODO
 				Mat4.mul(projectionMatrix, Mat4.rotateX(-cameraOrientation[1] - (float) Math.PI));
 				Mat4.mul(projectionMatrix, Mat4.rotateY(cameraOrientation[0]));
 				Mat4.mul(projectionMatrix, Mat4.translate(
@@ -2254,8 +2247,9 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				glClearDepth(1);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-				// Since the game was never designed to be viewed from below, a lot of things are missing triangles underneath.
-				// In most cases, it's fine visually to render the top face from below.
+				// Since the game was never designed to be viewed from below, a lot of
+				// things are missing triangles underneath. In most cases, it's fine
+				// visually to render the top face from below.
 				glDisable(GL_CULL_FACE);
 
 				glEnable(GL_DEPTH_TEST);
@@ -2325,6 +2319,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniformMatrix4fv(uniProjectionMatrix, false, projectionMatrix);
 
 			// TODO: this assumes AA is always enabled
+			// TODO: does it still?
 			glUniform1i(uniRenderPass, 0);
 			glUniform1i(uniWaterReflectionEnabled, waterReflectionEnabled ? 1 : 0);
 			glDrawArrays(GL_TRIANGLES, 0, renderBufferOffset);
