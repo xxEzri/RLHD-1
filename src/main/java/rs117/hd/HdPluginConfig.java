@@ -637,7 +637,7 @@ public interface HdPluginConfig extends Config
 
 	@ConfigSection(
 		name = "Water",
-		description = "Various options which decide the look of water.",
+		description = "Various options which control the appearance of water.",
 		position = 3
 	)
 	String waterSettings = "waterSettings";
@@ -646,7 +646,7 @@ public interface HdPluginConfig extends Config
 	@ConfigItem(
 		keyName = KEY_WATER_STYLE,
 		name = "Water Style",
-		description = "Choose between the old and new water style.",
+		description = "Choose between different water styles.",
 		position = 0,
 		section = waterSettings
 	)
@@ -658,7 +658,7 @@ public interface HdPluginConfig extends Config
 	@ConfigItem(
 		keyName = "waterTransparency",
 		name = "Water Transparency",
-		description = "Choose whether the water should be transparent or opaque.",
+		description = "Choose whether water should be transparent. Some water will be opaque regardless of this setting.",
 		position = 1,
 		section = waterSettings
 	)
@@ -670,7 +670,7 @@ public interface HdPluginConfig extends Config
 	@ConfigItem(
 		keyName = KEY_LIGHT_PENETRATION,
 		name = "Light Penetration",
-		description = "Amount of light that can pass through transparent water.",
+		description = "Adjust how deeply light will penetrate into the water.",
 		position = 2,
 		section = waterSettings
 	)
@@ -684,7 +684,7 @@ public interface HdPluginConfig extends Config
 	@ConfigItem(
 		keyName = KEY_PLANAR_REFLECTIONS,
 		name = "Planar Reflections",
-		description = "Render a highly detailed reflection of the game world on bodies of water. <br> GPU intensive.",
+		description = "Render a reflection for the main water surface in the scene.<br><b>GPU intensive</b>.",
 		position = 3,
 		section = waterSettings
 	)
@@ -696,7 +696,9 @@ public interface HdPluginConfig extends Config
 	@ConfigItem(
 		keyName = KEY_PLANAR_REFLECTION_RESOLUTION,
 		name = "Reflection Resolution",
-		description = "Percentage of screen resolution to render reflections at. <br> 50% is a good balance of performance and quality.",
+		description =
+			"Percentage of screen resolution to render reflections at.<br>" +
+			"50% is a good balance between performance and quality.",
 		position = 4,
 		section = waterSettings
 	)
@@ -709,7 +711,7 @@ public interface HdPluginConfig extends Config
 	@ConfigItem(
 		keyName = "shorelineCaustics",
 		name = "Shoreline Caustics",
-		description = "Apply underwater lighting effects to imitate sunlight passing through waves on the surface.",
+		description = "Imitate sunlight passing through waves on the water surface near shorelines.",
 		position = 5,
 		section = waterSettings
 	)
@@ -720,7 +722,10 @@ public interface HdPluginConfig extends Config
 	@ConfigItem(
 		keyName = "underwaterCaustics",
 		name = "Underwater Caustics",
-		description = "Apply underwater lighting effects to imitate sunlight passing through waves on the surface.",
+		description =
+			"Imitate sunlight passing through waves on the surface in underwater environments.<br>" +
+			"This applies for example when diving and in Guardians of the Rift."
+		,
 		position = 6,
 		section = waterSettings
 	)
@@ -732,7 +737,7 @@ public interface HdPluginConfig extends Config
 	@ConfigItem(
 		keyName = KEY_WATER_CAUSTICS_STRENGTH,
 		name = "Caustics Strength",
-		description = "Light strength for caustics.",
+		description = "Controls the brightness of water caustic effects, relative to the default.",
 		position = 7,
 		section = waterSettings
 	)
@@ -746,7 +751,7 @@ public interface HdPluginConfig extends Config
 	@ConfigItem(
 		keyName = KEY_WATER_WAVE_SIZE,
 		name = "Wave Size",
-		description = "Approximately how sharp or strong waves should appear, relative to our default.",
+		description = "Controls roughly how sharp waves should appear, relative to the default.",
 		position = 8,
 		section = waterSettings
 	)
@@ -760,7 +765,7 @@ public interface HdPluginConfig extends Config
 	@ConfigItem(
 		keyName = KEY_WATER_WAVE_SPEED,
 		name = "Wave Speed",
-		description = "The speed of waves.",
+		description = "Controls the speed waves should flow at, relative to the default.",
 		position = 9,
 		section = waterSettings
 	)
@@ -774,7 +779,7 @@ public interface HdPluginConfig extends Config
 	@ConfigItem(
 		keyName = KEY_WATER_DISTORTION,
 		name = "Water Distortion",
-		description = "Water Distortion Toggle",
+		description = "Distort water reflections when they hit waves on the water surface.",
 		position = 10,
 		section = waterSettings
 	)
@@ -786,7 +791,7 @@ public interface HdPluginConfig extends Config
 	@ConfigItem(
 		keyName = KEY_WATER_DISTORTION_AMOUNT,
 		name = "Distortion Amount",
-		description = "The amount of water distortion.",
+		description = "Adjusts the amount of reflection distortion produced by waves.",
 		position = 11,
 		section = waterSettings
 	)
@@ -800,7 +805,7 @@ public interface HdPluginConfig extends Config
 	@ConfigItem(
 		keyName = KEY_WATER_FOAM,
 		name = "Foam",
-		description = "Render foam around the edges of water bodies.",
+		description = "Add foam around the edges of water bodies.",
 		position = 12,
 		section = waterSettings
 	)
@@ -812,7 +817,7 @@ public interface HdPluginConfig extends Config
 	@ConfigItem(
 		keyName = KEY_WATER_FOAM_AMOUNT,
 		name = "Foam Amount",
-		description = "The amount of foam around shorelines.",
+		description = "Controls the amount of foam around shorelines, relative to the default.",
 		position = 13,
 		section = waterSettings
 	)
