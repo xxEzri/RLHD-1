@@ -2338,7 +2338,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glDisable(GL_BLEND);
 			glDisable(GL_CULL_FACE);
 			glDisable(GL_FRAMEBUFFER_SRGB);
-			glDisable(GL_MULTISAMPLE);
 
 			glUseProgram(0);
 
@@ -2351,6 +2350,9 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				0, 0, dimensions[0], dimensions[1],
 				GL_COLOR_BUFFER_BIT, GL_NEAREST
 			);
+
+			// Disable multisampling after blitting
+			glDisable(GL_MULTISAMPLE);
 
 			// Reset
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, awtContext.getFramebuffer(false));
