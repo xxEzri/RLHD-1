@@ -184,11 +184,18 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		GL_SRGB8,
 		GL_SRGB8_ALPHA8 // should be guaranteed
 	};
+	private static final int[] RENDERBUFFER_FORMATS_SRGB_WITH_ALPHA = {
+		GL_SRGB8_ALPHA8 // should be guaranteed
+	};
 	private static final int[] RENDERBUFFER_FORMATS_LINEAR = {
 		GL_RGB8,
 		GL_RGBA8,
 		GL_RGB, // should be guaranteed
-		GL_RGBA
+		GL_RGBA // should be guaranteed
+	};
+	private static final int[] RENDERBUFFER_FORMATS_LINEAR_WITH_ALPHA = {
+		GL_RGBA8,
+		GL_RGBA // should be guaranteed
 	};
 
 	@Inject
@@ -638,6 +645,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 				lastCanvasWidth = lastCanvasHeight = 0;
 				lastStretchedCanvasWidth = lastStretchedCanvasHeight = 0;
+				lastPlanarReflectionWidth = lastPlanarReflectionHeight = 0;
 				lastAntiAliasingMode = null;
 				lastPlanarReflectionEnabled = false;
 				lastLinearAlphaBlending = false;
@@ -1307,14 +1315,29 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	}
 
 	private void initSceneFbo(int width, int height, AntiAliasingMode antiAliasingMode) {
-		int[] resolution = applyDpiScaling(width, height);
-
 		// Bind default FBO to check whether anti-aliasing is forced
 		glBindFramebuffer(GL_FRAMEBUFFER, awtContext.getFramebuffer(false));
 		final int forcedAASamples = glGetInteger(GL_SAMPLES);
 		final int maxSamples = glGetInteger(GL_MAX_SAMPLES);
 		numSamples = forcedAASamples != 0 ? forcedAASamples :
 			Math.min(antiAliasingMode.getSamples(), maxSamples);
+
+		// Since there's seemingly no reliable way to check if the default framebuffer will do sRGB conversions with GL_FRAMEBUFFER_SRGB
+		// enabled, we always replace the default framebuffer with an sRGB one. We could technically support rendering to the default
+		// framebuffer when sRGB conversions aren't needed, but the goal is to transition to linear blending in the future anyway.
+		boolean sRGB = configLinearAlphaBlending;
+
+		// Some implementations (*cough* Apple) complain when blitting from an FBO without an alpha channel to a (default) FBO with alpha.
+		// To work around this, we select a format which includes an alpha channel, even though we don't need it.
+		int alphaBits = glGetFramebufferAttachmentParameteri(GL_FRAMEBUFFER, GL_BACK_LEFT, GL_FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE);
+		checkGLErrors();
+		boolean alpha = alphaBits > 0;
+
+		int[] desiredFormats = sRGB ?
+			alpha ? RENDERBUFFER_FORMATS_SRGB_WITH_ALPHA : RENDERBUFFER_FORMATS_SRGB :
+			alpha ? RENDERBUFFER_FORMATS_LINEAR_WITH_ALPHA : RENDERBUFFER_FORMATS_LINEAR;
+
+		int[] resolution = applyDpiScaling(width, height);
 
 		// Create and bind the FBO
 		fboSceneHandle = glGenFramebuffers();
@@ -1324,13 +1347,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		rboSceneHandle = glGenRenderbuffers();
 		glBindRenderbuffer(GL_RENDERBUFFER, rboSceneHandle);
 
-		// Since there's seemingly no reliable way to check if the default framebuffer will do sRGB conversions
-		// with GL_FRAMEBUFFER_SRGB enabled, we always replace the default framebuffer with an sRGB one.
-		// We could technically support rendering to the default framebuffer when sRGB conversions aren't needed,
-		// but the goal is to transition to linear blending for the future anyway.
-		int[] desiredFormats = configLinearAlphaBlending ? RENDERBUFFER_FORMATS_SRGB : RENDERBUFFER_FORMATS_LINEAR;
-
-		clearGLErrors();
+		checkGLErrors();
 
 		for (int format : desiredFormats) {
 			glRenderbufferStorageMultisample(GL_RENDERBUFFER, numSamples, format, resolution[0], resolution[1]);
@@ -1338,10 +1355,16 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			if (glGetError() == GL_NO_ERROR) {
 				// Found a usable format
 				glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rboSceneHandle);
+				checkGLErrors();
+
+				log.debug("FBO status: {}", glCheckFramebufferStatus(GL_FRAMEBUFFER));
+				checkGLErrors();
 
 				// Reset
 				glBindFramebuffer(GL_FRAMEBUFFER, awtContext.getFramebuffer(false));
+				checkGLErrors();
 				glBindRenderbuffer(GL_RENDERBUFFER, 0);
+				checkGLErrors();
 				return;
 			}
 		}
@@ -2090,7 +2113,9 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 				destroySceneFbo();
 				try {
+					checkGLErrors();
 					initSceneFbo(stretchedCanvasWidth, stretchedCanvasHeight, antiAliasingMode);
+					checkGLErrors();
 				} catch (Exception ex) {
 					log.error("Error while initializing scene FBO:", ex);
 					stopPlugin();
@@ -2112,13 +2137,17 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				lastPlanarReflectionEnabled = configPlanarReflections;
 				lastPlanarReflectionWidth = reflectionWidth;
 				lastPlanarReflectionHeight = reflectionHeight;
+				checkGLErrors();
 
 				destroyPlanarReflectionFbo();
-				if (configPlanarReflections)
+				if (configPlanarReflections) {
 					initPlanarReflectionFbo(reflectionWidth, reflectionHeight);
+					checkGLErrors();
+				}
 			}
 
 			lastLinearAlphaBlending = configLinearAlphaBlending;
+			checkGLErrors();
 
 			glUniform4iv(uniViewport, dpiViewport);
 
@@ -2238,6 +2267,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 			glEnable(GL_BLEND);
 			glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
+			checkGLErrors();
 
 			// Calculate projection matrix
 			if (configPlanarReflections) {
@@ -2282,13 +2312,18 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				glUniform1i(uniRenderPass, 1);
 				glDrawArrays(GL_TRIANGLES, 0, renderBufferOffset);
 
+				checkGLErrors();
 				// Bind the water reflection texture to index 4
 				glActiveTexture(TEXTURE_UNIT_WATER_REFLECTION_MAP);
 				glBindTexture(GL_TEXTURE_2D, texWaterReflection);
 				frameTimer.begin(Timer.REFLECTION_MIPMAPS);
+				checkGLErrors();
 				glGenerateMipmap(GL_TEXTURE_2D);
+				checkGLErrors();
 				frameTimer.end(Timer.REFLECTION_MIPMAPS);
 				glActiveTexture(TEXTURE_UNIT_BASE);
+				checkGLErrors();
+
 
 				// Reset everything back to the main pass' state
 				glDisable(GL_DEPTH_TEST);
@@ -2297,12 +2332,15 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				frameTimer.end(Timer.RENDER_REFLECTIONS);
 			}
 
+			checkGLErrors();
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fboSceneHandle);
+			checkGLErrors();
 
 			glToggle(GL_MULTISAMPLE, numSamples > 1);
 
 			glUniform3fv(uniCameraPos, cameraPosition);
 
+			checkGLErrors();
 			glViewport(dpiViewport[0], dpiViewport[1], dpiViewport[2], dpiViewport[3]);
 
 			frameTimer.begin(Timer.CLEAR_SCENE);
@@ -2332,11 +2370,13 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniform1i(uniRenderPass, 0);
 			glUniform1i(uniWaterReflectionEnabled, configPlanarReflections ? 1 : 0);
 			glDrawArrays(GL_TRIANGLES, 0, renderBufferOffset);
+			checkGLErrors();
 
 			frameTimer.end(Timer.RENDER_SCENE);
 
 			glDisable(GL_BLEND);
 			glDisable(GL_CULL_FACE);
+			glDisable(GL_MULTISAMPLE);
 			glDisable(GL_FRAMEBUFFER_SRGB);
 
 			glUseProgram(0);
@@ -2350,9 +2390,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				0, 0, dimensions[0], dimensions[1],
 				GL_COLOR_BUFFER_BIT, GL_NEAREST
 			);
-
-			// Disable multisampling after blitting
-			glDisable(GL_MULTISAMPLE);
+			checkGLErrors();
 
 			// Reset
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, awtContext.getFramebuffer(false));
@@ -2884,9 +2922,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		client.setUnlockedFps(unlockFps);
 
 		// Without unlocked fps, the client manages sync on its 20ms timer
-		HdPluginConfig.SyncMode syncMode = unlockFps
-				? this.config.syncMode()
-				: HdPluginConfig.SyncMode.OFF;
+		HdPluginConfig.SyncMode syncMode = unlockFps ? config.syncMode() : HdPluginConfig.SyncMode.OFF;
 
 		int swapInterval;
 		switch (syncMode)
@@ -3385,6 +3421,9 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 	@Subscribe
 	public void onGameTick(GameTick gameTick) {
+		if (!isActive)
+			return;
+
 		if (gameTicksUntilSceneReload > 0) {
 			if (gameTicksUntilSceneReload == 1)
 				reuploadScene();
