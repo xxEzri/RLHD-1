@@ -180,6 +180,17 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 	private static final int[] eightIntWrite = new int[8];
 
+	private static final int[] RENDERBUFFER_FORMATS_SRGB = {
+		GL_SRGB8,
+		GL_SRGB8_ALPHA8 // should be guaranteed
+	};
+	private static final int[] RENDERBUFFER_FORMATS_LINEAR = {
+		GL_RGB8,
+		GL_RGBA8,
+		GL_RGB, // should be guaranteed
+		GL_RGBA
+	};
+
 	@Inject
 	private Client client;
 
@@ -350,14 +361,15 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private AntiAliasingMode lastAntiAliasingMode;
 	private boolean lastLinearAlphaBlending;
 	private boolean lastPlanarReflectionEnabled;
-	private float lastPlanarReflectionResolution;
+	private int lastPlanarReflectionWidth;
+	private int lastPlanarReflectionHeight;
 
 	private int viewportOffsetX;
 	private int viewportOffsetY;
 
 	// Uniforms
 	private int uniRenderPass;
-	private int uniViewportDimensions;
+	private int uniViewport;
 	private int uniColorBlindnessIntensity;
 	private int uniUiColorBlindnessIntensity;
 	private int uniUseFog;
@@ -693,10 +705,10 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				destroyInterfaceTexture();
 				destroyPrograms();
 				destroyVaos();
-				destroyAAFbo();
+				destroySceneFbo();
 				destroyShadowMapFbo();
 				destroyTileHeightMap();
-				destroyWaterReflectionFbo();
+				destroyPlanarReflectionFbo();
 				destroyModelSortingBins();
 
 				openCLManager.shutDown();
@@ -906,7 +918,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 	private void initUniforms() {
 		uniRenderPass = glGetUniformLocation(glSceneProgram, "renderPass");
-		uniViewportDimensions = glGetUniformLocation(glSceneProgram, "viewportDimensions");
+		uniViewport = glGetUniformLocation(glSceneProgram, "viewport");
 		uniProjectionMatrix = glGetUniformLocation(glSceneProgram, "projectionMatrix");
 		uniLightProjectionMatrix = glGetUniformLocation(glSceneProgram, "lightProjectionMatrix");
 		uniShadowMap = glGetUniformLocation(glSceneProgram, "shadowMap");
@@ -1292,27 +1304,40 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		updateBuffer(hUniformBufferLights, GL_UNIFORM_BUFFER, uniformBufferLights, GL_STREAM_DRAW, CL_MEM_READ_ONLY);
 	}
 
-	private void initAAFbo(int width, int height, int aaSamples)
-	{
-		if (OSType.getOSType() != OSType.MacOS)
-		{
-			final GraphicsConfiguration graphicsConfiguration = clientUI.getGraphicsConfiguration();
-			final AffineTransform transform = graphicsConfiguration.getDefaultTransform();
+	private void initSceneFbo(int width, int height, AntiAliasingMode antiAliasingMode) {
+		int[] resolution = applyDpiScaling(width, height);
 
-			width = getScaledValue(transform.getScaleX(), width);
-			height = getScaledValue(transform.getScaleY(), height);
-		}
+		// Bind default FBO to check whether anti-aliasing is forced
+		glBindFramebuffer(GL_FRAMEBUFFER, awtContext.getFramebuffer(false));
+		final int forcedAASamples = glGetInteger(GL_SAMPLES);
+		final int maxSamples = glGetInteger(GL_MAX_SAMPLES);
+		final int samples = forcedAASamples != 0 ? forcedAASamples :
+			Math.min(antiAliasingMode.getSamples(), maxSamples);
 
 		// Create and bind the FBO
 		fboSceneHandle = glGenFramebuffers();
 		glBindFramebuffer(GL_FRAMEBUFFER, fboSceneHandle);
 
-		int format = configLinearAlphaBlending ? GL_SRGB8 : GL_RGBA;
+		// Since there's seemingly no reliable way to check if the default framebuffer will do sRGB conversions
+		// with GL_FRAMEBUFFER_SRGB enabled, we always replace the default framebuffer with an sRGB one.
+		// We could technically support rendering to the default framebuffer when sRGB conversions aren't needed,
+		// but the goal is to transition to linear blending for the future anyway.
+		int[] desiredFormats = configLinearAlphaBlending ? RENDERBUFFER_FORMATS_SRGB : RENDERBUFFER_FORMATS_LINEAR;
+
+		int format = 0;
+		for (int desiredFormat : desiredFormats) {
+			if (glGetInternalformati(GL_RENDERBUFFER, desiredFormat, GL_COLOR_RENDERABLE) == GL_TRUE) {
+				format = desiredFormat;
+				break;
+			}
+		}
+		if (format == 0)
+			throw new RuntimeException("No supported " + (configLinearAlphaBlending ? "sRGB" : "linear") + " formats");
 
 		// Create color render buffer
 		rboSceneHandle = glGenRenderbuffers();
 		glBindRenderbuffer(GL_RENDERBUFFER, rboSceneHandle);
-		glRenderbufferStorageMultisample(GL_RENDERBUFFER, aaSamples, format, width, height);
+		glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, format, resolution[0], resolution[1]);
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rboSceneHandle);
 
 		// Reset
@@ -1320,7 +1345,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		glBindRenderbuffer(GL_RENDERBUFFER, 0);
 	}
 
-	private void destroyAAFbo()
+	private void destroySceneFbo()
 	{
 		if (fboSceneHandle != 0)
 		{
@@ -1460,7 +1485,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		texTileHeightMap = 0;
 	}
 
-	private void initWaterReflectionFbo(int width, int height)
+	private void initPlanarReflectionFbo(int width, int height)
 	{
 		int[] dimensions = applyDpiScaling(width, height);
 
@@ -1468,7 +1493,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		fboWaterReflection = glGenFramebuffers();
 		glBindFramebuffer(GL_FRAMEBUFFER, fboWaterReflection);
 
-		int format = configLinearAlphaBlending ? GL_SRGB8 : GL_RGBA;
+		// Both of these are required color-renderable texture formats
+		int format = configLinearAlphaBlending ? GL_SRGB8 : GL_RGB8;
 
 		// Create texture
 		texWaterReflection = glGenTextures();
@@ -1497,7 +1523,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		checkGLErrors();
 	}
 
-	private void destroyWaterReflectionFbo() {
+	private void destroyPlanarReflectionFbo() {
 		if (texWaterReflection != -1)
 			glDeleteTextures(texWaterReflection);
 		texWaterReflection = -1;
@@ -2047,63 +2073,45 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 			// Setup anti-aliasing
 			final AntiAliasingMode antiAliasingMode = config.antiAliasingMode();
-			final boolean aaEnabled = antiAliasingMode != AntiAliasingMode.DISABLED;
-			if (aaEnabled) {
-				glEnable(GL_MULTISAMPLE);
 
-				// Re-create fbo
-				if (lastStretchedCanvasWidth != stretchedCanvasWidth ||
-					lastStretchedCanvasHeight != stretchedCanvasHeight ||
-					lastAntiAliasingMode != antiAliasingMode ||
-					lastLinearAlphaBlending != configLinearAlphaBlending
-				) {
-					destroyAAFbo();
+			// Check if scene FBO needs to be recreated
+			if (lastStretchedCanvasWidth != stretchedCanvasWidth ||
+				lastStretchedCanvasHeight != stretchedCanvasHeight ||
+				lastAntiAliasingMode != antiAliasingMode ||
+				lastLinearAlphaBlending != configLinearAlphaBlending
+			) {
+				lastStretchedCanvasWidth = stretchedCanvasWidth;
+				lastStretchedCanvasHeight = stretchedCanvasHeight;
+				lastAntiAliasingMode = antiAliasingMode;
 
-					// Bind default FBO to check whether anti-aliasing is forced
-					glBindFramebuffer(GL_FRAMEBUFFER, awtContext.getFramebuffer(false));
-					final int forcedAASamples = glGetInteger(GL_SAMPLES);
-					final int maxSamples = glGetInteger(GL_MAX_SAMPLES);
-					final int samples = forcedAASamples != 0 ? forcedAASamples :
-						Math.min(antiAliasingMode.getSamples(), maxSamples);
-
-					initAAFbo(stretchedCanvasWidth, stretchedCanvasHeight, samples);
-				}
-
-				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fboSceneHandle);
-			} else {
-				glDisable(GL_MULTISAMPLE);
-				destroyAAFbo();
+				destroySceneFbo();
+				initSceneFbo(stretchedCanvasWidth, stretchedCanvasHeight, antiAliasingMode);
 			}
 
 			// Setup planar reflection FBO
-			final boolean waterReflectionEnabled = config.enablePlanarReflections();
+			final boolean planarReflectionEnabled = config.enablePlanarReflections();
 			// Clamp this to our target range since RuneLite allows manually typing numbers outside the range
 			final float reflectionResolution = clamp(config.reflectionResolution() / 100f, 0, 1);
-			final int reflectionWidth = Math.max(1, Math.round(stretchedCanvasWidth * reflectionResolution));
-			final int reflectionHeight = Math.max(1, Math.round(stretchedCanvasHeight * reflectionResolution));
-			if (waterReflectionEnabled) {
-				// Re-create planar reflections FBO if needed
-				if (!lastPlanarReflectionEnabled ||
-					lastPlanarReflectionResolution != reflectionResolution ||
-					lastStretchedCanvasWidth != stretchedCanvasWidth ||
-					lastStretchedCanvasHeight != stretchedCanvasHeight ||
-					lastLinearAlphaBlending != configLinearAlphaBlending
-				) {
-					destroyWaterReflectionFbo();
-					initWaterReflectionFbo(reflectionWidth, reflectionHeight);
-				}
-			} else {
-				destroyWaterReflectionFbo();
+			final int reflectionWidth = Math.max(1, Math.round(dpiViewport[2] * reflectionResolution));
+			final int reflectionHeight = Math.max(1, Math.round(dpiViewport[3] * reflectionResolution));
+			// Re-create planar reflections FBO if needed
+			if (lastPlanarReflectionEnabled != planarReflectionEnabled ||
+				lastPlanarReflectionWidth != reflectionWidth ||
+				lastPlanarReflectionHeight != reflectionHeight ||
+				lastLinearAlphaBlending != configLinearAlphaBlending
+			) {
+				lastPlanarReflectionEnabled = planarReflectionEnabled;
+				lastPlanarReflectionWidth = reflectionWidth;
+				lastPlanarReflectionHeight = reflectionHeight;
+
+				destroyPlanarReflectionFbo();
+				if (planarReflectionEnabled)
+					initPlanarReflectionFbo(reflectionWidth, reflectionHeight);
 			}
 
-			lastAntiAliasingMode = antiAliasingMode;
-			lastStretchedCanvasWidth = stretchedCanvasWidth;
-			lastStretchedCanvasHeight = stretchedCanvasHeight;
-			lastPlanarReflectionEnabled = waterReflectionEnabled;
-			lastPlanarReflectionResolution = reflectionResolution;
 			lastLinearAlphaBlending = configLinearAlphaBlending;
 
-			glUniform2i(uniViewportDimensions, dpiViewport[2], dpiViewport[3]);
+			glUniform4iv(uniViewport, dpiViewport);
 
 			float[] fogColor = ColorUtils.linearToSrgb(environmentManager.currentFogColor);
 			float fogDepth = 0;
@@ -2223,7 +2231,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
 
 			// Calculate projection matrix
-			if (waterReflectionEnabled) {
+			if (planarReflectionEnabled) {
 				// Calculate water reflection projection matrix
 				glUniform1i(uniWaterHeight, sceneContext.waterHeight);
 
@@ -2278,18 +2286,13 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				// Reset everything back to the main pass' state
 				glDisable(GL_DEPTH_TEST);
 				glEnable(GL_CULL_FACE);
-				if (aaEnabled)
-				{
-					glEnable(GL_MULTISAMPLE);
-					glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fboSceneHandle);
-				}
-				else
-				{
-					glBindFramebuffer(GL_DRAW_FRAMEBUFFER, awtContext.getFramebuffer(false));
-				}
 
 				frameTimer.end(Timer.RENDER_REFLECTIONS);
 			}
+
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fboSceneHandle);
+
+			glToggle(GL_MULTISAMPLE, antiAliasingMode != AntiAliasingMode.DISABLED);
 
 			glUniform3fv(uniCameraPos, cameraPosition);
 
@@ -2320,33 +2323,29 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniformMatrix4fv(uniProjectionMatrix, false, projectionMatrix);
 
 			glUniform1i(uniRenderPass, 0);
-			glUniform1i(uniWaterReflectionEnabled, waterReflectionEnabled ? 1 : 0);
+			glUniform1i(uniWaterReflectionEnabled, planarReflectionEnabled ? 1 : 0);
 			glDrawArrays(GL_TRIANGLES, 0, renderBufferOffset);
 
 			frameTimer.end(Timer.RENDER_SCENE);
 
 			glDisable(GL_BLEND);
 			glDisable(GL_CULL_FACE);
-
-			if (configLinearAlphaBlending)
-				glDisable(GL_FRAMEBUFFER_SRGB);
+			glDisable(GL_FRAMEBUFFER_SRGB);
 
 			glUseProgram(0);
 
-			if (aaEnabled) {
-				int[] dimensions = applyDpiScaling(stretchedCanvasWidth, stretchedCanvasHeight);
+			// Blit from the scene FBO to the default FBO
+			int[] dimensions = applyDpiScaling(stretchedCanvasWidth, stretchedCanvasHeight);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, fboSceneHandle);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, awtContext.getFramebuffer(false));
+			glBlitFramebuffer(
+				0, 0, dimensions[0], dimensions[1],
+				0, 0, dimensions[0], dimensions[1],
+				GL_COLOR_BUFFER_BIT, GL_NEAREST
+			);
 
-				glBindFramebuffer(GL_READ_FRAMEBUFFER, fboSceneHandle);
-				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, awtContext.getFramebuffer(false));
-				glBlitFramebuffer(
-					0, 0, dimensions[0], dimensions[1],
-					0, 0, dimensions[0], dimensions[1],
-					GL_COLOR_BUFFER_BIT, GL_NEAREST
-				);
-
-				// Reset
-				glBindFramebuffer(GL_READ_FRAMEBUFFER, awtContext.getFramebuffer(false));
-			}
+			// Reset
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, awtContext.getFramebuffer(false));
 		} else {
 			glClearColor(0, 0, 0, 1f);
 			glClear(GL_COLOR_BUFFER_BIT);
@@ -3398,6 +3397,14 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		if (computeMode == ComputeMode.OPENCL)
 			openCLManager.finish();
 		glFinish();
+	}
+
+	private void glToggle(int target, boolean enable) {
+		if (enable) {
+			glEnable(target);
+		} else {
+			glDisable(target);
+		}
 	}
 
 	public void checkGLErrors() {

@@ -705,7 +705,7 @@ public interface HdPluginConfig extends Config
 	@Units(Units.PERCENT)
 	@Range(min = 25, max = 100)
 	default int reflectionResolution() {
-		return 50;
+		return 100;
 	}
 
 	@ConfigItem(
