@@ -1349,24 +1349,20 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		rboSceneHandle = glGenRenderbuffers();
 		glBindRenderbuffer(GL_RENDERBUFFER, rboSceneHandle);
 
-		checkGLErrors();
+		// Flush out all pending errors, so we can check whether the next step succeeds
+		clearGLErrors();
 
 		for (int format : desiredFormats) {
 			glRenderbufferStorageMultisample(GL_RENDERBUFFER, numSamples, format, resolution[0], resolution[1]);
 
 			if (glGetError() == GL_NO_ERROR) {
-				// Found a usable format
+				// Found a usable format. Bind the RBO to the scene FBO
 				glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rboSceneHandle);
-				checkGLErrors();
-
-				log.debug("FBO status: {}", glCheckFramebufferStatus(GL_FRAMEBUFFER));
 				checkGLErrors();
 
 				// Reset
 				glBindFramebuffer(GL_FRAMEBUFFER, awtContext.getFramebuffer(false));
-				checkGLErrors();
 				glBindRenderbuffer(GL_RENDERBUFFER, 0);
-				checkGLErrors();
 				return;
 			}
 		}
@@ -1533,6 +1529,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		checkGLErrors();
 
 		// Bind texture
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texWaterReflection, 0);
@@ -1542,14 +1539,15 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		texWaterReflectionDepthMap = glGenTextures();
 		glBindTexture(GL_TEXTURE_2D, texWaterReflectionDepthMap);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, dimensions[0], dimensions[1], 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, 0);
+		checkGLErrors();
 
 		// Bind texture
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texWaterReflectionDepthMap, 0);
+		checkGLErrors();
 
 		// Reset
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glBindFramebuffer(GL_FRAMEBUFFER, awtContext.getFramebuffer(false));
-		checkGLErrors();
 	}
 
 	private void destroyPlanarReflectionFbo() {
@@ -2115,9 +2113,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 				destroySceneFbo();
 				try {
-					checkGLErrors();
 					initSceneFbo(stretchedCanvasWidth, stretchedCanvasHeight, antiAliasingMode);
-					checkGLErrors();
 				} catch (Exception ex) {
 					log.error("Error while initializing scene FBO:", ex);
 					stopPlugin();
@@ -2139,17 +2135,13 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				lastPlanarReflectionEnabled = configPlanarReflections;
 				lastPlanarReflectionWidth = reflectionWidth;
 				lastPlanarReflectionHeight = reflectionHeight;
-				checkGLErrors();
 
 				destroyPlanarReflectionFbo();
-				if (configPlanarReflections) {
+				if (configPlanarReflections)
 					initPlanarReflectionFbo(reflectionWidth, reflectionHeight);
-					checkGLErrors();
-				}
 			}
 
 			lastLinearAlphaBlending = configLinearAlphaBlending;
-			checkGLErrors();
 
 			glUniform4iv(uniViewport, dpiViewport);
 
@@ -2269,7 +2261,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 			glEnable(GL_BLEND);
 			glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
-			checkGLErrors();
 
 			// Calculate projection matrix
 			if (configPlanarReflections) {
@@ -2314,17 +2305,13 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				glUniform1i(uniRenderPass, 1);
 				glDrawArrays(GL_TRIANGLES, 0, renderBufferOffset);
 
-				checkGLErrors();
 				// Bind the water reflection texture to index 4
 				glActiveTexture(TEXTURE_UNIT_WATER_REFLECTION_MAP);
 				glBindTexture(GL_TEXTURE_2D, texWaterReflection);
 				frameTimer.begin(Timer.REFLECTION_MIPMAPS);
-				checkGLErrors();
 				glGenerateMipmap(GL_TEXTURE_2D);
-				checkGLErrors();
 				frameTimer.end(Timer.REFLECTION_MIPMAPS);
 				glActiveTexture(TEXTURE_UNIT_BASE);
-				checkGLErrors();
 
 
 				// Reset everything back to the main pass' state
@@ -2334,15 +2321,12 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				frameTimer.end(Timer.RENDER_REFLECTIONS);
 			}
 
-			checkGLErrors();
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fboSceneHandle);
-			checkGLErrors();
 
 			glToggle(GL_MULTISAMPLE, numSamples > 1);
 
 			glUniform3fv(uniCameraPos, cameraPosition);
 
-			checkGLErrors();
 			glViewport(dpiViewport[0], dpiViewport[1], dpiViewport[2], dpiViewport[3]);
 
 			frameTimer.begin(Timer.CLEAR_SCENE);
@@ -2372,7 +2356,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniform1i(uniRenderPass, 0);
 			glUniform1i(uniWaterReflectionEnabled, configPlanarReflections ? 1 : 0);
 			glDrawArrays(GL_TRIANGLES, 0, renderBufferOffset);
-			checkGLErrors();
 
 			frameTimer.end(Timer.RENDER_SCENE);
 
@@ -2392,7 +2375,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				0, 0, dimensions[0], dimensions[1],
 				GL_COLOR_BUFFER_BIT, GL_NEAREST
 			);
-			checkGLErrors();
 
 			// Reset
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, awtContext.getFramebuffer(false));
