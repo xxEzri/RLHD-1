@@ -249,15 +249,15 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     vec3 C_ss = vec3(0, .32, .32); // water scatter color
     vec3 C_f = vec3(1); // air bubble color
 
-    float k_1 = 20;  // ~tall wave scatter
+//    float k_1 = 20;  // ~tall wave scatter
     float k_2 = 0.01; // ~refraction scatter
     float k_3 = 0.008; // ~ambient scatter
     float k_4 = 0.1;  // ~air bubble scatter
 
     float P_f = .01; // density of air bubbles
 
-    float H = (1 - pow(cosUp, 1.f)) * 50; // wave height
-    //        float H = height / 50;
+//    float H = (1 - pow(cosUp, 1.f)) * 50; // wave height
+//    float H = height / 50;
 
     vec3 omega_i = lightDir; // incoming = sun to frag
     vec3 omega_o = viewDir; // outgoing = frag to camera
@@ -268,7 +268,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
 
     vec3 L_sun = lightColor * lightStrength;
     vec3 L_scatter = (
-        k_1*H*pow(max(0, dot(omega_i, -omega_o)), 4.f) * pow(.5 - .5*dot(omega_i, omega_n), 3.f)
+//        k_1*H*pow(max(0, dot(omega_i, -omega_o)), 4.f) * pow(.5 - .5*dot(omega_i, omega_n), 3.f)
         + k_2*pow(max(0, dot(omega_o, omega_n)), 2.f)
     ) * C_ss*L_sun;
     L_scatter += k_3*max(0, dot(omega_i, w_n))*C_ss*L_sun + k_4*P_f*C_f*L_sun;
