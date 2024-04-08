@@ -590,7 +590,7 @@ void main() {
         float combinedFog = 1 - (1 - IN.fogAmount) * (1 - groundFog);
 
         #if LINEAR_ALPHA_BLENDING
-        outputColor.rgb = mix(outputColor.rgb * outputColor.a, srgbToLinear(fogColor), combinedFog);
+        outputColor.rgb = mix(outputColor.rgb * outputColor.a, srgbToLinear(fogColor), srgbToLinear(combinedFog));
         outputColor.a = mix(outputColor.a, 1, combinedFog);
         outputColor.rgb /= outputColor.a;
         #else
