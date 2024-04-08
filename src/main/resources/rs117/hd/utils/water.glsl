@@ -290,6 +290,27 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     float specularStrength = waterType.specularStrength;
     vec3 sunSpecular = pow(max(0, dot(R, lightDir)), specularGloss) * lightStrength * lightColor * specularStrength;
 
+//    #define PHYSICAL_LIGHT_FALLOFF
+    #ifdef PHYSICAL_LIGHT_FALLOFF
+    // Point lights
+    vec3 pointLightsSpecular = vec3(0);
+    float fragToCamDist = length(IN.position - cameraPos);
+    for (int i = 0; i < pointLightsCount; i++) {
+        vec4 pos = PointLightArray[i].position;
+        vec3 lightToFrag = pos.xyz - IN.position;
+        float distSq = length(lightToFrag) + fragToCamDist;
+        distSq *= distSq;
+        float radiusSquared = pos.w;
+
+        vec3 pointLightColor = PointLightArray[i].color;
+        vec3 pointLightDir = normalize(lightToFrag);
+
+        pointLightColor *= 1 / (1 + distSq) * 1e4; // arbitrary multiplier
+
+        vec3 pointLightReflectDir = reflect(-pointLightDir, N);
+        pointLightsSpecular += pointLightColor * pow(max(0, dot(pointLightReflectDir, viewDir)), specularGloss) * specularStrength;
+    }
+    #else
     // Point lights
     vec3 pointLightsSpecular = vec3(0);
     for (int i = 0; i < pointLightsCount; i++) {
@@ -297,8 +318,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
         vec3 lightToFrag = pos.xyz - IN.position;
         float distanceSquared = dot(lightToFrag, lightToFrag);
         float radiusSquared = pos.w;
-        // TODO: decide whether we want to restrict this. It doesn't really make sense to, but might help with performance
-        // if (distanceSquared <= radiusSquared) {
+        if (distanceSquared <= radiusSquared) {
             vec3 pointLightColor = PointLightArray[i].color;
             vec3 pointLightDir = normalize(lightToFrag);
 
@@ -307,8 +327,9 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
 
             vec3 pointLightReflectDir = reflect(-pointLightDir, N);
             pointLightsSpecular += pointLightColor * pow(max(0, dot(pointLightReflectDir, viewDir)), specularGloss) * specularStrength;
-        // }
+        }
     }
+    #endif
 
     vec3 specular = sunSpecular + pointLightsSpecular;
 
@@ -423,7 +444,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     // Neither refraction nor specular make sense to blend in using alpha blending,
     // so we need a special way to blend in light additively, without unnecessarily
     // obscuring the underwater geometry.
-    vec3 additionalLight = refraction; // + specular; // disable specular for now
+    vec3 additionalLight = refraction + specular;
 
     // In theory, we could just add the light and be done with it, but since the color
     // will be multiplied by alpha during alpha blending, we need to divide by alpha to
