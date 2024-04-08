@@ -186,7 +186,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
         foamColor = srgbToLinear(foamColor) * foamMask * (ambientColor * ambientStrength + lightColor * lightStrength);
         foamAmount = clamp(pow(1.0 - ((1.0 - foamAmount) / foamDistance), 3), 0.0, 1.0) * waterType.hasFoam;
         foamAmount *= waterFoamAmount;
-        foamAmount *= 0.15; // rescale foam so that 100% is a good default amount
+        foamAmount *= 0.12; // rescale foam so that 100% is a good default amount
         foam = vec4(foamColor, foamAmount);
 
         switch (waterTypeIndex) {
