@@ -454,6 +454,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	public boolean configUndoVanillaShading;
 	public boolean configPreserveVanillaNormals;
 	public boolean configLinearAlphaBlending;
+	public boolean configPlanarReflections;
 	public boolean configWaterTransparency;
 	public int configWaterTransparencyAmount;
 	public int configMaxDynamicLights;
@@ -859,7 +860,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			.define("LINEAR_ALPHA_BLENDING", configLinearAlphaBlending)
 			.define("WATER_STYLE", config.waterStyle())
 			.define("WATER_FOAM", config.enableWaterFoam())
-			.define("PLANAR_REFLECTIONS", config.enablePlanarReflections())
+			.define("PLANAR_REFLECTIONS", configPlanarReflections)
 			.addIncludePath(SHADER_PATH);
 
 		glSceneProgram = PROGRAM.compile(template);
@@ -2096,23 +2097,22 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			}
 
 			// Setup planar reflection FBO
-			final boolean planarReflectionEnabled = config.enablePlanarReflections();
 			// Clamp this to our target range since RuneLite allows manually typing numbers outside the range
 			final float reflectionResolution = clamp(config.reflectionResolution() / 100f, 0, 1);
 			final int reflectionWidth = Math.max(1, Math.round(dpiViewport[2] * reflectionResolution));
 			final int reflectionHeight = Math.max(1, Math.round(dpiViewport[3] * reflectionResolution));
 			// Re-create planar reflections FBO if needed
-			if (lastPlanarReflectionEnabled != planarReflectionEnabled ||
+			if (lastPlanarReflectionEnabled != configPlanarReflections ||
 				lastPlanarReflectionWidth != reflectionWidth ||
 				lastPlanarReflectionHeight != reflectionHeight ||
 				lastLinearAlphaBlending != configLinearAlphaBlending
 			) {
-				lastPlanarReflectionEnabled = planarReflectionEnabled;
+				lastPlanarReflectionEnabled = configPlanarReflections;
 				lastPlanarReflectionWidth = reflectionWidth;
 				lastPlanarReflectionHeight = reflectionHeight;
 
 				destroyPlanarReflectionFbo();
-				if (planarReflectionEnabled)
+				if (configPlanarReflections)
 					initPlanarReflectionFbo(reflectionWidth, reflectionHeight);
 			}
 
@@ -2238,7 +2238,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
 
 			// Calculate projection matrix
-			if (planarReflectionEnabled) {
+			if (configPlanarReflections) {
 				// Calculate water reflection projection matrix
 				glUniform1i(uniWaterHeight, sceneContext.waterHeight);
 
@@ -2330,7 +2330,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniformMatrix4fv(uniProjectionMatrix, false, projectionMatrix);
 
 			glUniform1i(uniRenderPass, 0);
-			glUniform1i(uniWaterReflectionEnabled, planarReflectionEnabled ? 1 : 0);
+			glUniform1i(uniWaterReflectionEnabled, configPlanarReflections ? 1 : 0);
 			glDrawArrays(GL_TRIANGLES, 0, renderBufferOffset);
 
 			frameTimer.end(Timer.RENDER_SCENE);
@@ -2678,6 +2678,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		configPreserveVanillaNormals = config.preserveVanillaNormals();
 		configSeasonalTheme = config.seasonalTheme();
 		configLinearAlphaBlending = config.waterStyle() != WaterStyle.LEGACY;
+		configPlanarReflections = config.enablePlanarReflections();
 		configWaterTransparency = config.waterTransparency();
 		configWaterTransparencyAmount = config.waterTransparencyAmount();
 
