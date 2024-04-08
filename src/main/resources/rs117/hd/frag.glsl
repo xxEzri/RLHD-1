@@ -572,6 +572,11 @@ void main() {
     outputColor.rgb = applyColorFilter(outputColor.rgb);
     #endif
 
+    #if LINEAR_ALPHA_BLENDING
+    // We need to output linear
+    outputColor.rgb = srgbToLinear(outputColor.rgb);
+    #endif
+
     // apply fog
     if (!isUnderwaterTile) {
         // ground fog
@@ -584,15 +589,16 @@ void main() {
         // multiply the visibility of each fog
         float combinedFog = 1 - (1 - IN.fogAmount) * (1 - groundFog);
 
+        #if LINEAR_ALPHA_BLENDING
+        outputColor.rgb = mix(outputColor.rgb * outputColor.a, srgbToLinear(fogColor), combinedFog);
+        outputColor.a = mix(outputColor.a, 1, combinedFog);
+        outputColor.rgb /= outputColor.a;
+        #else
         if (isWaterSurface)
             outputColor.a = combinedFog + outputColor.a * (1 - combinedFog);
         outputColor.rgb = mix(outputColor.rgb, fogColor, combinedFog);
+        #endif
     }
-
-    #if LINEAR_ALPHA_BLENDING
-    // We need to output linear
-    outputColor.rgb = srgbToLinear(outputColor.rgb);
-    #endif
 
     FragColor = outputColor;
 }
