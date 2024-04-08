@@ -169,7 +169,8 @@ vec4 sampleLegacyWater(WaterType waterType, vec3 viewDir) {
 
     float alpha = max(waterType.baseOpacity, max(foamAmount, max(finalFresnel, length(specularComposite / 3))));
 
-    if (waterType.isFlat) {
+    bool isOpaque = !waterTransparency || waterType.isFlat;
+    if (isOpaque) {
         baseColor = mix(waterType.depthColor, baseColor, alpha);
         alpha = 1;
     }
