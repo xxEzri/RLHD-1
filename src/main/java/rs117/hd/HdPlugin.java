@@ -1318,31 +1318,32 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		fboSceneHandle = glGenFramebuffers();
 		glBindFramebuffer(GL_FRAMEBUFFER, fboSceneHandle);
 
+		// Create color render buffer
+		rboSceneHandle = glGenRenderbuffers();
+		glBindRenderbuffer(GL_RENDERBUFFER, rboSceneHandle);
+
 		// Since there's seemingly no reliable way to check if the default framebuffer will do sRGB conversions
 		// with GL_FRAMEBUFFER_SRGB enabled, we always replace the default framebuffer with an sRGB one.
 		// We could technically support rendering to the default framebuffer when sRGB conversions aren't needed,
 		// but the goal is to transition to linear blending for the future anyway.
 		int[] desiredFormats = configLinearAlphaBlending ? RENDERBUFFER_FORMATS_SRGB : RENDERBUFFER_FORMATS_LINEAR;
 
-		int format = 0;
-		for (int desiredFormat : desiredFormats) {
-			if (glGetInternalformati(GL_RENDERBUFFER, desiredFormat, GL_COLOR_RENDERABLE) == GL_TRUE) {
-				format = desiredFormat;
-				break;
+		clearGLErrors();
+
+		for (int format : desiredFormats) {
+			glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, format, resolution[0], resolution[1]);
+			if (glGetError() == GL_NO_ERROR) {
+				// Found a usable format
+				glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rboSceneHandle);
+
+				// Reset
+				glBindFramebuffer(GL_FRAMEBUFFER, awtContext.getFramebuffer(false));
+				glBindRenderbuffer(GL_RENDERBUFFER, 0);
+				return;
 			}
 		}
-		if (format == 0)
-			throw new RuntimeException("No supported " + (configLinearAlphaBlending ? "sRGB" : "linear") + " formats");
 
-		// Create color render buffer
-		rboSceneHandle = glGenRenderbuffers();
-		glBindRenderbuffer(GL_RENDERBUFFER, rboSceneHandle);
-		glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, format, resolution[0], resolution[1]);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rboSceneHandle);
-
-		// Reset
-		glBindFramebuffer(GL_FRAMEBUFFER, awtContext.getFramebuffer(false));
-		glBindRenderbuffer(GL_RENDERBUFFER, 0);
+		throw new RuntimeException("No supported " + (configLinearAlphaBlending ? "sRGB" : "linear") + " formats");
 	}
 
 	private void destroySceneFbo()
@@ -3413,11 +3414,18 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		}
 	}
 
+	@SuppressWarnings("StatementWithEmptyBody")
+	public void clearGLErrors() {
+		// @formatter:off
+		while (glGetError() != GL_NO_ERROR);
+		// @formatter:on
+	}
+
 	public void checkGLErrors() {
 		if (!log.isDebugEnabled())
 			return;
 
-		for (; ; ) {
+		while (true) {
 			int err = glGetError();
 			if (err == GL_NO_ERROR)
 				return;
