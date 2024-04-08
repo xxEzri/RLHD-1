@@ -1316,7 +1316,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 	private void initSceneFbo(int width, int height, AntiAliasingMode antiAliasingMode) {
 		// Bind default FBO to check whether anti-aliasing is forced
-		glBindFramebuffer(GL_FRAMEBUFFER, awtContext.getFramebuffer(false));
+		int defaultFramebuffer = awtContext.getFramebuffer(false);
+		glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
 		final int forcedAASamples = glGetInteger(GL_SAMPLES);
 		final int maxSamples = glGetInteger(GL_MAX_SAMPLES);
 		numSamples = forcedAASamples != 0 ? forcedAASamples :
@@ -1329,7 +1330,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 		// Some implementations (*cough* Apple) complain when blitting from an FBO without an alpha channel to a (default) FBO with alpha.
 		// To work around this, we select a format which includes an alpha channel, even though we don't need it.
-		int alphaBits = glGetFramebufferAttachmentParameteri(GL_FRAMEBUFFER, GL_BACK_LEFT, GL_FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE);
+		int defaultColorAttachment = defaultFramebuffer == 0 ? GL_BACK_LEFT : GL_COLOR_ATTACHMENT0;
+		int alphaBits = glGetFramebufferAttachmentParameteri(GL_FRAMEBUFFER, defaultColorAttachment, GL_FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE);
 		checkGLErrors();
 		boolean alpha = alphaBits > 0;
 
