@@ -363,6 +363,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private boolean lastPlanarReflectionEnabled;
 	private int lastPlanarReflectionWidth;
 	private int lastPlanarReflectionHeight;
+	private int numSamples;
 
 	private int viewportOffsetX;
 	private int viewportOffsetY;
@@ -1312,7 +1313,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		glBindFramebuffer(GL_FRAMEBUFFER, awtContext.getFramebuffer(false));
 		final int forcedAASamples = glGetInteger(GL_SAMPLES);
 		final int maxSamples = glGetInteger(GL_MAX_SAMPLES);
-		final int samples = forcedAASamples != 0 ? forcedAASamples :
+		numSamples = forcedAASamples != 0 ? forcedAASamples :
 			Math.min(antiAliasingMode.getSamples(), maxSamples);
 
 		// Create and bind the FBO
@@ -1332,7 +1333,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		clearGLErrors();
 
 		for (int format : desiredFormats) {
-			glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, format, resolution[0], resolution[1]);
+			glRenderbufferStorageMultisample(GL_RENDERBUFFER, numSamples, format, resolution[0], resolution[1]);
+
 			if (glGetError() == GL_NO_ERROR) {
 				// Found a usable format
 				glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rboSceneHandle);
@@ -2264,8 +2266,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 				glViewport(0, 0, reflectionWidth, reflectionHeight);
 
-				// Disable multisampling while rendering to the water reflection texture
-				glDisable(GL_MULTISAMPLE);
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fboWaterReflection);
 				glClearDepth(1);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -2299,7 +2299,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fboSceneHandle);
 
-			glToggle(GL_MULTISAMPLE, antiAliasingMode != AntiAliasingMode.DISABLED);
+			glToggle(GL_MULTISAMPLE, numSamples > 1);
 
 			glUniform3fv(uniCameraPos, cameraPosition);
 
@@ -2338,6 +2338,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glDisable(GL_BLEND);
 			glDisable(GL_CULL_FACE);
 			glDisable(GL_FRAMEBUFFER_SRGB);
+			glDisable(GL_MULTISAMPLE);
 
 			glUseProgram(0);
 
