@@ -752,7 +752,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			}
 			catch (PluginInstantiationException ex)
 			{
-				log.error("Error while stopping 117HD", ex);
+				log.error("Error while stopping 117HD:", ex);
 			}
 		});
 
@@ -2075,17 +2075,23 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			final AntiAliasingMode antiAliasingMode = config.antiAliasingMode();
 
 			// Check if scene FBO needs to be recreated
-			if (lastStretchedCanvasWidth != stretchedCanvasWidth ||
+			if (lastAntiAliasingMode != antiAliasingMode ||
+				lastStretchedCanvasWidth != stretchedCanvasWidth ||
 				lastStretchedCanvasHeight != stretchedCanvasHeight ||
-				lastAntiAliasingMode != antiAliasingMode ||
 				lastLinearAlphaBlending != configLinearAlphaBlending
 			) {
+				lastAntiAliasingMode = antiAliasingMode;
 				lastStretchedCanvasWidth = stretchedCanvasWidth;
 				lastStretchedCanvasHeight = stretchedCanvasHeight;
-				lastAntiAliasingMode = antiAliasingMode;
 
 				destroySceneFbo();
-				initSceneFbo(stretchedCanvasWidth, stretchedCanvasHeight, antiAliasingMode);
+				try {
+					initSceneFbo(stretchedCanvasWidth, stretchedCanvasHeight, antiAliasingMode);
+				} catch (Exception ex) {
+					log.error("Error while initializing scene FBO:", ex);
+					stopPlugin();
+					return;
+				}
 			}
 
 			// Setup planar reflection FBO
