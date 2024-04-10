@@ -70,10 +70,7 @@ uniform float waterWaveSize;
 uniform float waterWaveSpeed;
 uniform float waterFoamAmount;
 uniform float waterDistortionAmount;
-// Legacy water uniforms
-uniform vec3 waterColorLight;
-uniform vec3 waterColorMid;
-uniform vec3 waterColorDark;
+uniform vec3 legacyWaterColor;
 
 // general HD settings
 uniform float saturation;
@@ -163,7 +160,7 @@ void main() {
         discard;
 
     if (isWaterSurface) {
-        #if WATER_STYLE == WATER_STYLE_LEGACY
+        #if LEGACY_WATER
         outputColor = sampleLegacyWater(waterType, viewDir);
         #else
         outputColor = sampleWater(waterTypeIndex, viewDir);
@@ -529,20 +526,22 @@ void main() {
             getMaterialIsUnlit(material3)
         ));
 
-        #if WATER_STYLE == WATER_STYLE_LEGACY
-            outputColor.rgb *= mix(compositeLight, vec3(1), unlit);
-            if (isUnderwaterTile)
-                sampleLegacyUnderwater(outputColor.rgb, waterType.depthColor, waterDepth, lightDotNormals);
-        #elif WATER_STYLE == WATER_STYLE_DEFAULT
-            outputColor.rgb *= mix(compositeLight, vec3(1), unlit);
-            if (isUnderwaterTile)
-                sampleUnderwater(outputColor.rgb, waterTypeIndex, waterDepth, lightDotNormals);
-        #else
+        #ifdef HOODER_WATER
             if (isUnderwaterTile) {
                 sampleUnderwater(outputColor.rgb, waterTypeIndex, waterDepth);
             } else {
                 outputColor.rgb *= mix(compositeLight, vec3(1), unlit);
             }
+        #else
+            #if LEGACY_WATER
+                outputColor.rgb *= mix(compositeLight, vec3(1), unlit);
+                if (isUnderwaterTile)
+                    sampleLegacyUnderwater(outputColor.rgb, waterType.depthColor, waterDepth, lightDotNormals);
+            #else
+                outputColor.rgb *= mix(compositeLight, vec3(1), unlit);
+                if (isUnderwaterTile)
+                    sampleUnderwater(outputColor.rgb, waterTypeIndex, waterDepth, lightDotNormals);
+            #endif
         #endif
     }
 

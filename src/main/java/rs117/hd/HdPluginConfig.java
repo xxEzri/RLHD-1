@@ -37,6 +37,7 @@ import rs117.hd.config.ColorFilter;
 import rs117.hd.config.Contrast;
 import rs117.hd.config.DefaultSkyColor;
 import rs117.hd.config.FogDepthMode;
+import rs117.hd.config.LegacyWater;
 import rs117.hd.config.MaxDynamicLights;
 import rs117.hd.config.Saturation;
 import rs117.hd.config.SeasonalTheme;
@@ -47,7 +48,6 @@ import rs117.hd.config.ShadowResolution;
 import rs117.hd.config.TextureResolution;
 import rs117.hd.config.UIScalingMode;
 import rs117.hd.config.VanillaShadowMode;
-import rs117.hd.config.WaterStyle;
 
 import static rs117.hd.HdPlugin.MAX_DISTANCE;
 import static rs117.hd.HdPlugin.MAX_FOG_DEPTH;
@@ -642,19 +642,6 @@ public interface HdPluginConfig extends Config
 	)
 	String waterSettings = "waterSettings";
 
-	String KEY_WATER_STYLE = "wipWaterStyle";
-	@ConfigItem(
-		keyName = KEY_WATER_STYLE,
-		name = "Water Style",
-		description = "Choose between different water styles.",
-		position = 0,
-		section = waterSettings
-	)
-	default WaterStyle waterStyle()
-	{
-		return WaterStyle.DEFAULT;
-	}
-
 	@ConfigItem(
 		keyName = "waterTransparency",
 		name = "Water Transparency",
@@ -698,12 +685,13 @@ public interface HdPluginConfig extends Config
 		name = "Reflection Resolution",
 		description =
 			"Percentage of screen resolution to render reflections at.<br>" +
-			"50% is a good balance between performance and quality.",
+			"50% is a good for performance, but produces more shimmering.<br>" +
+			"Super-resolution of up to 400% is allowed, but is very costly.",
 		position = 4,
 		section = waterSettings
 	)
 	@Units(Units.PERCENT)
-	@Range(min = 25, max = 100)
+	@Range(min = 25, max = 400)
 	default int reflectionResolution() {
 		return 100;
 	}
@@ -905,7 +893,6 @@ public interface HdPluginConfig extends Config
 		warning =
 			"This setting can cause RuneLite to crash, and it can be difficult to undo.\n" +
 			"Only enable it if you are seeing broken colors. Are you sure you want to enable this setting?",
-		position = 1,
 		section = miscellaneousSettings
 	)
 	default boolean macosIntelWorkaround()
@@ -920,7 +907,6 @@ public interface HdPluginConfig extends Config
 		description =
 			"Replace the infernal cape texture with a more detailed version.<br>" +
 			"Note, with Anisotropic Filtering above zero, the cape may look blurry when zoomed out.",
-		position = 2,
 		section = miscellaneousSettings
 	)
 	default boolean hdInfernalTexture() {
@@ -934,11 +920,23 @@ public interface HdPluginConfig extends Config
 		description =
 			"Previously, HD attempted to reduce over-exposure by capping the maximum color brightness,<br>" +
 			"which changed white colors into dull shades of grey. This option brings back that old behaviour.",
-		position = 4,
 		section = miscellaneousSettings
 	)
 	default boolean legacyGreyColors() {
 		return false;
+	}
+
+	String KEY_LEGACY_WATER = "legacyWaterStyle";
+	@ConfigItem(
+		keyName = KEY_LEGACY_WATER,
+		name = "Legacy Water",
+		description =
+			"Use the water style included in the initial release of the plugin. May be removed in the future.<br>" +
+			"For reflections, Planar Reflections in Water settings must also be enabled.",
+		section = miscellaneousSettings
+	)
+	default LegacyWater legacyWater() {
+		return LegacyWater.OFF;
 	}
 
 	String KEY_VANILLA_COLOR_BANDING = "vanillaColorBanding";
@@ -948,7 +946,6 @@ public interface HdPluginConfig extends Config
 		description =
 			"Blend between colors similarly to how it works in vanilla, with clearly defined bands of color.<br>" +
 			"This isn't really noticeable on textured surfaces, and is intended to be used without ground textures.",
-		position = 5,
 		section = miscellaneousSettings
 	)
 	default boolean vanillaColorBanding() {
@@ -963,7 +960,6 @@ public interface HdPluginConfig extends Config
 		warning =
 			"<html>This <b>will not</b> result in better performance. It is recommended only if you are unable to install<br>" +
 			"the 64-bit version of RuneLite, or if your computer has a very low amount of memory available.</html>",
-		position = 6,
 		section = miscellaneousSettings
 	)
 	default boolean lowMemoryMode() {
@@ -975,7 +971,6 @@ public interface HdPluginConfig extends Config
 		keyName = KEY_REPLACE_FISHING_SPOTS,
 		name = "Replace Fishing Spots",
 		description = "Replace certain fishing spots with more appropriate models that are easier to see.",
-		position = 7,
 		section = miscellaneousSettings
 	)
 	default boolean replaceFishingSpots() {
@@ -987,7 +982,6 @@ public interface HdPluginConfig extends Config
 		keyName = KEY_COLOR_FILTER,
 		name = "Color Filter",
 		description = "Apply a color filter to the game as a post-processing effect.",
-		position = 8,
 		section = miscellaneousSettings
 	)
 	default ColorFilter colorFilter() {

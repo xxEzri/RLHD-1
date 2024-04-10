@@ -79,12 +79,12 @@ import org.lwjgl.system.Callback;
 import org.lwjgl.system.Configuration;
 import rs117.hd.config.AntiAliasingMode;
 import rs117.hd.config.ColorFilter;
+import rs117.hd.config.LegacyWater;
 import rs117.hd.config.SeasonalTheme;
 import rs117.hd.config.ShadingMode;
 import rs117.hd.config.ShadowMode;
 import rs117.hd.config.UIScalingMode;
 import rs117.hd.config.VanillaShadowMode;
-import rs117.hd.config.WaterStyle;
 import rs117.hd.data.WaterType;
 import rs117.hd.data.environments.Area;
 import rs117.hd.data.materials.Material;
@@ -385,9 +385,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int uniFogDepth;
 	private int uniDrawDistance;
 	private int uniExpandedMapLoadingChunks;
-	private int uniWaterColorLight;
-	private int uniWaterColorMid;
-	private int uniWaterColorDark;
+	private int uniLegacyWaterColor;
 	private int uniAmbientStrength;
 	private int uniAmbientColor;
 	private int uniLightStrength;
@@ -471,6 +469,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	public VanillaShadowMode configVanillaShadowMode;
 	public ColorFilter configColorFilter = ColorFilter.NONE;
 	public ColorFilter configColorFilterPrevious;
+	public LegacyWater configLegacyWater;
 
 	public boolean useLowMemoryMode;
 	public boolean enableDetailedTimers;
@@ -863,11 +862,11 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			.define("VANILLA_COLOR_BANDING", config.vanillaColorBanding())
 			.define("UNDO_VANILLA_SHADING", configUndoVanillaShading)
 			.define("LEGACY_GREY_COLORS", configLegacyGreyColors)
+			.define("LEGACY_WATER", configLegacyWater)
 			.define("DISABLE_DIRECTIONAL_SHADING", config.shadingMode() != ShadingMode.DEFAULT)
 			.define("FLAT_SHADING", config.flatShading())
 			.define("SHADOW_MAP_OVERLAY", enableShadowMapOverlay)
 			.define("LINEAR_ALPHA_BLENDING", configLinearAlphaBlending)
-			.define("WATER_STYLE", config.waterStyle())
 			.define("WATER_FOAM", config.enableWaterFoam())
 			.define("PLANAR_REFLECTIONS", configPlanarReflections)
 			.addIncludePath(SHADER_PATH);
@@ -938,9 +937,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		uniUseFog = glGetUniformLocation(glSceneProgram, "useFog");
 		uniFogColor = glGetUniformLocation(glSceneProgram, "fogColor");
 		uniFogDepth = glGetUniformLocation(glSceneProgram, "fogDepth");
-		uniWaterColorLight = glGetUniformLocation(glSceneProgram, "waterColorLight");
-		uniWaterColorMid = glGetUniformLocation(glSceneProgram, "waterColorMid");
-		uniWaterColorDark = glGetUniformLocation(glSceneProgram, "waterColorDark");
+		uniLegacyWaterColor = glGetUniformLocation(glSceneProgram, "legacyWaterColor");
 		uniDrawDistance = glGetUniformLocation(glSceneProgram, "drawDistance");
 		uniExpandedMapLoadingChunks = glGetUniformLocation(glSceneProgram, "expandedMapLoadingChunks");
 		uniAmbientStrength = glGetUniformLocation(glSceneProgram, "ambientStrength");
@@ -2123,7 +2120,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 			// Setup planar reflection FBO
 			// Clamp this to our target range since RuneLite allows manually typing numbers outside the range
-			final float reflectionResolution = clamp(config.reflectionResolution() / 100f, 0, 1);
+			final float reflectionResolution = clamp(config.reflectionResolution() / 100f, 0, 4);
 			final int reflectionWidth = Math.max(1, Math.round(dpiViewport[2] * reflectionResolution));
 			final int reflectionHeight = Math.max(1, Math.round(dpiViewport[3] * reflectionResolution));
 			// Re-create planar reflections FBO if needed
@@ -2159,33 +2156,11 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniform1i(uniUseFog, fogDepth > 0 ? 1 : 0);
 			glUniform1f(uniFogDepth, fogDepth);
 			glUniform3fv(uniFogColor, fogColor);
+			glUniform3fv(uniLegacyWaterColor, environmentManager.currentWaterColor);
 
 			glUniform1f(uniDrawDistance, getDrawDistance());
 			glUniform1i(uniExpandedMapLoadingChunks, sceneContext.expandedMapLoadingChunks);
 			glUniform1f(uniColorBlindnessIntensity, config.colorBlindnessIntensity() / 100.f);
-
-			float[] waterColorHsv = ColorUtils.srgbToHsv(environmentManager.currentWaterColor);
-			float lightBrightnessMultiplier = 0.8f;
-			float midBrightnessMultiplier = 0.45f;
-			float darkBrightnessMultiplier = 0.05f;
-			float[] waterColorLight = ColorUtils.linearToSrgb(ColorUtils.hsvToSrgb(new float[] {
-				waterColorHsv[0],
-				waterColorHsv[1],
-				waterColorHsv[2] * lightBrightnessMultiplier
-			}));
-			float[] waterColorMid = ColorUtils.linearToSrgb(ColorUtils.hsvToSrgb(new float[] {
-				waterColorHsv[0],
-				waterColorHsv[1],
-				waterColorHsv[2] * midBrightnessMultiplier
-			}));
-			float[] waterColorDark = ColorUtils.linearToSrgb(ColorUtils.hsvToSrgb(new float[] {
-				waterColorHsv[0],
-				waterColorHsv[1],
-				waterColorHsv[2] * darkBrightnessMultiplier
-			}));
-			glUniform3fv(uniWaterColorLight, waterColorLight);
-			glUniform3fv(uniWaterColorMid, waterColorMid);
-			glUniform3fv(uniWaterColorDark, waterColorDark);
 
 			float brightness = config.brightness() / 20f;
 			glUniform1f(uniAmbientStrength, environmentManager.currentAmbientStrength * brightness);
@@ -2694,6 +2669,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		configVanillaShadowMode = config.vanillaShadowMode();
 		configHideFakeShadows = configVanillaShadowMode != VanillaShadowMode.SHOW;
 		configLegacyGreyColors = config.legacyGreyColors();
+		configLegacyWater = config.legacyWater();
+		configLinearAlphaBlending = configLegacyWater == LegacyWater.OFF;
 		configModelBatching = config.modelBatching();
 		configModelCaching = config.modelCaching();
 		configMaxDynamicLights = config.maxDynamicLights().getValue();
@@ -2702,7 +2679,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		configUndoVanillaShading = config.shadingMode() != ShadingMode.VANILLA;
 		configPreserveVanillaNormals = config.preserveVanillaNormals();
 		configSeasonalTheme = config.seasonalTheme();
-		configLinearAlphaBlending = config.waterStyle() != WaterStyle.LEGACY;
 		configPlanarReflections = config.enablePlanarReflections();
 		configWaterTransparency = config.waterTransparency();
 		configWaterTransparencyAmount = config.waterTransparencyAmount();
@@ -2789,7 +2765,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 							case KEY_VANILLA_COLOR_BANDING:
 							case KEY_COLOR_FILTER:
 							case KEY_PLANAR_REFLECTIONS:
-							case KEY_WATER_STYLE:
+							case KEY_LEGACY_WATER:
 							case KEY_WATER_FOAM:
 								recompilePrograms = true;
 								break;
