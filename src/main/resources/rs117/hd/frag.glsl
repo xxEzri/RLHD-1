@@ -70,10 +70,7 @@ uniform float waterWaveSize;
 uniform float waterWaveSpeed;
 uniform float waterFoamAmount;
 uniform float waterDistortionAmount;
-// Legacy water uniforms
-uniform vec3 waterColorLight;
-uniform vec3 waterColorMid;
-uniform vec3 waterColorDark;
+uniform vec3 legacyWaterColor;
 
 // general HD settings
 uniform float saturation;

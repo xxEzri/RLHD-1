@@ -23,6 +23,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include utils/color_utils.glsl
+
 vec4 sampleLegacyWater(WaterType waterType, vec3 viewDir) {
     vec2 baseUv = IN.uv;
     vec2 uv3 = baseUv;
@@ -126,6 +128,24 @@ vec4 sampleLegacyWater(WaterType waterType, vec3 viewDir) {
     float finalFresnel = clamp(mix(baseOpacity, 1.0, fresnel * 1.2), 0.0, 1.0);
     vec3 surfaceColor = vec3(0);
 
+    vec3 skyColor = legacyWaterColor;
+
+    #if PLANAR_REFLECTIONS
+    vec3 I = -viewDir; // incident
+    // Assume the water is level
+    vec3 flatR = reflect(I, vec3(0, -1, 0));
+    vec3 R = reflect(I, normals);
+    float distortionFactor = 50;
+    vec3 reflection = sampleWaterReflection(flatR, mix(flatR, R, .5), distortionFactor);
+    skyColor = reflection;
+    #endif
+
+    vec3 waterColorHsv = srgbToHsv(skyColor);
+    // This looks all wrong, because it is, but legacy depends on it
+    vec3 waterColorLight = linearToSrgb(hsvToSrgb(waterColorHsv * vec3(1, 1, 0.8)));
+    vec3 waterColorMid = linearToSrgb(hsvToSrgb(waterColorHsv * vec3(1, 1, 0.45)));
+    vec3 waterColorDark = linearToSrgb(hsvToSrgb(waterColorHsv * vec3(1, 1, 0.05)));
+
     // add sky gradient
     if (finalFresnel < 0.5) {
         surfaceColor = mix(waterColorDark, waterColorMid, finalFresnel * 2);
@@ -134,17 +154,6 @@ vec4 sampleLegacyWater(WaterType waterType, vec3 viewDir) {
     }
 
     vec3 surfaceColorOut = surfaceColor * max(combinedSpecularStrength, 0.2);
-
-    // Initialize the reflection with a fake sky reflection
-    #if PLANAR_REFLECTIONS
-    vec3 I = -viewDir; // incident
-    // Assume the water is level
-    vec3 flatR = reflect(I, vec3(0, -1, 0));
-    vec3 R = reflect(I, normals);
-    float distortionFactor = 50;
-    vec3 reflection = linearToSrgb(sampleWaterReflection(flatR, mix(flatR, R, .5), distortionFactor));
-    surfaceColor = reflection * .9;
-    #endif
 
     // apply lighting
     vec3 compositeLight = ambientLightOut + lightOut + lightSpecularOut + skyLightOut + lightningOut +

@@ -384,9 +384,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int uniFogDepth;
 	private int uniDrawDistance;
 	private int uniExpandedMapLoadingChunks;
-	private int uniWaterColorLight;
-	private int uniWaterColorMid;
-	private int uniWaterColorDark;
+	private int uniLegacyWaterColor;
 	private int uniAmbientStrength;
 	private int uniAmbientColor;
 	private int uniLightStrength;
@@ -938,9 +936,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		uniUseFog = glGetUniformLocation(glSceneProgram, "useFog");
 		uniFogColor = glGetUniformLocation(glSceneProgram, "fogColor");
 		uniFogDepth = glGetUniformLocation(glSceneProgram, "fogDepth");
-		uniWaterColorLight = glGetUniformLocation(glSceneProgram, "waterColorLight");
-		uniWaterColorMid = glGetUniformLocation(glSceneProgram, "waterColorMid");
-		uniWaterColorDark = glGetUniformLocation(glSceneProgram, "waterColorDark");
+		uniLegacyWaterColor = glGetUniformLocation(glSceneProgram, "legacyWaterColor");
 		uniDrawDistance = glGetUniformLocation(glSceneProgram, "drawDistance");
 		uniExpandedMapLoadingChunks = glGetUniformLocation(glSceneProgram, "expandedMapLoadingChunks");
 		uniAmbientStrength = glGetUniformLocation(glSceneProgram, "ambientStrength");
@@ -2159,33 +2155,11 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			glUniform1i(uniUseFog, fogDepth > 0 ? 1 : 0);
 			glUniform1f(uniFogDepth, fogDepth);
 			glUniform3fv(uniFogColor, fogColor);
+			glUniform3fv(uniLegacyWaterColor, environmentManager.currentWaterColor);
 
 			glUniform1f(uniDrawDistance, getDrawDistance());
 			glUniform1i(uniExpandedMapLoadingChunks, sceneContext.expandedMapLoadingChunks);
 			glUniform1f(uniColorBlindnessIntensity, config.colorBlindnessIntensity() / 100.f);
-
-			float[] waterColorHsv = ColorUtils.srgbToHsv(environmentManager.currentWaterColor);
-			float lightBrightnessMultiplier = 0.8f;
-			float midBrightnessMultiplier = 0.45f;
-			float darkBrightnessMultiplier = 0.05f;
-			float[] waterColorLight = ColorUtils.linearToSrgb(ColorUtils.hsvToSrgb(new float[] {
-				waterColorHsv[0],
-				waterColorHsv[1],
-				waterColorHsv[2] * lightBrightnessMultiplier
-			}));
-			float[] waterColorMid = ColorUtils.linearToSrgb(ColorUtils.hsvToSrgb(new float[] {
-				waterColorHsv[0],
-				waterColorHsv[1],
-				waterColorHsv[2] * midBrightnessMultiplier
-			}));
-			float[] waterColorDark = ColorUtils.linearToSrgb(ColorUtils.hsvToSrgb(new float[] {
-				waterColorHsv[0],
-				waterColorHsv[1],
-				waterColorHsv[2] * darkBrightnessMultiplier
-			}));
-			glUniform3fv(uniWaterColorLight, waterColorLight);
-			glUniform3fv(uniWaterColorMid, waterColorMid);
-			glUniform3fv(uniWaterColorDark, waterColorDark);
 
 			float brightness = config.brightness() / 20f;
 			glUniform1f(uniAmbientStrength, environmentManager.currentAmbientStrength * brightness);
