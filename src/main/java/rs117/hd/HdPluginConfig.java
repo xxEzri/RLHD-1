@@ -685,12 +685,13 @@ public interface HdPluginConfig extends Config
 		name = "Reflection Resolution",
 		description =
 			"Percentage of screen resolution to render reflections at.<br>" +
-			"50% is a good balance between performance and quality.",
+			"50% is a good for performance, but produces more shimmering.<br>" +
+			"Super-resolution of up to 400% is allowed, but is very costly.",
 		position = 4,
 		section = waterSettings
 	)
 	@Units(Units.PERCENT)
-	@Range(min = 25, max = 100)
+	@Range(min = 25, max = 400)
 	default int reflectionResolution() {
 		return 100;
 	}
