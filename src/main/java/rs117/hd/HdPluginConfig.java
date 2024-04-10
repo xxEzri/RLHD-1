@@ -37,6 +37,7 @@ import rs117.hd.config.ColorFilter;
 import rs117.hd.config.Contrast;
 import rs117.hd.config.DefaultSkyColor;
 import rs117.hd.config.FogDepthMode;
+import rs117.hd.config.LegacyWater;
 import rs117.hd.config.MaxDynamicLights;
 import rs117.hd.config.Saturation;
 import rs117.hd.config.SeasonalTheme;
@@ -924,15 +925,17 @@ public interface HdPluginConfig extends Config
 		return false;
 	}
 
-	String KEY_LEGACY_WATER = "legacyWater";
+	String KEY_LEGACY_WATER = "legacyWaterStyle";
 	@ConfigItem(
 		keyName = KEY_LEGACY_WATER,
 		name = "Legacy Water",
-		description = "Use the water style included in the initial release of the plugin. May be removed in the future.",
+		description =
+			"Use the water style included in the initial release of the plugin. May be removed in the future.<br>" +
+			"For reflections, Planar Reflections in Water settings must also be enabled.",
 		section = miscellaneousSettings
 	)
-	default boolean legacyWater() {
-		return false;
+	default LegacyWater legacyWater() {
+		return LegacyWater.OFF;
 	}
 
 	String KEY_VANILLA_COLOR_BANDING = "vanillaColorBanding";

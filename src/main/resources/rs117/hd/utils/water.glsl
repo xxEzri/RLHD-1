@@ -31,7 +31,7 @@
 //#define HOODER_WATER
 #ifdef HOODER_WATER
 #include utils/hooder_water.glsl
-#elif LEGACY_WATER
+#elif LEGACY_WATER > 0
 #include utils/legacy_water.glsl
 #else
 

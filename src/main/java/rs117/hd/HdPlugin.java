@@ -79,6 +79,7 @@ import org.lwjgl.system.Callback;
 import org.lwjgl.system.Configuration;
 import rs117.hd.config.AntiAliasingMode;
 import rs117.hd.config.ColorFilter;
+import rs117.hd.config.LegacyWater;
 import rs117.hd.config.SeasonalTheme;
 import rs117.hd.config.ShadingMode;
 import rs117.hd.config.ShadowMode;
@@ -451,7 +452,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	public boolean configNpcLights;
 	public boolean configHideFakeShadows;
 	public boolean configLegacyGreyColors;
-	public boolean configLegacyWater;
 	public boolean configModelBatching;
 	public boolean configModelCaching;
 	public boolean configShadowsEnabled;
@@ -469,6 +469,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	public VanillaShadowMode configVanillaShadowMode;
 	public ColorFilter configColorFilter = ColorFilter.NONE;
 	public ColorFilter configColorFilterPrevious;
+	public LegacyWater configLegacyWater;
 
 	public boolean useLowMemoryMode;
 	public boolean enableDetailedTimers;
@@ -2669,7 +2670,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		configHideFakeShadows = configVanillaShadowMode != VanillaShadowMode.SHOW;
 		configLegacyGreyColors = config.legacyGreyColors();
 		configLegacyWater = config.legacyWater();
-		configLinearAlphaBlending = !configLegacyWater;
+		configLinearAlphaBlending = configLegacyWater == LegacyWater.OFF;
 		configModelBatching = config.modelBatching();
 		configModelCaching = config.modelCaching();
 		configMaxDynamicLights = config.maxDynamicLights().getValue();

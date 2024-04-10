@@ -130,7 +130,7 @@ vec4 sampleLegacyWater(WaterType waterType, vec3 viewDir) {
 
     vec3 skyColor = legacyWaterColor;
 
-    #if PLANAR_REFLECTIONS
+    #if PLANAR_REFLECTIONS && LEGACY_WATER == 2
     vec3 I = -viewDir; // incident
     // Assume the water is level
     vec3 flatR = reflect(I, vec3(0, -1, 0));
