@@ -41,18 +41,14 @@
 #define SHADOW_DEFAULT_OPACITY_THRESHOLD 0.71 // Lowest while keeping Prifddinas glass walkways transparent
 #endif
 
-#define WATER_STYLE_DEFAULT 0
-#define WATER_STYLE_LEGACY 1
-#define WATER_STYLE_HOODER 2
-
 #include VANILLA_COLOR_BANDING
 #include UNDO_VANILLA_SHADING
 #include LEGACY_GREY_COLORS
+#include LEGACY_WATER
+#include LINEAR_ALPHA_BLENDING
 #include DISABLE_DIRECTIONAL_SHADING
 #include FLAT_SHADING
 #include SHADOW_MAP_OVERLAY
 #include APPLY_COLOR_FILTER
-#include LINEAR_ALPHA_BLENDING
-#include WATER_STYLE
 #include WATER_FOAM
 #include PLANAR_REFLECTIONS

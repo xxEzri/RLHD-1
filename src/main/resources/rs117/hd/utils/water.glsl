@@ -26,11 +26,13 @@
 #include utils/constants.glsl
 #include utils/misc.glsl
 #include utils/water_reflection.glsl
+#include utils/texture_bicubic.glsl
 
-#if WATER_STYLE == WATER_STYLE_LEGACY
-#include utils/legacy_water.glsl
-#elif WATER_STYLE == WATER_STYLE_HOODER
+//#define HOODER_WATER
+#ifdef HOODER_WATER
 #include utils/hooder_water.glsl
+#elif LEGACY_WATER
+#include utils/legacy_water.glsl
 #else
 
 //#define DEVELOPMENT_WATER_TYPE 7 // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEWATER
@@ -49,8 +51,6 @@
 // 13 = plain flat water --- #2 is color-matched to model-water in caves etc, while this one isn't
 // 14 = dark blue water
 // 15 = flat blood
-
-#include utils/texture_bicubic.glsl
 
 float calculateFresnel(const vec3 I, const vec3 N, const float ior) {
     float cosi = dot(I, N);

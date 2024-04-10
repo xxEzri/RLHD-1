@@ -47,7 +47,6 @@ import rs117.hd.config.ShadowResolution;
 import rs117.hd.config.TextureResolution;
 import rs117.hd.config.UIScalingMode;
 import rs117.hd.config.VanillaShadowMode;
-import rs117.hd.config.WaterStyle;
 
 import static rs117.hd.HdPlugin.MAX_DISTANCE;
 import static rs117.hd.HdPlugin.MAX_FOG_DEPTH;
@@ -642,19 +641,6 @@ public interface HdPluginConfig extends Config
 	)
 	String waterSettings = "waterSettings";
 
-	String KEY_WATER_STYLE = "wipWaterStyle";
-	@ConfigItem(
-		keyName = KEY_WATER_STYLE,
-		name = "Water Style",
-		description = "Choose between different water styles.",
-		position = 0,
-		section = waterSettings
-	)
-	default WaterStyle waterStyle()
-	{
-		return WaterStyle.DEFAULT;
-	}
-
 	@ConfigItem(
 		keyName = "waterTransparency",
 		name = "Water Transparency",
@@ -938,6 +924,18 @@ public interface HdPluginConfig extends Config
 		section = miscellaneousSettings
 	)
 	default boolean legacyGreyColors() {
+		return false;
+	}
+
+	String KEY_LEGACY_WATER = "legacyWater";
+	@ConfigItem(
+		keyName = KEY_LEGACY_WATER,
+		name = "Legacy Water",
+		description = "Use the water style included in the initial release of the plugin. May be removed in the future.",
+		position = 4,
+		section = miscellaneousSettings
+	)
+	default boolean legacyWater() {
 		return false;
 	}
 

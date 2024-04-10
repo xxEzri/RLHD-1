@@ -84,7 +84,6 @@ import rs117.hd.config.ShadingMode;
 import rs117.hd.config.ShadowMode;
 import rs117.hd.config.UIScalingMode;
 import rs117.hd.config.VanillaShadowMode;
-import rs117.hd.config.WaterStyle;
 import rs117.hd.data.WaterType;
 import rs117.hd.data.environments.Area;
 import rs117.hd.data.materials.Material;
@@ -454,6 +453,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	public boolean configNpcLights;
 	public boolean configHideFakeShadows;
 	public boolean configLegacyGreyColors;
+	public boolean configLegacyWater;
 	public boolean configModelBatching;
 	public boolean configModelCaching;
 	public boolean configShadowsEnabled;
@@ -863,11 +863,11 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			.define("VANILLA_COLOR_BANDING", config.vanillaColorBanding())
 			.define("UNDO_VANILLA_SHADING", configUndoVanillaShading)
 			.define("LEGACY_GREY_COLORS", configLegacyGreyColors)
+			.define("LEGACY_WATER", configLegacyWater)
 			.define("DISABLE_DIRECTIONAL_SHADING", config.shadingMode() != ShadingMode.DEFAULT)
 			.define("FLAT_SHADING", config.flatShading())
 			.define("SHADOW_MAP_OVERLAY", enableShadowMapOverlay)
 			.define("LINEAR_ALPHA_BLENDING", configLinearAlphaBlending)
-			.define("WATER_STYLE", config.waterStyle())
 			.define("WATER_FOAM", config.enableWaterFoam())
 			.define("PLANAR_REFLECTIONS", configPlanarReflections)
 			.addIncludePath(SHADER_PATH);
@@ -2694,6 +2694,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		configVanillaShadowMode = config.vanillaShadowMode();
 		configHideFakeShadows = configVanillaShadowMode != VanillaShadowMode.SHOW;
 		configLegacyGreyColors = config.legacyGreyColors();
+		configLegacyWater = config.legacyWater();
+		configLinearAlphaBlending = !configLegacyWater;
 		configModelBatching = config.modelBatching();
 		configModelCaching = config.modelCaching();
 		configMaxDynamicLights = config.maxDynamicLights().getValue();
@@ -2702,7 +2704,6 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		configUndoVanillaShading = config.shadingMode() != ShadingMode.VANILLA;
 		configPreserveVanillaNormals = config.preserveVanillaNormals();
 		configSeasonalTheme = config.seasonalTheme();
-		configLinearAlphaBlending = config.waterStyle() != WaterStyle.LEGACY;
 		configPlanarReflections = config.enablePlanarReflections();
 		configWaterTransparency = config.waterTransparency();
 		configWaterTransparencyAmount = config.waterTransparencyAmount();
@@ -2789,7 +2790,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 							case KEY_VANILLA_COLOR_BANDING:
 							case KEY_COLOR_FILTER:
 							case KEY_PLANAR_REFLECTIONS:
-							case KEY_WATER_STYLE:
+							case KEY_LEGACY_WATER:
 							case KEY_WATER_FOAM:
 								recompilePrograms = true;
 								break;
