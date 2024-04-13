@@ -246,7 +246,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     // SCATTERING STUFF
     float cosUp = -N.y;
 
-    vec3 C_ss = vec3(0, .32, .32); // water scatter color
+    vec3 C_ss = vec3(0.12, .26, .32); // water scatter color
     vec3 C_f = vec3(1); // air bubble color
 
 //    float k_1 = 20;  // ~tall wave scatter
@@ -266,7 +266,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     vec3 w_n = N; // presumably wave normal?
     omega_n = w_n;
 
-    vec3 L_sun = lightColor * lightStrength;
+    vec3 L_sun = max(lightColor * lightStrength, lightColor * 4);
     vec3 L_scatter = (
 //        k_1*H*pow(max(0, dot(omega_i, -omega_o)), 4.f) * pow(.5 - .5*dot(omega_i, omega_n), 3.f)
         + k_2*pow(max(0, dot(omega_o, omega_n)), 2.f)
@@ -288,7 +288,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     // SPECULAR STUFF
     float specularGloss = waterType.specularGloss;
     float specularStrength = waterType.specularStrength;
-    vec3 sunSpecular = pow(max(0, dot(R, lightDir)), specularGloss) * lightStrength * lightColor * specularStrength;
+    vec3 sunSpecular = pow(max(0, dot(R, lightDir)), specularGloss) * lightStrength * lightColor * specularStrength * 0.4;
 
 //    #define PHYSICAL_LIGHT_FALLOFF
     #ifdef PHYSICAL_LIGHT_FALLOFF
@@ -349,6 +349,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     // Opaque setting or flat water
     if (isOpaque)
     {
+        L_scatter *= 1.5; // more surface lighting
         switch (waterTypeIndex) {
             case 2: // Flat cave water
                 waterTypeColor += vec3(0.15, 0.37, 0.4);
