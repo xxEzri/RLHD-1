@@ -266,7 +266,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     vec3 w_n = N; // presumably wave normal?
     omega_n = w_n;
 
-    vec3 L_sun = max(lightColor * lightStrength, lightColor * 4);
+    vec3 L_sun = max(lightColor * lightStrength, lightColor * 3);
     vec3 L_scatter = (
 //        k_1*H*pow(max(0, dot(omega_i, -omega_o)), 4.f) * pow(.5 - .5*dot(omega_i, omega_n), 3.f)
         + k_2*pow(max(0, dot(omega_o, omega_n)), 2.f)
@@ -288,7 +288,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     // SPECULAR STUFF
     float specularGloss = waterType.specularGloss;
     float specularStrength = waterType.specularStrength;
-    vec3 sunSpecular = pow(max(0, dot(R, lightDir)), specularGloss) * lightStrength * lightColor * specularStrength * 0.4;
+    vec3 sunSpecular = pow(max(0, dot(R, lightDir)), specularGloss) * lightStrength * lightColor * specularStrength * 0.3;
 
 //    #define PHYSICAL_LIGHT_FALLOFF
     #ifdef PHYSICAL_LIGHT_FALLOFF
@@ -483,6 +483,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
 
 void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth, float lightDotNormals) {
     outputColor.r *= 0.7; // dirt texture looks unnaturally dry/bright/red in shallow water, remove some before further blending
+    outputColor *= 4 / (lightStrength);
 
     vec3 camToFrag = normalize(IN.position - cameraPos);
     float distanceToSurface = abs(depth / camToFrag.y); // abs = hack for viewing underwater geometry from below in waterfalls
