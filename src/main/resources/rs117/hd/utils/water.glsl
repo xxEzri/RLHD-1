@@ -349,7 +349,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     // Opaque setting or flat water
     if (isOpaque)
     {
-        L_scatter *= 1.7; // more surface lighting
+        L_scatter *= 2; // more surface lighting
         switch (waterTypeIndex) {
             case 2: // Flat cave water
                 waterTypeColor += vec3(0.15, 0.37, 0.4);
