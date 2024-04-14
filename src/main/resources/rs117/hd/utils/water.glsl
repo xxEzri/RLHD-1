@@ -246,7 +246,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     // SCATTERING STUFF
     float cosUp = -N.y;
 
-    vec3 C_ss = vec3(0.12, .26, .32); // water scatter color
+    vec3 C_ss = vec3(0.06, .28, .32); // water scatter color
     vec3 C_f = vec3(1); // air bubble color
 
 //    float k_1 = 20;  // ~tall wave scatter
@@ -349,7 +349,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     // Opaque setting or flat water
     if (isOpaque)
     {
-        L_scatter *= 1.5; // more surface lighting
+        L_scatter *= 1.7; // more surface lighting
         switch (waterTypeIndex) {
             case 2: // Flat cave water
                 waterTypeColor += vec3(0.15, 0.37, 0.4);
@@ -482,15 +482,29 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
 }
 
 void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth, float lightDotNormals) {
-    outputColor.r *= 0.7; // dirt texture looks unnaturally dry/bright/red in shallow water, remove some before further blending
-    outputColor *= 4 / (lightStrength);
+
+    outputColor *= vec3(0.57, 0.85, 1) * 2; // tune underwater terrain color
+
+
+    float underWaterLightStrength;
+    if(lightStrength < 4)
+    {
+        underWaterLightStrength = 4;
+    }
+    else
+    {
+        underWaterLightStrength = lightStrength;
+    }
+
+    outputColor *= (underWaterLightStrength / 4);
 
     vec3 camToFrag = normalize(IN.position - cameraPos);
     float distanceToSurface = abs(depth / camToFrag.y); // abs = hack for viewing underwater geometry from below in waterfalls
     float totalDistance = depth + distanceToSurface;
 
     // Scale from a range of 0% = 0.5, 100% = 2.75, 130% = 3.425
-    float lightPenetration = 0.5 + 2.25 * waterTransparencyAmount;
+    float lightPenetration = 0.5 + 2.25 * waterTransparencyAmount / 1.35;
+    // divide by tuning factor during testing
 
     // Exponential falloff of light intensity when penetrating water, different for each color
     vec3 extinctionColors = vec3(0);
@@ -528,7 +542,7 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth, f
     extinctionColors.g = exp(-totalDistance * (0.001981 / lightPenetration) * waterTypeExtinction.g);
     extinctionColors.b = exp(-totalDistance * (0.001548 / lightPenetration) * waterTypeExtinction.b);
 
-    if (shorelineCaustics && (!waterTransparency || depth <= 500)) {
+    if (shorelineCaustics && (waterTransparency || depth <= 500)) {
         const float scale = 2.5;
         vec2 causticsUv = worldUvs(scale);
         causticsUv *= 0.75;
@@ -537,7 +551,7 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth, f
         vec2 flow2 = causticsUv * 1.5 + animationFrame(23) * -direction;
         vec3 caustics = sampleCaustics(flow1, flow2, .005);
         vec3 causticsColor = underwaterCausticsColor * underwaterCausticsStrength;
-        if (waterTransparency && depth <= 500) // reduce caustics brightness for shallow opaque water
+        if (!waterTransparency && depth <= 500) // reduce caustics brightness for shallow opaque water
         {
             causticsColor *= 0.5;
         }
