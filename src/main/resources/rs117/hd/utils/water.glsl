@@ -35,14 +35,14 @@
 #include utils/legacy_water.glsl
 #else
 
-//#define DEVELOPMENT_WATER_TYPE 7 // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEWATER
+//#define DEVELOPMENT_WATER_TYPE 2 // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEWATER
 // 1 = water
 // 2 = flat water
 // 3 = swamp water
 // 4 = swamp water flat
 // 5 = poison waste
 // 6 = black tar flat
-// 7 = blood water
+// 7 = blood water flat
 // 8 = ice
 // 9 = ice flat
 // 10 = muddy water
@@ -50,7 +50,6 @@
 // 12 = abyss bile
 // 13 = plain flat water --- #2 is color-matched to model-water in caves etc, while this one isn't
 // 14 = dark blue water
-// 15 = flat blood
 
 float calculateFresnel(const vec3 I, const vec3 N, const float ior) {
     float cosi = dot(I, N);
@@ -201,7 +200,6 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
                 foam.rgb *= vec3(1.0, 1.0, 1.0);
                 break;
             case 7: // blood
-            case 15: // blood flat
                 foam.rgb *= vec3(1.6, 0.7, 0.7);
                 break;
             case 8: // ice
@@ -244,21 +242,286 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
 
 
     // SCATTERING STUFF
-    float cosUp = -N.y;
 
+    bool isOpaque = !waterTransparency || waterType.isFlat; // used in several places
     vec3 C_ss = vec3(0.06, .28, .32); // water scatter color
     vec3 C_f = vec3(1); // air bubble color
-
-//    float k_1 = 20;  // ~tall wave scatter
     float k_2 = 0.01; // ~refraction scatter
     float k_3 = 0.008; // ~ambient scatter
     float k_4 = 0.1;  // ~air bubble scatter
-
     float P_f = .01; // density of air bubbles
+    float brightnessFactor = 1;
 
-//    float H = (1 - pow(cosUp, 1.f)) * 50; // wave height
-//    float H = height / 50;
+    switch (waterTypeIndex)
+    {
+        case 1: // standard water
+        if(!isOpaque)
+        {
+            C_ss = vec3(0.06, .26, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1;
+            reflection.rgb *= 1;
+        }
+        else
+        {
+            C_ss = vec3(0.06, .26, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1.8;
+            reflection.rgb *= 1.2;
+        }
+        break;
 
+
+        case 2: // flat turquiose water
+        {
+                C_ss = vec3(0.026, .45, .8); // water scatter color
+                C_f = vec3(1); // air bubble color
+                k_2 = 0.01; // ~refraction scatter
+                k_3 = 0.008; // ~ambient scatter
+                k_4 = 0.1;  // ~air bubble scatter
+                P_f = .01; // density of air bubbles
+                brightnessFactor = 25;
+                reflection.rgb *= (brightnessFactor / 1.5);
+        }
+        break;
+
+
+        case 3: // swamp water
+        if(!isOpaque)
+        {
+            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1;
+            reflection.rgb *= 1;
+        }
+        else
+        {
+            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1;
+            reflection.rgb *= 1;
+        }
+        break;
+
+
+        case 4: // swamp water flat
+        {
+            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1;
+            reflection.rgb *= 1;
+        }
+        break;
+
+
+        case 5: // poison waste
+        if(!isOpaque)
+        {
+            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1;
+            reflection.rgb *= 1;
+        }
+        else
+        {
+            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1;
+            reflection.rgb *= 1;
+        }
+
+
+        case 6: // black tar flat
+        {
+            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1;
+            reflection.rgb *= 1;
+        }
+        break;
+
+
+        case 7: // blood flat
+        {
+            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1;
+            reflection.rgb *= 1;
+        }
+        break;
+
+
+        case 8: // ice
+        if(!isOpaque)
+        {
+            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1;
+            reflection.rgb *= 1;
+        }
+        else
+        {
+            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1;
+            reflection.rgb *= 1;
+        }
+        break;
+
+
+        case 9: // ice flat
+        {
+            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1;
+            reflection.rgb *= 1;
+        }
+        break;
+
+
+        case 10: // muddy water
+        if(!isOpaque)
+        {
+            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1;
+            reflection.rgb *= 1;
+        }
+        else
+        {
+            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1;
+            reflection.rgb *= 1;
+        }
+        break;
+
+
+        case 11: // scar sludge
+        if(!isOpaque)
+        {
+            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1;
+            reflection.rgb *= 1;
+        }
+        else
+        {
+            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1;
+            reflection.rgb *= 1;
+        }
+        break;
+
+
+        case 12: // abyss bile flat
+        {
+            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1;
+            reflection.rgb *= 1;
+        }
+        break;
+
+
+        case 13: // standard water flat
+        {
+            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1;
+            reflection.rgb *= 1;
+        }
+        break;
+
+
+        case 14: // dark water flat
+        {
+            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_f = vec3(1); // air bubble color
+            k_2 = 0.01; // ~refraction scatter
+            k_3 = 0.008; // ~ambient scatter
+            k_4 = 0.1;  // ~air bubble scatter
+            P_f = .01; // density of air bubbles
+            brightnessFactor = 1;
+            reflection.rgb *= 1;
+        }
+        break;
+    }
+
+    float cosUp = -N.y;
     vec3 omega_i = lightDir; // incoming = sun to frag
     vec3 omega_o = viewDir; // outgoing = frag to camera
     vec3 omega_h = normalize(omega_o - omega_i); // half-way between incoming and outgoing
@@ -272,6 +535,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
         + k_2*pow(max(0, dot(omega_o, omega_n)), 2.f)
     ) * C_ss*L_sun;
     L_scatter += k_3*max(0, dot(omega_i, w_n))*C_ss*L_sun + k_4*P_f*C_f*L_sun;
+    L_scatter *= brightnessFactor;
 
 
 
@@ -288,9 +552,9 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     // SPECULAR STUFF
     float specularGloss = waterType.specularGloss;
     float specularStrength = waterType.specularStrength;
-    vec3 sunSpecular = pow(max(0, dot(R, lightDir)), specularGloss) * lightStrength * lightColor * specularStrength * 0.3;
+    vec3 sunSpecular = pow(max(0, dot(R, lightDir)), specularGloss) * lightStrength * lightColor * specularStrength * 0.25;
 
-//    #define PHYSICAL_LIGHT_FALLOFF
+    //#define PHYSICAL_LIGHT_FALLOFF
     #ifdef PHYSICAL_LIGHT_FALLOFF
     // Point lights
     vec3 pointLightsSpecular = vec3(0);
@@ -343,88 +607,7 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
 
 
 
-    bool isOpaque = !waterTransparency || waterType.isFlat;
-    vec3 waterTypeColor = vec3(0);
 
-    // Opaque setting or flat water
-    if (isOpaque)
-    {
-        L_scatter *= 2; // more surface lighting
-        switch (waterTypeIndex) {
-            case 2: // Flat cave water
-                waterTypeColor += vec3(0.15, 0.37, 0.4);
-                break;
-            case 3: // Swamp water
-            case 4: // Swamp water flat
-                waterTypeColor += vec3(0.15, 0.37, 0.4);
-                break;
-            case 5: // toxic waste flat
-                waterTypeColor += vec3(0.15, 0.37, 0.4);
-                break;
-            case 6: // black tar flat
-                waterTypeColor += vec3(0.15, 0.37, 0.4);
-                break;
-            case 7: // Blood
-            case 15: // Blood flat
-                waterTypeColor += vec3(0.15, 0.37, 0.4);
-                break;
-            case 8:
-            case 9: // Ice flat
-                waterTypeColor += vec3(0.15, 0.37, 0.4);
-                break;
-            case 10: // Muddy water flat
-                waterTypeColor += vec3(0.15, 0.37, 0.4);
-                break;
-            case 11: // Scar Sludge flat
-                waterTypeColor += vec3(0.15, 0.37, 0.4);
-                break;
-            case 12: // abyss bile flat
-                waterTypeColor += vec3(0.15, 0.37, 0.4);
-                break;
-            case 1: // water
-            case 13: // plain water flat
-            case 14: // dark blue water
-                waterTypeColor += vec3(0);
-                break;
-        }
-    }
-    else // Transparent water
-    {
-        switch (waterTypeIndex) {
-            case 3: // swamp water
-                reflection.rgb *= 0.3; // dim reflection
-                waterTypeColor += vec3(0.1, 0.1, 0.05); // inject color
-                break;
-            case 5: // toxic waste
-                reflection.rgb *= 0.3; // dim reflection
-                waterTypeColor += vec3(0.05, 0.05, 0.05); // inject color
-                break;
-             case 7: // blood
-                reflection.rgb *= 0.75; // dim reflection
-                waterTypeColor += vec3(0.16, 0, 0); // inject color
-                break;
-            case 8: // ice
-                reflection.rgb *= 0.8; // dim reflection
-                waterTypeColor += vec3(0.07, 0.07, 0.1); // inject color
-                break;
-            case 10: // muddy water
-                reflection.rgb *= 0.4; // dim reflection
-                waterTypeColor += vec3(0.13, 0.06, 0); // inject color
-                break;
-            case 11: // scar sludge
-                reflection.rgb *= 0.9;
-                waterTypeColor += vec3(0.3, 0.37, 0.3); // inject color
-                break;
-            case 12: // abyss bile
-                reflection.rgb *= 0.9;
-                waterTypeColor += vec3(0.42, 0.29, 0.075); // inject color
-                break;
-        }
-    }
-
-    // Hack for special water types, artificially adding light
-    // For flat water, this could be improved by sampling underwater at a fixed vertical depth // how?
-    L_scatter += waterTypeColor;
 
 
 
@@ -485,7 +668,7 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth, f
 
     outputColor *= vec3(0.57, 0.85, 1) * 2; // tune underwater terrain color
 
-
+    // Sanitize underwater terrain lighting so that it doesn't deviate too much
     float underWaterLightStrength;
     if(lightStrength < 4)
     {
@@ -495,8 +678,8 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth, f
     {
         underWaterLightStrength = lightStrength;
     }
-
     outputColor *= (underWaterLightStrength / 4);
+
 
     vec3 camToFrag = normalize(IN.position - cameraPos);
     float distanceToSurface = abs(depth / camToFrag.y); // abs = hack for viewing underwater geometry from below in waterfalls
@@ -519,19 +702,19 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth, f
             break;
         case 3:
         case 4:
-            waterTypeExtinction = vec3(2, 2, 2); // Light absorption for swamp water
+            waterTypeExtinction = vec3(1, 1, 1); // Light absorption for swamp water
             break;
         case 5:
-            waterTypeExtinction = vec3(3, 3, 3); // Light absorption for toxic waste
+            waterTypeExtinction = vec3(1, 1, 1); // Light absorption for toxic waste
             break;
         case 7:
-            waterTypeExtinction = vec3(0.6, 30, 30); // Light absorption for blood
+            waterTypeExtinction = vec3(1, 1, 1); // Light absorption for blood
             break;
         case 10:
-            waterTypeExtinction = vec3(1.5, 3, 6); // Light absorption for muddy water
+            waterTypeExtinction = vec3(1, 1, 1); // Light absorption for muddy water
             break;
         case 11:
-            waterTypeExtinction = vec3(0.75, 1.125, 1.5); // Light absorption for scar sludge
+            waterTypeExtinction = vec3(1, 1, 1); // Light absorption for scar sludge
             break;
         case 12:
             waterTypeExtinction = vec3(1, 1, 1); // Light absorption for abyss bile
