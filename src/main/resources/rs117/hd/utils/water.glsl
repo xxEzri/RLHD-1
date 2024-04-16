@@ -35,7 +35,7 @@
 #include utils/legacy_water.glsl
 #else
 
-//#define DEVELOPMENT_WATER_TYPE 2 // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEWATER
+//#define DEVELOPMENT_WATER_TYPE 4 // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEWATER
 // 1 = water
 // 2 = flat water
 // 3 = swamp water
@@ -349,13 +349,13 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
 
         case 4: // swamp water flat
         {
-            C_ss = vec3(0.15, .25, .16); // water scatter color
+            C_ss = vec3(0.04, .48, .26); // water scatter color
             C_f = vec3(1); // air bubble color
             k_2 = 0.15; // ~refraction scatter
             k_3 = 0.15; // ~ambient scatter
             k_4 = 0.2;  // ~air bubble scatter
             P_f = .01; // density of air bubbles
-            brightnessFactor = 0.5;
+            brightnessFactor = 1;
             reflection.rgb *= 1;
         }
         break;
