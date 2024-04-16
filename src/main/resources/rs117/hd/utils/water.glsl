@@ -118,8 +118,14 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     n2.xyz = n2.xzy;
     n1.y /= 0.225; // scale normals
 
-    // black tar, ice, ice flat, abyss bile
-    if(waterTypeIndex == 6 || waterTypeIndex == 8 || waterTypeIndex == 9 || waterTypeIndex == 12)
+    //black tar
+    if(waterTypeIndex == 6)
+    {
+        n1.y /= 0.1;
+    }
+
+    //ice, ice flat, abyss bile
+    if(waterTypeIndex == 8 || waterTypeIndex == 9 || waterTypeIndex == 12)
     {
         n1.y /= 0.3;
     }
@@ -128,8 +134,14 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
     n1 = normalize(n1);
     n2.y /= 0.8; // scale normals
 
-    // black tar, ice, ice flat, abyss bile
-    if(waterTypeIndex == 6 || waterTypeIndex == 8 || waterTypeIndex == 9 || waterTypeIndex == 12)
+    //black tar
+    if(waterTypeIndex == 6)
+    {
+        n2.y /= 0.1;
+    }
+
+    //ice, ice flat, abyss bile
+    if( waterTypeIndex == 8 || waterTypeIndex == 9 || waterTypeIndex == 12)
     {
         n2.y /= 0.3;
     }
