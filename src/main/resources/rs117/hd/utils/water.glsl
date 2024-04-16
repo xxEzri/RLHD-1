@@ -35,7 +35,7 @@
 #include utils/legacy_water.glsl
 #else
 
-//#define DEVELOPMENT_WATER_TYPE 8 // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEWATER
+//#define DEVELOPMENT_WATER_TYPE 2 // DEVELOPMENT OVERRIDE - ALSO SET IN SAMPLEWATER
 // 1 = water
 // 2 = flat water
 // 3 = swamp water
@@ -457,25 +457,25 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
         case 10: // muddy water
         if(!isOpaque)
         {
-            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_ss = vec3(0.3, .18, .0); // water scatter color
             C_f = vec3(1); // air bubble color
-            k_2 = 0.01; // ~refraction scatter
-            k_3 = 0.008; // ~ambient scatter
+            k_2 = 0.02; // ~refraction scatter
+            k_3 = 0.016; // ~ambient scatter
             k_4 = 0.1;  // ~air bubble scatter
             P_f = .01; // density of air bubbles
             brightnessFactor = 1;
-            reflection.rgb *= 1;
+            reflection.rgb *= 0.2;
         }
         else
         {
-            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_ss = vec3(0.3, .18, .0); // water scatter color
             C_f = vec3(1); // air bubble color
-            k_2 = 0.01; // ~refraction scatter
-            k_3 = 0.008; // ~ambient scatter
+            k_2 = 0.02; // ~refraction scatter
+            k_3 = 0.016; // ~ambient scatter
             k_4 = 0.1;  // ~air bubble scatter
             P_f = .01; // density of air bubbles
             brightnessFactor = 1;
-            reflection.rgb *= 1;
+            reflection.rgb *= 0.2;
         }
         break;
 
@@ -483,10 +483,10 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
         case 11: // scar sludge
         if(!isOpaque)
         {
-            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_ss = vec3(0.45, .49, .43); // water scatter color
             C_f = vec3(1); // air bubble color
-            k_2 = 0.01; // ~refraction scatter
-            k_3 = 0.008; // ~ambient scatter
+            k_2 = 0.05; // ~refraction scatter
+            k_3 = 0.05; // ~ambient scatter
             k_4 = 0.1;  // ~air bubble scatter
             P_f = .01; // density of air bubbles
             brightnessFactor = 1;
@@ -494,10 +494,10 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
         }
         else
         {
-            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_ss = vec3(0.45, .49, .43); // water scatter color
             C_f = vec3(1); // air bubble color
-            k_2 = 0.01; // ~refraction scatter
-            k_3 = 0.008; // ~ambient scatter
+            k_2 = 0.05; // ~refraction scatter
+            k_3 = 0.05; // ~ambient scatter
             k_4 = 0.1;  // ~air bubble scatter
             P_f = .01; // density of air bubbles
             brightnessFactor = 1;
@@ -508,10 +508,10 @@ vec4 sampleWater(int waterTypeIndex, vec3 viewDir)
 
         case 12: // abyss bile flat
         {
-            C_ss = vec3(0.06, .28, .32); // water scatter color
+            C_ss = vec3(0.68, .975, .48); // water scatter color
             C_f = vec3(1); // air bubble color
-            k_2 = 0.01; // ~refraction scatter
-            k_3 = 0.008; // ~ambient scatter
+            k_2 = 0.02; // ~refraction scatter
+            k_3 = 0.017; // ~ambient scatter
             k_4 = 0.1;  // ~air bubble scatter
             P_f = .01; // density of air bubbles
             brightnessFactor = 1;
@@ -719,10 +719,12 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth, f
             waterTypeExtinction = vec3(1, 1, 1);
             break;
         case 10:
-            waterTypeExtinction = vec3(1, 1, 1); // Light absorption for muddy water
+            waterTypeExtinction = vec3(0.6, 1, 1.5); // Light absorption for muddy water
+            outputColor *= vec3(0.37, 0.24, 0.24); // Browner mud rather than sand
             break;
         case 11:
             waterTypeExtinction = vec3(1, 1, 1); // Light absorption for scar sludge
+            outputColor *= vec3(0.8, 0.8, 0); // Browner mud rather than sand
             break;
         case 12:
             waterTypeExtinction = vec3(1, 1, 1); // Light absorption for abyss bile
@@ -746,7 +748,7 @@ void sampleUnderwater(inout vec3 outputColor, int waterTypeIndex, float depth, f
         {
             causticsColor *= 0.5;
         }
-        if(waterTypeIndex == 3)
+        if(waterTypeIndex == 3 || waterTypeIndex == 10 || waterTypeIndex == 11)
         {
             causticsColor *= 0.5;
         }
