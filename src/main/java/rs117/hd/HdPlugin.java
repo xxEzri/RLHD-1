@@ -2262,6 +2262,11 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 
 				frameTimer.begin(Timer.RENDER_REFLECTIONS);
 
+				// If sky is 0,0,0, replace with a dark color during reflection render pass
+				if (fogColor[0] == 0 && fogColor[1] == 0 && fogColor[2] == 0) {
+					glClearColor(0.15f, 0.15f, 0.15f, 1f);
+				}
+
 				glViewport(0, 0, reflectionWidth, reflectionHeight);
 
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fboWaterReflection);
@@ -2292,6 +2297,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				// Reset everything back to the main pass' state
 				glDisable(GL_DEPTH_TEST);
 				glEnable(GL_CULL_FACE);
+
+				glClearColor(fogColor[0], fogColor[1], fogColor[2], 1f);
 
 				frameTimer.end(Timer.RENDER_REFLECTIONS);
 			}
